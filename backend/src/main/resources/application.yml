@@ -36,11 +36,12 @@ spring:
     baseline-on-migrate: true
 
   # ===== OAuth2 Resource Server (Supabase JWT) =====
+  # On utilise UNIQUEMENT jwk-set-uri pour eviter l'appel reseau auto-discovery
+  # au demarrage (issuer-uri declenchait un GET vers Supabase avant que l'app soit prete)
   security:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: ${SUPABASE_JWT_ISSUER_URI}
           jwk-set-uri: ${SUPABASE_JWKS_URI}
 
   # ===== MAIL (SMTP) =====

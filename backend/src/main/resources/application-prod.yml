@@ -10,18 +10,17 @@ spring:
     connection-timeout: 10s
     max-transaction-retry-time: 15s
 
-  # ===== Mail (Resend en prod) =====
+  # ===== Mail (Gmail SMTP en prod) =====
   mail:
-    host: smtp.resend.com
-    port: 465
-    username: resend
-    password: ${RESEND_API_KEY:}
-    protocol: smtps
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
     properties:
       mail:
         smtp:
           auth: true
-          ssl:
+          starttls:
             enable: true
 
   # ===== Hikari : pool adapte a Railway (1 replica) =====
