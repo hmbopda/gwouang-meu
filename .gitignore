@@ -69,3 +69,10 @@ uploads/
 # ----- Windows artefacts -----
 nul
 Thumbs.db:encryptable
+
+# ----- Documents projet (gardes en local uniquement) -----
+# Fichiers a la racine uniquement
+/*.md
+/*.docx
+/*.html
+/*.bat
