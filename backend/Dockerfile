@@ -11,7 +11,6 @@ WORKDIR /build
 
 # Copier d'abord pom.xml seul pour profiter du cache des dependances Maven
 COPY pom.xml .
-COPY .mvn/ .mvn/
 RUN mvn dependency:go-offline -B 2>/dev/null || true
 
 # Copier les sources et compiler
