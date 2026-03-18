@@ -437,6 +437,9 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
           role: 'FATHER',
           onSelected: (p) => setState(() => _selectedFather = p),
           onCleared: () => setState(() => _selectedFather = null),
+          onEdit: _selectedFather != null
+              ? () => _showEditParentDialog(context, _selectedFather!, 'FATHER')
+              : null,
         ),
         const SizedBox(height: 16),
         _parentCard(
@@ -448,6 +451,9 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
           role: 'MOTHER',
           onSelected: (p) => setState(() => _selectedMother = p),
           onCleared: () => setState(() => _selectedMother = null),
+          onEdit: _selectedMother != null
+              ? () => _showEditParentDialog(context, _selectedMother!, 'MOTHER')
+              : null,
         ),
       ],
     );
@@ -462,6 +468,7 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
     required String role,
     required ValueChanged<PersonGenealogy> onSelected,
     required VoidCallback onCleared,
+    required VoidCallback? onEdit,
   }) {
     final accent = Theme.of(context).colorScheme.primary;
     return Container(
@@ -485,7 +492,7 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
               const Spacer(),
               if (selectedPerson != null)
                 GestureDetector(
-                  onTap: () => _showEditParentDialog(context, selectedPerson!, role),
+                  onTap: onEdit,
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
