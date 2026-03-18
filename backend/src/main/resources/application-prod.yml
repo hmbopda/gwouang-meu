@@ -30,16 +30,18 @@ spring:
           starttls:
             enable: true
 
-  # ===== Datasource : Transaction Pooler Supabase port 6543 (PgBouncer) =====
-  # Port 5432 est bloque par Railway — port 6543 = Transaction Pooler Supabase
+  # ===== Datasource : Supavisor Pooler (IPv4, compatible Railway) =====
+  # Railway ne supporte pas IPv6 — db.supabase.co resout en IPv6 uniquement
+  # Supavisor pooler = IPv4, port 6543, username = postgres.PROJECT_ID
   datasource:
-    url: jdbc:postgresql://db.objlxdxzpqhrekpqxgab.supabase.co:6543/postgres?sslmode=require&pgbouncer=true
+    url: jdbc:postgresql://aws-0-eu-west-1.pooler.supabase.com:6543/postgres?sslmode=require
+    username: postgres.objlxdxzpqhrekpqxgab
     hikari:
       maximum-pool-size: 5
       minimum-idle: 1
       connection-timeout: 20000
       initialization-fail-timeout: 60000
-      # PgBouncer : desactive prepared statements
+      # Transaction mode Supavisor : desactive prepared statements
       data-source-properties:
         prepareThreshold: 0
 
