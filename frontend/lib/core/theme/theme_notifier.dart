@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // ── Mode d'affichage ──────────────────────────────────────────
 
@@ -16,16 +17,42 @@ enum DisplayMode {
   final String description;
 }
 
+const _kThemeModeKey = 'gw_display_mode';
+const _kAccentColorKey = 'gw_accent_color';
+
+// ── Provider SharedPreferences (singleton) ────────────────────
+
+final sharedPreferencesProvider = Provider<SharedPreferences>((ref) {
+  throw UnimplementedError('Override this provider in ProviderScope');
+});
+
+// ── Provider mode d'affichage ─────────────────────────────────
+
 final displayModeProvider =
     StateNotifierProvider<DisplayModeNotifier, DisplayMode>(
-  (ref) => DisplayModeNotifier(),
+  (ref) {
+    final prefs = ref.watch(sharedPreferencesProvider);
+    return DisplayModeNotifier(prefs);
+  },
 );
 
 class DisplayModeNotifier extends StateNotifier<DisplayMode> {
-  DisplayModeNotifier() : super(DisplayMode.light);
+  DisplayModeNotifier(this._prefs) : super(_loadMode(_prefs));
+
+  final SharedPreferences _prefs;
+
+  static DisplayMode _loadMode(SharedPreferences prefs) {
+    final saved = prefs.getString(_kThemeModeKey);
+    if (saved == null) return DisplayMode.dark; // dark par défaut
+    return DisplayMode.values.firstWhere(
+      (m) => m.name == saved,
+      orElse: () => DisplayMode.dark,
+    );
+  }
 
   void setMode(DisplayMode mode) {
     state = mode;
+    _prefs.setString(_kThemeModeKey, mode.name);
   }
 }
 
@@ -96,18 +123,35 @@ const kAccentColors = [
   ),
 ];
 
+// ── Provider couleur accent ───────────────────────────────────
+
 final accentColorProvider =
     StateNotifierProvider<AccentColorNotifier, AccentColor>(
-  (ref) => AccentColorNotifier(),
+  (ref) {
+    final prefs = ref.watch(sharedPreferencesProvider);
+    return AccentColorNotifier(prefs);
+  },
 );
 
 class AccentColorNotifier extends StateNotifier<AccentColor> {
-  AccentColorNotifier() : super(kAccentColors[0]); // Or par défaut
+  AccentColorNotifier(this._prefs) : super(_loadAccent(_prefs));
+
+  final SharedPreferences _prefs;
+
+  static AccentColor _loadAccent(SharedPreferences prefs) {
+    final saved = prefs.getString(_kAccentColorKey);
+    if (saved == null) return kAccentColors[0]; // Or par défaut
+    return kAccentColors.firstWhere(
+      (a) => a.name == saved,
+      orElse: () => kAccentColors[0],
+    );
+  }
 
   void setAccent(AccentColor accent) {
     state = accent;
+    _prefs.setString(_kAccentColorKey, accent.name);
   }
 }
 
 // ── Rétrocompatibilité ──
-final themeModeProvider = Provider<ThemeMode>((_) => ThemeMode.light);
+final themeModeProvider = Provider<ThemeMode>((_) => ThemeMode.dark);

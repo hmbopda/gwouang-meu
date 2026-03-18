@@ -26,6 +26,8 @@ class _FamilyTreeWidgetState extends ConsumerState<FamilyTreeWidget> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final tree = widget.tree;
     debugPrint('[TREE-WIDGET] build — subject=${tree.subject.firstName} ${tree.subject.lastName}, '
         'father=${tree.father.length}, mother=${tree.mother.length}, '
@@ -45,20 +47,20 @@ class _FamilyTreeWidgetState extends ConsumerState<FamilyTreeWidget> {
             style: const TextStyle(color: Color(0xFF4ADE80), fontSize: 11),
           ),
         ),
-        _buildToolbar(),
-        _buildLegend(),
-        Expanded(child: _buildTreeView(tree)),
+        _buildToolbar(cs, isDark),
+        _buildLegend(cs),
+        Expanded(child: _buildTreeView(tree, cs, isDark)),
         if (_isTreeEmpty(tree))
           Padding(
             padding: const EdgeInsets.only(bottom: 16, left: 24, right: 24),
             child: Text(
               'Utilisez les boutons "Ajouter un parent" ou "Ajouter un enfant" pour construire votre arbre genealogique.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white54, fontSize: 13),
+              style: TextStyle(color: cs.onSurface.withAlpha(140), fontSize: 13),
             ),
           ),
         if (tree.pendingSuggestions.isNotEmpty)
-          _buildAiSuggestionsPanel(tree.pendingSuggestions),
+          _buildAiSuggestionsPanel(tree.pendingSuggestions, cs),
       ],
     );
   }
@@ -72,38 +74,38 @@ class _FamilyTreeWidgetState extends ConsumerState<FamilyTreeWidget> {
         tree.maternalGP.isEmpty;
   }
 
-  Widget _buildToolbar() {
+  Widget _buildToolbar(ColorScheme cs, bool isDark) {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
         children: [
-          _viewChip('Complet', 'full'),
+          _viewChip('Complet', 'full', cs, isDark),
           const SizedBox(width: 8),
-          _viewChip('Ascendants', 'ancestors'),
+          _viewChip('Ascendants', 'ancestors', cs, isDark),
           const SizedBox(width: 8),
-          _viewChip('Descendants', 'descendants'),
+          _viewChip('Descendants', 'descendants', cs, isDark),
           const SizedBox(width: 8),
-          _viewChip('Unions', 'unions'),
+          _viewChip('Unions', 'unions', cs, isDark),
         ],
       ),
     );
   }
 
-  Widget _viewChip(String label, String view) {
+  Widget _viewChip(String label, String view, ColorScheme cs, bool isDark) {
     final isSelected = _currentView == view;
     return GestureDetector(
       onTap: () => setState(() => _currentView = view),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: isSelected ? gold : Colors.white10,
+          color: isSelected ? gold : cs.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(20),
         ),
         child: Text(
           label,
           style: TextStyle(
-            color: isSelected ? Colors.black : Colors.white70,
+            color: isSelected ? Colors.black : cs.onSurface.withAlpha(180),
             fontSize: 12,
             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
           ),
@@ -112,24 +114,24 @@ class _FamilyTreeWidgetState extends ConsumerState<FamilyTreeWidget> {
     );
   }
 
-  Widget _buildLegend() {
+  Widget _buildLegend(ColorScheme cs) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: Wrap(
         spacing: 12,
         runSpacing: 4,
         children: [
-          _legendDot(gold, 'Sujet'),
-          _legendDot(male, 'Homme'),
-          _legendDot(female, 'Femme'),
-          _legendDot(dead, 'Decede'),
-          _legendDot(const Color(0xFF3DAA6E), 'Suggestion IA'),
+          _legendDot(gold, 'Sujet', cs),
+          _legendDot(male, 'Homme', cs),
+          _legendDot(female, 'Femme', cs),
+          _legendDot(dead, 'Decede', cs),
+          _legendDot(const Color(0xFF3DAA6E), 'Suggestion IA', cs),
         ],
       ),
     );
   }
 
-  Widget _legendDot(Color color, String label) {
+  Widget _legendDot(Color color, String label, ColorScheme cs) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -139,14 +141,17 @@ class _FamilyTreeWidgetState extends ConsumerState<FamilyTreeWidget> {
           decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
         const SizedBox(width: 4),
-        Text(label, style: const TextStyle(color: Colors.white54, fontSize: 10)),
+        Text(label, style: TextStyle(color: cs.onSurface.withAlpha(140), fontSize: 10)),
       ],
     );
   }
 
-  Widget _buildTreeView(FamilyTree tree) {
+  Widget _buildTreeView(FamilyTree tree, ColorScheme cs, bool isDark) {
     final treeWidth = _calculateWidth(tree);
     final treeHeight = _calculateHeight(tree);
+    final lineColor = isDark
+        ? Colors.white.withValues(alpha: 0.15)
+        : Colors.black.withValues(alpha: 0.12);
 
     return InteractiveViewer(
       constrained: false,
@@ -156,13 +161,13 @@ class _FamilyTreeWidgetState extends ConsumerState<FamilyTreeWidget> {
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: CustomPaint(
-          painter: _TreePainter(tree, _currentView),
+          painter: _TreePainter(tree, _currentView, lineColor),
           child: SizedBox(
             width: treeWidth,
             height: treeHeight,
             child: Stack(
               clipBehavior: Clip.none,
-              children: _buildPersonCards(tree),
+              children: _buildPersonCards(tree, cs),
             ),
           ),
         ),
@@ -188,7 +193,7 @@ class _FamilyTreeWidgetState extends ConsumerState<FamilyTreeWidget> {
     return (levels * 160.0).clamp(300, 800);
   }
 
-  List<Widget> _buildPersonCards(FamilyTree tree) {
+  List<Widget> _buildPersonCards(FamilyTree tree, ColorScheme cs) {
     final cards = <Widget>[];
     double centerX = _calculateWidth(tree) / 2;
     int level = 0;
@@ -196,32 +201,32 @@ class _FamilyTreeWidgetState extends ConsumerState<FamilyTreeWidget> {
     // Grands-parents (level 0)
     if (tree.paternalGP.isNotEmpty || tree.maternalGP.isNotEmpty) {
       final allGP = [...tree.paternalGP, ...tree.maternalGP];
-      _addPersonRow(cards, allGP, centerX, level * 150.0);
+      _addPersonRow(cards, allGP, centerX, level * 150.0, cs);
       level++;
     }
 
     // Parents (level 1)
     if (tree.father.isNotEmpty || tree.mother.isNotEmpty) {
       final parents = [...tree.father, ...tree.mother];
-      _addPersonRow(cards, parents, centerX, level * 150.0);
+      _addPersonRow(cards, parents, centerX, level * 150.0, cs);
       level++;
     }
 
     // Sujet + freres/soeurs (level 2)
     final subjectRow = [tree.subject, ...tree.siblings.map((s) => s.person)];
-    _addPersonRow(cards, subjectRow, centerX, level * 150.0, highlightFirst: true);
+    _addPersonRow(cards, subjectRow, centerX, level * 150.0, cs, highlightFirst: true);
     level++;
 
     // Enfants (level 3)
     if (tree.children.isNotEmpty) {
-      _addPersonRow(cards, tree.children, centerX, level * 150.0);
+      _addPersonRow(cards, tree.children, centerX, level * 150.0, cs);
     }
 
     return cards;
   }
 
   void _addPersonRow(List<Widget> cards, List<PersonGenealogy> persons,
-      double centerX, double y, {bool highlightFirst = false}) {
+      double centerX, double y, ColorScheme cs, {bool highlightFirst = false}) {
     double totalWidth = persons.length * 130.0;
     double startX = centerX - totalWidth / 2;
 
@@ -235,6 +240,7 @@ class _FamilyTreeWidgetState extends ConsumerState<FamilyTreeWidget> {
           person: p,
           color: isSubject ? gold : _colorForPerson(p),
           size: isSubject ? 32.0 : 26.0,
+          cs: cs,
         ),
       ));
     }
@@ -245,12 +251,12 @@ class _FamilyTreeWidgetState extends ConsumerState<FamilyTreeWidget> {
     return p.gender == 'MALE' ? male : female;
   }
 
-  Widget _buildAiSuggestionsPanel(List<AiSuggestion> suggestions) {
+  Widget _buildAiSuggestionsPanel(List<AiSuggestion> suggestions, ColorScheme cs) {
     return Container(
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1A),
+        color: cs.surfaceContainerLow,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: const Color(0xFF3DAA6E).withValues(alpha: 0.3)),
       ),
@@ -263,8 +269,8 @@ class _FamilyTreeWidgetState extends ConsumerState<FamilyTreeWidget> {
               const SizedBox(width: 8),
               Text(
                 'Suggestions IA (${suggestions.length})',
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: cs.onSurface,
                   fontWeight: FontWeight.bold,
                   fontSize: 14,
                 ),
@@ -276,6 +282,7 @@ class _FamilyTreeWidgetState extends ConsumerState<FamilyTreeWidget> {
             suggestion: s,
             onAccept: () => _reviewSuggestion(s.id, true),
             onReject: () => _reviewSuggestion(s.id, false),
+            cs: cs,
           )),
         ],
       ),
@@ -302,10 +309,12 @@ class _PersonCard extends StatelessWidget {
   final PersonGenealogy person;
   final Color color;
   final double size;
+  final ColorScheme cs;
 
   const _PersonCard({
     required this.person,
     required this.color,
+    required this.cs,
     this.size = 26,
   });
 
@@ -330,7 +339,10 @@ class _PersonCard extends StatelessWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: color,
-                border: Border.all(color: Colors.white24, width: 2),
+                border: Border.all(
+                  color: cs.onSurface.withAlpha(60),
+                  width: 2,
+                ),
               ),
               child: person.photoUrl != null
                   ? ClipOval(child: Image.network(person.photoUrl!, fit: BoxFit.cover))
@@ -349,13 +361,13 @@ class _PersonCard extends StatelessWidget {
             Text(
               person.firstName,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+              style: TextStyle(color: cs.onSurface, fontSize: 12, fontWeight: FontWeight.w600),
               overflow: TextOverflow.ellipsis,
             ),
             Text(
               person.lastName,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.white70, fontSize: 10),
+              style: TextStyle(color: cs.onSurface.withAlpha(180), fontSize: 10),
               overflow: TextOverflow.ellipsis,
             ),
             if (person.clan != null)
@@ -366,7 +378,7 @@ class _PersonCard extends StatelessWidget {
               ),
             // Icone notes
             const SizedBox(height: 2),
-            const Icon(Icons.chat_bubble_outline, size: 12, color: Colors.white38),
+            Icon(Icons.chat_bubble_outline, size: 12, color: cs.onSurface.withAlpha(100)),
           ],
         ),
       ),
@@ -380,11 +392,13 @@ class _AiSuggestionTile extends StatelessWidget {
   final AiSuggestion suggestion;
   final VoidCallback onAccept;
   final VoidCallback onReject;
+  final ColorScheme cs;
 
   const _AiSuggestionTile({
     required this.suggestion,
     required this.onAccept,
     required this.onReject,
+    required this.cs,
   });
 
   @override
@@ -399,7 +413,7 @@ class _AiSuggestionTile extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
+        color: cs.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
@@ -410,7 +424,7 @@ class _AiSuggestionTile extends StatelessWidget {
               Expanded(
                 child: Text(
                   '${suggestion.personA?.firstName ?? "?"} ← ${suggestion.suggestedRelation} → ${suggestion.personB?.firstName ?? "?"}',
-                  style: const TextStyle(color: Colors.white, fontSize: 13),
+                  style: TextStyle(color: cs.onSurface, fontSize: 13),
                 ),
               ),
               Text(
@@ -422,14 +436,14 @@ class _AiSuggestionTile extends StatelessWidget {
           const SizedBox(height: 6),
           LinearProgressIndicator(
             value: suggestion.confidence,
-            backgroundColor: Colors.white10,
+            backgroundColor: cs.surfaceContainerHighest,
             valueColor: AlwaysStoppedAnimation(confidenceColor),
           ),
           if (suggestion.reasons.isNotEmpty) ...[
             const SizedBox(height: 6),
             ...suggestion.reasons.map((r) => Padding(
               padding: const EdgeInsets.only(top: 2),
-              child: Text('- $r', style: const TextStyle(color: Colors.white54, fontSize: 11)),
+              child: Text('- $r', style: TextStyle(color: cs.onSurface.withAlpha(140), fontSize: 11)),
             )),
           ],
           const SizedBox(height: 8),
@@ -465,13 +479,14 @@ class _AiSuggestionTile extends StatelessWidget {
 class _TreePainter extends CustomPainter {
   final FamilyTree tree;
   final String currentView;
+  final Color lineColor;
 
-  _TreePainter(this.tree, this.currentView);
+  _TreePainter(this.tree, this.currentView, this.lineColor);
 
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.15)
+      ..color = lineColor
       ..strokeWidth = 1.5
       ..style = PaintingStyle.stroke;
 

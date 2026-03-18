@@ -33,8 +33,8 @@ class NotificationBell extends ConsumerWidget {
               ),
               child: Text(
                 count > 99 ? '99+' : '$count',
-                style: const TextStyle(
-                  color: Colors.black,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onPrimary,
                   fontSize: 9,
                   fontWeight: FontWeight.w700,
                 ),

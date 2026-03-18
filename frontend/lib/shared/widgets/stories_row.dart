@@ -254,7 +254,7 @@ class _StoryCard extends StatelessWidget {
       alignment: Alignment.center,
       child: Text(
         story.name.isNotEmpty ? story.name[0].toUpperCase() : '?',
-        style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w700, fontSize: 16),
+        style: TextStyle(color: Theme.of(context).colorScheme.onPrimary, fontWeight: FontWeight.w700, fontSize: 16),
       ),
     );
   }

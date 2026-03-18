@@ -1,15 +1,20 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app.dart';
+import 'core/theme/theme_notifier.dart';
 
-void main() {
+void main() async {
   final mainStart = DateTime.now();
   WidgetsFlutterBinding.ensureInitialized();
   if (kDebugMode) {
     debugPrint('[Perf] main() start → binding: ${DateTime.now().difference(mainStart).inMilliseconds}ms');
   }
+
+  // ── Charger SharedPreferences avant l'app (lecture rapide, sync-like) ──
+  final prefs = await SharedPreferences.getInstance();
 
   // ── Filtre mouse_tracker en debug (bug connu Flutter Web) ──
   if (kDebugMode) {
@@ -23,6 +28,9 @@ void main() {
   // ── Premier frame IMMÉDIAT — pas d'await bloquant ──
   runApp(
     ProviderScope(
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+      ],
       child: BootstrapApp(mainStartTime: mainStart),
     ),
   );

@@ -83,10 +83,10 @@ class VillageHighlightCard extends StatelessWidget {
                   color: accent,
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: const Text(
+                child: Text(
                   '+ Rejoindre',
                   style: TextStyle(
-                    color: Colors.black,
+                    color: Theme.of(context).colorScheme.onPrimary,
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
                   ),
