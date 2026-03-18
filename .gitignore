@@ -73,6 +73,7 @@ Thumbs.db:encryptable
 # ----- Documents projet (gardes en local uniquement) -----
 # Fichiers a la racine uniquement
 /*.md
+!README.md
 /*.docx
 /*.html
 /*.bat
