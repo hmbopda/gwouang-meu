@@ -5,11 +5,11 @@
 # =============================================================
 
 # -------- Stage 1 : Build --------
-FROM eclipse-temurin:21-jdk-alpine AS builder
+FROM maven:3.9-eclipse-temurin-21-alpine AS builder
 
 WORKDIR /build
 
-# Copier d'abord pom.xml seul pour profiter du cache des dependances Maven
+# Copier pom.xml en premier pour cacher les dependances
 COPY pom.xml .
 RUN mvn dependency:go-offline -B 2>/dev/null || true
 
