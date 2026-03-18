@@ -30,14 +30,16 @@ spring:
           starttls:
             enable: true
 
-  # ===== Hikari : pool adapte a Railway + PgBouncer Supabase (port 6543) =====
+  # ===== Datasource : Transaction Pooler Supabase port 6543 (PgBouncer) =====
+  # Port 5432 est bloque par Railway — port 6543 = Transaction Pooler Supabase
   datasource:
+    url: jdbc:postgresql://db.objlxdxzpqhrekpqxgab.supabase.co:6543/postgres?sslmode=require&pgbouncer=true
     hikari:
       maximum-pool-size: 5
       minimum-idle: 1
       connection-timeout: 20000
       initialization-fail-timeout: 60000
-      # PgBouncer (Transaction Pooler Supabase) : desactive prepared statements
+      # PgBouncer : desactive prepared statements
       data-source-properties:
         prepareThreshold: 0
 
