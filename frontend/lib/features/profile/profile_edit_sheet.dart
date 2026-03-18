@@ -67,6 +67,9 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
   // Preferences
   String? _diet;
 
+  // Parents chargés depuis l'arbre
+  bool _parentsLoading = false;
+
   // Enfants
   final List<PersonGenealogy> _children = [];
   bool _childrenLoading = false;
@@ -146,32 +149,48 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
       _residenceCityCtrl.text = user.residenceCity ?? '';
       _residenceCountryCtrl.text = user.residenceCountry ?? '';
     }
-    // Charger les enfants liés après le premier frame
-    WidgetsBinding.instance.addPostFrameCallback((_) => _loadLinkedChildren());
+    // Charger parents + enfants liés après le premier frame
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadLinkedFamilyTree());
   }
 
-  Future<void> _loadLinkedChildren() async {
+  Future<void> _loadLinkedFamilyTree() async {
     if (!mounted) return;
-    setState(() => _childrenLoading = true);
+    setState(() {
+      _parentsLoading = true;
+      _childrenLoading = true;
+    });
     try {
       final api = ref.read(genealogyApiServiceProvider);
       final myPerson = await api.getMyPerson();
-      final linked = await api.getChildren(myPerson.id);
+      final tree = await api.getFullTree(myPerson.id);
       if (!mounted) return;
       setState(() {
+        // Parents — prendre le premier de chaque liste (père/mère)
+        if (_selectedFather == null && tree.father.isNotEmpty) {
+          _selectedFather = tree.father.first;
+        }
+        if (_selectedMother == null && tree.mother.isNotEmpty) {
+          _selectedMother = tree.mother.first;
+        }
+        // Enfants liés
         _children.clear();
-        _children.addAll(linked);
+        _children.addAll(tree.children);
         _childrenLoaded = true;
-        // Si le nb d'enfants liés dépasse la valeur déclarée, on met à jour
+        // Mettre à jour childrenCount si dépassé
         final declared = int.tryParse(_childrenCountCtrl.text.trim()) ?? 0;
-        if (linked.length > declared) {
-          _childrenCountCtrl.text = linked.length.toString();
+        if (tree.children.length > declared) {
+          _childrenCountCtrl.text = tree.children.length.toString();
         }
       });
     } catch (_) {
       if (mounted) setState(() => _childrenLoaded = true);
     } finally {
-      if (mounted) setState(() => _childrenLoading = false);
+      if (mounted) {
+        setState(() {
+          _parentsLoading = false;
+          _childrenLoading = false;
+        });
+      }
     }
   }
 
@@ -379,20 +398,39 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
   // ── 2. Parents ───────────────────────────────────────────────────────────
 
   Widget _buildParentsSection(BuildContext context) {
+    final accent = Theme.of(context).colorScheme.primary;
     return Column(
       key: const ValueKey('parents'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _sectionHeader(context, Icons.family_restroom, 'Informations parentales'),
         const SizedBox(height: 8),
-        Text(
-          'Selectionnez un membre existant d\'un de vos clans ou creez une nouvelle fiche.',
-          style: TextStyle(fontSize: 12, color: AppColors.textHint),
-        ),
+        if (_parentsLoading)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: CircularProgressIndicator(strokeWidth: 1.5, color: accent),
+                ),
+                const SizedBox(width: 8),
+                Text('Chargement des parents liés...', style: TextStyle(fontSize: 12, color: AppColors.textHint)),
+              ],
+            ),
+          )
+        else
+          Text(
+            _selectedFather == null && _selectedMother == null
+                ? 'Sélectionnez un membre existant d\'un de vos clans ou créez une nouvelle fiche.'
+                : 'Parents liés à votre arbre généalogique. Vous pouvez modifier leurs informations.',
+            style: TextStyle(fontSize: 12, color: AppColors.textHint),
+          ),
         const SizedBox(height: 16),
         _parentCard(
           context,
-          title: 'Pere',
+          title: 'Père',
           icon: Icons.man_outlined,
           selectedPerson: _selectedFather,
           gender: 'MALE',
@@ -403,7 +441,7 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
         const SizedBox(height: 16),
         _parentCard(
           context,
-          title: 'Mere',
+          title: 'Mère',
           icon: Icons.woman_outlined,
           selectedPerson: _selectedMother,
           gender: 'FEMALE',
@@ -447,19 +485,19 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
               const Spacer(),
               if (selectedPerson != null)
                 GestureDetector(
-                  onTap: onCleared,
+                  onTap: () => _showEditParentDialog(context, selectedPerson!, role),
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: AppColors.error.withAlpha(20),
+                      color: accent.withAlpha(20),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Row(
+                    child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.close, size: 14, color: AppColors.error),
-                        SizedBox(width: 4),
-                        Text('Retirer', style: TextStyle(fontSize: 11, color: AppColors.error)),
+                        Icon(Icons.edit_outlined, size: 14, color: accent),
+                        const SizedBox(width: 4),
+                        Text('Modifier', style: TextStyle(fontSize: 11, color: accent)),
                       ],
                     ),
                   ),
@@ -510,8 +548,8 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
           ] else if (_creatingParentFor == role) ...[
             // Inline creation form
             _buildInlineCreateForm(gender, role, onSelected),
-          ] else ...[
-            // Two action buttons: search existing or create new
+          ] else if (selectedPerson == null) ...[
+            // Boutons d'ajout uniquement si aucun parent lié
             Row(
               children: [
                 Expanded(
@@ -527,7 +565,7 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
                   child: _actionBtn(
                     context,
                     icon: Icons.person_add_alt_1,
-                    label: 'Creer une fiche',
+                    label: 'Créer une fiche',
                     onTap: () => _startInlineCreate(role),
                   ),
                 ),
@@ -559,6 +597,92 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
               label,
               style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
               textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showEditParentDialog(BuildContext context, PersonGenealogy parent, String role) {
+    final accent = Theme.of(context).colorScheme.primary;
+    final firstNameCtrl = TextEditingController(text: parent.firstName);
+    final lastNameCtrl = TextEditingController(text: parent.lastName);
+    final clanCtrl = TextEditingController(text: parent.clan ?? '');
+    bool loading = false;
+
+    showDialog(
+      context: context,
+      useRootNavigator: true,
+      builder: (dCtx) => StatefulBuilder(
+        builder: (dCtx, setDState) => AlertDialog(
+          title: Row(
+            children: [
+              Icon(Icons.edit_outlined, size: 18, color: accent),
+              const SizedBox(width: 8),
+              Text(
+                role == 'FATHER' ? 'Modifier le père' : 'Modifier la mère',
+                style: TextStyle(fontSize: 16, color: accent),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: firstNameCtrl,
+                decoration: const InputDecoration(labelText: 'Prénom', isDense: true),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: lastNameCtrl,
+                decoration: const InputDecoration(labelText: 'Nom', isDense: true),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: clanCtrl,
+                decoration: const InputDecoration(labelText: 'Clan', isDense: true),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: loading ? null : () => Navigator.of(dCtx, rootNavigator: true).pop(),
+              child: const Text('Annuler'),
+            ),
+            ElevatedButton(
+              onPressed: loading
+                  ? null
+                  : () async {
+                      setDState(() => loading = true);
+                      try {
+                        final api = ref.read(genealogyApiServiceProvider);
+                        final updated = await api.updatePerson(parent.id, {
+                          'firstName': firstNameCtrl.text.trim(),
+                          'lastName': lastNameCtrl.text.trim(),
+                          if (clanCtrl.text.trim().isNotEmpty) 'clan': clanCtrl.text.trim(),
+                        });
+                        if (mounted) {
+                          setState(() {
+                            if (role == 'FATHER') _selectedFather = updated;
+                            if (role == 'MOTHER') _selectedMother = updated;
+                          });
+                        }
+                        if (dCtx.mounted) Navigator.of(dCtx, rootNavigator: true).pop();
+                      } catch (e) {
+                        if (dCtx.mounted) {
+                          ScaffoldMessenger.of(dCtx).showSnackBar(
+                            SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red),
+                          );
+                        }
+                      } finally {
+                        if (dCtx.mounted) setDState(() => loading = false);
+                      }
+                    },
+              style: ElevatedButton.styleFrom(backgroundColor: accent),
+              child: loading
+                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : const Text('Enregistrer'),
             ),
           ],
         ),
