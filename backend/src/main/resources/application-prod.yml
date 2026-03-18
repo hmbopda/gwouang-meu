@@ -34,7 +34,7 @@ spring:
   # Railway ne supporte pas IPv6 — db.supabase.co resout en IPv6 uniquement
   # Supavisor pooler = IPv4, port 6543, username = postgres.PROJECT_ID
   datasource:
-    url: jdbc:postgresql://aws-0-eu-west-1.pooler.supabase.com:6543/postgres?sslmode=require
+    url: jdbc:postgresql://aws-1-eu-west-2.pooler.supabase.com:5432/postgres?sslmode=require
     username: postgres.objlxdxzpqhrekpqxgab
     hikari:
       maximum-pool-size: 5
