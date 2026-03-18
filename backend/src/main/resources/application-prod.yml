@@ -1,6 +1,13 @@
 spring:
   jpa:
     show-sql: false
+    properties:
+      hibernate:
+        # Desactive les prepared statements cote Hibernate (incompatible PgBouncer)
+        jdbc:
+          use_get_generated_keys: false
+        query:
+          in_clause_parameter_padding: true
 
   flyway:
     out-of-order: false
@@ -34,15 +41,6 @@ spring:
       data-source-properties:
         prepareThreshold: 0
 
-  jpa:
-    properties:
-      hibernate:
-        # Desactive les prepared statements cote Hibernate (incompatible PgBouncer)
-        jdbc:
-          use_get_generated_keys: false
-        query:
-          in_clause_parameter_padding: true
-
 # ===== Actuator : health toujours accessible sans auth pour Railway =====
 management:
   endpoints:
@@ -52,7 +50,6 @@ management:
   endpoint:
     health:
       show-details: never
-      # Neo4j health non-bloquant : DOWN ne bloque pas le demarrage
       probes:
         enabled: true
   health:
