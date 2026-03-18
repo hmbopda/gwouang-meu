@@ -1,0 +1,31 @@
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+  flyway:
+    enabled: true
+    out-of-order: true
+  neo4j:
+    authentication:
+      username: neo4j
+      password: ""
+
+application:
+  anthropic-api-key: ""
+  r2:
+    access-key-id: ""
+    secret-access-key: ""
+    bucket-name: gwangmeu-test
+    account-id: ""
+    public-url: http://localhost
+  firebase:
+    service-account-json: '{}'
+
+sentry:
+  enabled: false
+
+logging:
+  level:
+    com.gwangmeu: WARN
+    org.flywaydb: WARN

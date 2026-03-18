@@ -1,0 +1,77 @@
+spring:
+  datasource:
+    # options= : search_path inclut "extensions" pour les fonctions PostGIS (ST_MakePoint, ST_DWithin)
+    # Supabase installe PostGIS dans le schema "extensions", pas "public"
+    url: ${SUPABASE_DB_URL}
+    username: ${SUPABASE_DB_USER:postgres}
+    password: ${SUPABASE_DB_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: true
+    properties:
+      hibernate:
+        default_schema: public
+  flyway:
+    out-of-order: true
+    repair-on-migrate: true
+  neo4j:
+    uri: ${NEO4J_URI}
+    authentication:
+      username: ${NEO4J_USERNAME}
+      password: ${NEO4J_PASSWORD}
+  data:
+    redis:
+      url: ${REDIS_URL:redis://localhost:6379}
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # ES256 — cle ECC P-256 via JWKS Supabase
+          issuer-uri: ${SUPABASE_JWT_ISSUER_URI}
+          jwk-set-uri: ${SUPABASE_JWKS_URI}
+
+
+  # ===== MAIL (SMTP Resend.com) =====
+  # 1. Creer un compte sur https://resend.com
+  # 2. Verifier le domaine gwangmeu.com (ajouter les DNS MX/SPF/DKIM)
+  # 3. Generer une API Key et la mettre dans RESEND_API_KEY
+  mail:
+    host: smtp.resend.com
+    port: 465
+    username: resend
+    password: ${RESEND_API_KEY:}
+    protocol: smtps
+    properties:
+      mail:
+        smtp:
+          auth: true
+          ssl:
+            enable: true
+
+application:
+  base-url: http://localhost:8080
+  mail-from: ${MAIL_FROM:onboarding@resend.dev}
+  anthropic-api-key: ${ANTHROPIC_API_KEY:}
+  r2:
+    access-key-id: ${R2_ACCESS_KEY_ID:}
+    secret-access-key: ${R2_SECRET_ACCESS_KEY:}
+    bucket-name: ${R2_BUCKET_NAME:gwangmeu-media}
+    account-id: ${R2_ACCOUNT_ID:}
+    public-url: ${R2_PUBLIC_URL:http://localhost}
+  firebase:
+    service-account-json: ${FIREBASE_SERVICE_ACCOUNT_JSON:'{}'}
+
+logging:
+  level:
+    com.gwangmeu: DEBUG
+    org.springframework.security: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.flywaydb: DEBUG
+
+springdoc:
+  swagger-ui:
+    enabled: true
+
+sentry:
+  enabled: false

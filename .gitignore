@@ -1,0 +1,71 @@
+# =============================================================
+# GWANG MEU — .gitignore
+# =============================================================
+
+# ----- Secrets -----
+.env
+*.env.local
+*.env.production
+*.env.staging
+frontend/.env
+
+# ----- Java / Maven -----
+backend/target/
+*.class
+*.jar
+*.war
+*.ear
+*.log
+.mvn/wrapper/maven-wrapper.jar
+!.mvn/wrapper/maven-wrapper.properties
+
+# ----- IDE -----
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+*.code-workspace
+.project
+.classpath
+.settings/
+
+# ----- OS -----
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ----- Flutter / Dart -----
+frontend/.dart_tool/
+frontend/.flutter-plugins
+frontend/.flutter-plugins-dependencies
+frontend/build/
+frontend/.packages
+frontend/pubspec.lock
+frontend/.fvm/
+frontend/android/.gradle/
+frontend/android/local.properties
+frontend/android/key.properties
+frontend/ios/Pods/
+frontend/ios/.symlinks/
+frontend/ios/Flutter/Generated.xcconfig
+frontend/ios/Flutter/flutter_export_environment.sh
+frontend/**/*.g.dart
+frontend/**/*.freezed.dart
+
+# ----- Node (landing Next.js) -----
+landing/node_modules/
+landing/.next/
+landing/out/
+landing/.env.local
+
+# ----- Docker -----
+docker-volumes/
+uploads/
+
+# ----- Sentry -----
+.sentryclirc
+
+# ----- Windows artefacts -----
+nul
+Thumbs.db:encryptable

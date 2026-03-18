@@ -1,0 +1,21 @@
+spring:
+  jpa:
+    show-sql: false
+  flyway:
+    out-of-order: false
+
+springdoc:
+  swagger-ui:
+    enabled: false
+  api-docs:
+    enabled: false
+
+logging:
+  level:
+    com.gwangmeu: WARN
+    org.springframework.security: WARN
+
+management:
+  endpoint:
+    health:
+      show-details: never

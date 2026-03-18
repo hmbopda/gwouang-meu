@@ -1,0 +1,70 @@
+### ============================================================
+### GEO — Continents, Pays, Villages PostGIS
+### ============================================================
+
+### Liste tous les continents (avec countryCount + villageCount)
+### Public — pas de JWT requis
+GET {{baseUrl}}/api/v1/geo/continents
+
+### Detail continent par code
+GET {{baseUrl}}/api/v1/geo/continents/AF-CENTRAL
+
+### Pays du continent Afrique Centrale
+GET {{baseUrl}}/api/v1/geo/continents/AF-CENTRAL/countries
+
+### Pays par code ISO (insensible a la casse)
+GET {{baseUrl}}/api/v1/geo/countries/CMR
+
+### ============================================================
+### PostGIS — Villages a proximite (ST_DWithin)
+### Coordonnees : Yaounde, Cameroun (lat=3.848, lng=11.502)
+### Rayon : 100 km — doit retourner plusieurs villages du seed V7
+### ============================================================
+GET {{baseUrl}}/api/v1/geo/villages/nearby?lat=3.848&lng=11.502&radiusKm=100&limit=10
+
+### Meme endpoint — rayon tres petit (1 km) — doit retourner 0 resultats
+GET {{baseUrl}}/api/v1/geo/villages/nearby?lat=3.848&lng=11.502&radiusKm=1&limit=10
+
+### Coordonnees invalides — doit retourner 400 Bad Request
+GET {{baseUrl}}/api/v1/geo/villages/nearby?lat=999&lng=11.502&radiusKm=100&limit=10
+
+### Villages proches de Douala (lat=4.061, lng=9.742)
+GET {{baseUrl}}/api/v1/geo/villages/nearby?lat=4.061&lng=9.742&radiusKm=150&limit=10
+
+### Villages proches de Kinshasa, RDC (lat=-4.322, lng=15.322)
+GET {{baseUrl}}/api/v1/geo/villages/nearby?lat=-4.322&lng=15.322&radiusKm=200&limit=10
+
+### Villages proches de Dakar, Senegal (lat=14.693, lng=-17.447)
+GET {{baseUrl}}/api/v1/geo/villages/nearby?lat=14.693&lng=-17.447&radiusKm=150&limit=10
+
+### ============================================================
+### Liens culturels d'un village
+### Remplacer {{villageId}} par un UUID reel du seed V7
+### ============================================================
+GET {{baseUrl}}/api/v1/geo/villages/{{villageId}}/cultural-links
+
+### Liens culturels filtre par type
+GET {{baseUrl}}/api/v1/geo/villages/{{villageId}}/cultural-links?linkType=LINGUISTIC
+
+### ============================================================
+### Recherche globale multi-niveaux (continents + pays + villages)
+### ============================================================
+
+### Recherche par nom de village (partiel)
+GET {{baseUrl}}/api/v1/geo/search?q=bassa
+
+### Recherche par code ISO pays
+GET {{baseUrl}}/api/v1/geo/search?q=CMR
+
+### Recherche trop courte — doit retourner 400
+GET {{baseUrl}}/api/v1/geo/search?q=a
+
+### ============================================================
+### Villages — filtres pays / continent
+### ============================================================
+
+### Tous les villages du Cameroun
+GET {{baseUrl}}/api/v1/villages?countryCode=CMR&page=0&size=20
+
+### Tous les villages d'Afrique Centrale
+GET {{baseUrl}}/api/v1/villages?continentCode=AF-CENTRAL&page=0&size=20

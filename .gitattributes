@@ -1,0 +1,26 @@
+# Normalize line endings
+* text=auto
+
+# Force LF for shell scripts and config files
+*.sh text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+Makefile text eol=lf
+Dockerfile text eol=lf
+
+# Dart / Flutter
+*.dart text eol=lf
+pubspec.yaml text eol=lf
+
+# Binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.jar binary
+*.class binary
+*.war binary
+*.keystore binary
+*.jks binary
+GWANGMEU_Phase1_Restant.docx binary

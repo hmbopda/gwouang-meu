@@ -1,0 +1,17 @@
+### Fil personnalise
+GET {{baseUrl}}/api/v1/feed?page=0&size=20
+Authorization: Bearer {{jwt}}
+
+### Creer une publication
+POST {{baseUrl}}/api/v1/posts
+Authorization: Bearer {{jwt}}
+Content-Type: application/json
+
+{"villageId": "{{villageId}}", "content": "Bonjour depuis Gwang Meu!"}
+
+### Ajouter reaction
+POST {{baseUrl}}/api/v1/posts/POST_ID/reactions
+Authorization: Bearer {{jwt}}
+Content-Type: application/json
+
+{"type": "LIKE"}

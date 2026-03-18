@@ -1,0 +1,113 @@
+name: Deploy Frontend
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'frontend/**'
+      - 'landing/**'
+      - '.github/workflows/deploy-frontend.yml'
+
+  # Déclenchement manuel
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Cible de déploiement'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - flutter-web
+          - landing
+
+jobs:
+  # ── Flutter Web → Cloudflare Pages ────────────────────────────────────────
+  deploy-flutter-web:
+    name: Deploy Flutter Web
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'push' ||
+      github.event.inputs.target == 'all' ||
+      github.event.inputs.target == 'flutter-web'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.22.x'
+          channel: stable
+          cache: true
+
+      - name: Create .env
+        working-directory: frontend
+        run: |
+          echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" > .env
+          echo "SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}" >> .env
+          echo "API_BASE_URL=${{ secrets.API_BASE_URL }}" >> .env
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: flutter pub get
+
+      - name: Generate code
+        working-directory: frontend
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Build Flutter Web
+        working-directory: frontend
+        run: |
+          flutter build web \
+            --release \
+            --base-href "/" \
+            --no-tree-shake-icons \
+            --dart-define=FLUTTER_WEB_CANVASKIT_URL=https://www.gstatic.com/flutter-canvaskit/
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/pages-action@v1
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: gwangmeu-app
+          directory: frontend/build/web
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+
+  # ── Next.js Landing → Vercel ───────────────────────────────────────────────
+  # Note : Vercel se déploie automatiquement via son intégration GitHub.
+  # Ce job sert uniquement à vérifier le build avant que Vercel le fasse.
+  verify-landing:
+    name: Verify Landing Build
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'push' ||
+      github.event.inputs.target == 'all' ||
+      github.event.inputs.target == 'landing'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: landing/package-lock.json
+
+      - name: Install dependencies
+        working-directory: landing
+        run: npm ci
+
+      - name: Build
+        working-directory: landing
+        run: npm run build
+        env:
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL || 'https://api.gwangmeu.com' }}
+          NEXT_PUBLIC_APP_URL: ${{ secrets.NEXT_PUBLIC_APP_URL || 'https://app.gwangmeu.com' }}
+          NEXT_PUBLIC_SITE_URL: ${{ secrets.NEXT_PUBLIC_SITE_URL || 'https://gwangmeu.com' }}
+
+      - name: Landing build OK
+        run: echo "✅ Landing build verified — Vercel will handle deployment automatically"

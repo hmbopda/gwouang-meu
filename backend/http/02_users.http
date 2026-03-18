@@ -1,0 +1,13 @@
+### Mon profil
+GET {{baseUrl}}/api/v1/users/me
+Authorization: Bearer {{jwt}}
+
+### Modifier mon profil
+PUT {{baseUrl}}/api/v1/users/me
+Authorization: Bearer {{jwt}}
+Content-Type: application/json
+
+{"displayName": "Kwame Diallo", "nativeLanguage": "Bassa", "country": "Cameroun"}
+
+### Profil public
+GET {{baseUrl}}/api/v1/users/{{userId}}

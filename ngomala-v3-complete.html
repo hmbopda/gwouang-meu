@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NGOMALA.ACADEMY — Architecture V3 Complète</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+:root {
+  --ink:#0A0C10;--ink2:#141820;--ink3:#1E2430;
+  --surface:#F0EDE8;--cream:#FAF8F4;--paper:#FFFEF9;
+  --border:rgba(10,12,16,0.1);--border2:rgba(10,12,16,0.18);
+  --fire:#E84C0A;--fire-g:rgba(232,76,10,0.12);--fire-b:rgba(232,76,10,0.28);
+  --sky:#0A6EE8;--sky-g:rgba(10,110,232,0.1);--sky-b:rgba(10,110,232,0.25);
+  --earth:#2E7D32;--earth-g:rgba(46,125,50,0.1);--earth-b:rgba(46,125,50,0.25);
+  --gold:#C47A00;--gold-g:rgba(196,122,0,0.1);--gold-b:rgba(196,122,0,0.28);
+  --vine:#7B1FA2;--vine-g:rgba(123,31,162,0.1);--vine-b:rgba(123,31,162,0.28);
+  --ocean:#00838F;--ocean-g:rgba(0,131,143,0.1);--ocean-b:rgba(0,131,143,0.25);
+  --rose:#C2185B;--rose-g:rgba(194,24,91,0.1);--rose-b:rgba(194,24,91,0.25);
+  --claude:#D97706;--claude-g:rgba(217,119,6,0.1);--claude-b:rgba(217,119,6,0.3);
+  --text:#0A0C10;--mid:#3D4450;--muted:#7A8090;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{font-family:'Outfit',sans-serif;background:var(--surface);color:var(--text);line-height:1.6;overflow-x:hidden;}
+
+nav{background:var(--ink);height:50px;display:flex;align-items:center;padding:0 40px;gap:0;position:sticky;top:0;z-index:200;overflow-x:auto;white-space:nowrap;}
+.nav-logo{font-weight:800;font-size:14px;color:#F5C842;margin-right:28px;flex-shrink:0;}
+nav a{font-size:11px;font-weight:500;color:rgba(255,255,255,0.4);text-decoration:none;padding:0 11px;height:50px;display:inline-flex;align-items:center;border-bottom:2px solid transparent;transition:all .2s;flex-shrink:0;}
+nav a:hover{color:#fff;border-bottom-color:#F5C842;}
+
+.hero{background:var(--ink);border-bottom:4px solid transparent;border-image:linear-gradient(90deg,var(--fire),var(--gold),var(--earth),var(--ocean),var(--vine),var(--sky)) 1;}
+.hero-grid{display:grid;grid-template-columns:1fr 360px;min-height:320px;}
+.hero-left{padding:52px 48px 44px;}
+.hero-sup{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:var(--gold);margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+.hero-sup::before{content:'';display:block;width:20px;height:2px;background:var(--gold);}
+.hero h1{font-size:clamp(26px,3.2vw,46px);font-weight:900;color:#fff;line-height:1.1;letter-spacing:-1px;margin-bottom:16px;}
+.hero h1 .hi{color:var(--gold);}
+.hero-desc{font-size:13px;color:rgba(255,255,255,0.45);max-width:480px;font-weight:300;line-height:1.8;margin-bottom:24px;}
+.chips{display:flex;flex-wrap:wrap;gap:7px;}
+.chip{font-size:10.5px;font-weight:600;padding:4px 11px;border-radius:20px;border:1px solid;display:flex;align-items:center;gap:4px;}
+.chip.fire{background:var(--fire-g);border-color:var(--fire-b);color:var(--fire);}
+.chip.sky{background:var(--sky-g);border-color:var(--sky-b);color:var(--sky);}
+.chip.earth{background:var(--earth-g);border-color:var(--earth-b);color:var(--earth);}
+.chip.gold{background:var(--gold-g);border-color:var(--gold-b);color:var(--gold);}
+.chip.vine{background:var(--vine-g);border-color:var(--vine-b);color:var(--vine);}
+.chip.ocean{background:var(--ocean-g);border-color:var(--ocean-b);color:var(--ocean);}
+.chip.rose{background:var(--rose-g);border-color:var(--rose-b);color:var(--rose);}
+.chip.claude{background:var(--claude-g);border-color:var(--claude-b);color:var(--claude);}
+
+.hero-right{background:rgba(255,255,255,0.03);border-left:1px solid rgba(255,255,255,0.06);padding:36px 28px;display:flex;flex-direction:column;gap:9px;}
+.stat-row{display:flex;align-items:center;justify-content:space-between;padding:9px 13px;border-radius:9px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);}
+.stat-label{font-size:10.5px;color:rgba(255,255,255,0.35);}
+.stat-val{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;}
+
+main{max-width:1300px;margin:0 auto;padding:52px 48px;}
+section{margin-bottom:76px;}
+.sec-label{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;display:flex;align-items:center;gap:8px;}
+.sec-label::after{content:'';flex:1;max-width:40px;height:1px;background:var(--border2);}
+.sec-title{font-size:clamp(18px,2vw,28px);font-weight:800;letter-spacing:-0.5px;margin-bottom:6px;}
+.sec-sub{font-size:13px;color:var(--muted);max-width:600px;line-height:1.65;margin-bottom:26px;}
+
+.g{display:grid;gap:13px;}
+.g2{grid-template-columns:1fr 1fr;}
+.g3{grid-template-columns:repeat(3,1fr);}
+.g4{grid-template-columns:repeat(4,1fr);}
+.g5{grid-template-columns:repeat(5,1fr);}
+.g6{grid-template-columns:repeat(6,1fr);}
+
+.card{background:var(--paper);border:1px solid var(--border);border-radius:13px;padding:17px 19px;transition:box-shadow .2s,transform .15s;border-top:3px solid transparent;}
+.card:hover{box-shadow:0 5px 20px rgba(0,0,0,0.07);transform:translateY(-2px);}
+.card.fire{border-top-color:var(--fire);}.card.sky{border-top-color:var(--sky);}.card.earth{border-top-color:var(--earth);}
+.card.gold{border-top-color:var(--gold);}.card.vine{border-top-color:var(--vine);}.card.ocean{border-top-color:var(--ocean);}
+.card.rose{border-top-color:var(--rose);}.card.claude{border-top-color:var(--claude);}
+.card-icon{font-size:20px;margin-bottom:9px;}
+.card-title{font-size:12.5px;font-weight:700;margin-bottom:5px;}
+.card-body{font-size:11px;color:var(--muted);line-height:1.65;}
+.ctags{display:flex;flex-wrap:wrap;gap:4px;margin-top:9px;}
+.ctag{font-family:'JetBrains Mono',monospace;font-size:9px;padding:2px 7px;border-radius:4px;background:rgba(0,0,0,0.05);border:1px solid var(--border2);color:var(--mid);}
+
+/* ARCH BOX */
+.arch-box{background:var(--ink);border-radius:18px;padding:32px;position:relative;overflow:hidden;}
+.arch-box::before{content:'';position:absolute;top:-80px;right:-80px;width:280px;height:280px;border-radius:50%;background:radial-gradient(circle,rgba(245,200,66,0.05) 0%,transparent 70%);pointer-events:none;}
+.ltitle{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:600;letter-spacing:2.5px;text-transform:uppercase;color:rgba(255,255,255,0.22);margin-bottom:9px;padding-left:2px;}
+.ar{display:grid;gap:9px;margin-bottom:9px;}
+.ab{border-radius:9px;padding:11px 13px;border:1px solid;cursor:default;transition:transform .15s;}
+.ab:hover{transform:scale(1.015);}
+.ab.c{background:rgba(10,110,232,0.1);border-color:rgba(10,110,232,0.25);}
+.ab.j{background:rgba(232,76,10,0.1);border-color:rgba(232,76,10,0.25);}
+.ab.g{background:rgba(46,125,50,0.1);border-color:rgba(46,125,50,0.25);}
+.ab.v{background:rgba(123,31,162,0.1);border-color:rgba(123,31,162,0.25);}
+.ab.a{background:rgba(217,119,6,0.12);border-color:rgba(217,119,6,0.3);}
+.ab.d{background:rgba(196,122,0,0.1);border-color:rgba(196,122,0,0.25);}
+.ab.n{background:rgba(255,255,255,0.04);border-color:rgba(255,255,255,0.1);}
+.ab-icon{font-size:12px;margin-bottom:3px;}
+.ab-name{font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:600;color:#fff;margin-bottom:2px;line-height:1.3;}
+.ab-sub{font-size:9.5px;color:rgba(255,255,255,0.38);line-height:1.45;}
+.conn{text-align:center;padding:5px 0;font-family:'JetBrains Mono',monospace;font-size:9.5px;color:rgba(255,255,255,0.18);letter-spacing:1px;}
+.sbar{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:9px;padding:9px 14px;margin:7px 0;display:flex;flex-wrap:wrap;gap:5px;align-items:center;}
+.sb-lbl{font-family:'JetBrains Mono',monospace;font-size:8.5px;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,0.22);margin-right:3px;}
+.sbp{font-family:'JetBrains Mono',monospace;font-size:9.5px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);color:rgba(255,255,255,0.5);padding:2px 9px;border-radius:5px;}
+
+/* CLAUDE BOX */
+.claude-box{background:linear-gradient(135deg,#1A0F00,#1A1200);border:1px solid rgba(217,119,6,0.28);border-radius:18px;padding:32px;position:relative;overflow:hidden;}
+.cpipeline{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin:20px 0;}
+.cstep{background:rgba(217,119,6,0.08);border:1px solid rgba(217,119,6,0.18);border-radius:11px;padding:16px 14px;}
+.cnum{font-family:'JetBrains Mono',monospace;font-size:8.5px;font-weight:700;letter-spacing:2px;color:var(--claude);margin-bottom:7px;}
+.ctitle{font-size:12.5px;font-weight:700;color:#fff;margin-bottom:7px;}
+.citems{font-size:10.5px;color:rgba(255,255,255,0.45);line-height:1.85;}
+.cucards{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px;}
+.cuc{background:rgba(255,255,255,0.03);border:1px solid rgba(217,119,6,0.15);border-radius:11px;padding:16px 18px;}
+.cuch{display:flex;align-items:center;gap:9px;margin-bottom:9px;}
+.cuci{font-size:18px;}
+.cuct{font-size:12.5px;font-weight:700;color:#fff;}
+.cum{font-family:'JetBrains Mono',monospace;font-size:8.5px;font-weight:600;padding:2px 7px;border-radius:9px;margin-left:auto;background:var(--claude-g);color:var(--claude);border:1px solid var(--claude-b);}
+.cucb{font-size:11px;color:rgba(255,255,255,0.45);line-height:1.7;}
+.cup{margin-top:9px;background:rgba(0,0,0,0.3);border-radius:7px;padding:9px 11px;font-family:'JetBrains Mono',monospace;font-size:9.5px;color:rgba(255,255,255,0.35);line-height:1.6;}
+.cuco{margin-top:7px;font-size:10.5px;color:rgba(217,119,6,0.65);}
+
+/* GEO */
+.geodiag{background:var(--paper);border:1px solid var(--border2);border-radius:18px;padding:32px;}
+.hlvl{display:flex;align-items:stretch;gap:10px;margin-bottom:0;}
+.hcon{display:flex;flex-direction:column;align-items:center;padding:0 16px;}
+.hdot{width:11px;height:11px;border-radius:50%;flex-shrink:0;}
+.hline{width:2px;flex:1;min-height:18px;}
+.hcards{display:flex;flex-wrap:wrap;gap:9px;flex:1;padding:7px 0 14px;}
+.hcard{border-radius:9px;padding:11px 14px;border:1px solid;min-width:150px;flex:1;}
+.hcard.continent{background:rgba(232,76,10,0.07);border-color:var(--fire-b);}
+.hcard.pays{background:rgba(10,110,232,0.07);border-color:var(--sky-b);}
+.hcard.village{background:rgba(46,125,50,0.07);border-color:var(--earth-b);}
+.hcard.famille{background:rgba(196,122,0,0.07);border-color:var(--gold-b);}
+.hcard.dialecte{background:rgba(123,31,162,0.07);border-color:var(--vine-b);}
+.hn{font-size:11.5px;font-weight:700;margin-bottom:3px;}
+.hd{font-size:10px;color:var(--muted);line-height:1.5;}
+.hprops{display:flex;flex-wrap:wrap;gap:3px;margin-top:5px;}
+.hp{font-family:'JetBrains Mono',monospace;font-size:8.5px;background:rgba(0,0,0,0.05);border:1px solid var(--border);color:var(--mid);padding:1px 6px;border-radius:4px;}
+
+/* LIVE */
+.livegrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;}
+.lcard{border-radius:11px;padding:18px;border:1px solid;}
+.lcard.lk{background:var(--sky-g);border-color:var(--sky-b);}
+.lcard.rec{background:var(--earth-g);border-color:var(--earth-b);}
+.lcard.rtmp{background:var(--fire-g);border-color:var(--fire-b);}
+.lcard.ai{background:var(--claude-g);border-color:var(--claude-b);}
+.lt{font-size:12.5px;font-weight:700;margin-bottom:9px;display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
+.lb{font-family:'JetBrains Mono',monospace;font-size:8.5px;font-weight:700;padding:2px 7px;border-radius:9px;}
+.lb.free{background:var(--earth-g);color:var(--earth);border:1px solid var(--earth-b);}
+.lb.paid{background:var(--gold-g);color:var(--gold);border:1px solid var(--gold-b);}
+.lbody{font-size:11px;color:var(--mid);line-height:1.7;}
+
+/* COST */
+.cwrap{background:var(--paper);border:1px solid var(--border2);border-radius:14px;overflow:hidden;}
+table{width:100%;border-collapse:collapse;}
+thead th{background:var(--ink);color:rgba(255,255,255,0.55);font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:500;padding:10px 14px;text-align:left;letter-spacing:1px;}
+tbody td{padding:9px 14px;font-size:11.5px;border-bottom:1px solid var(--border);vertical-align:top;}
+tbody tr:last-child td{border-bottom:none;}
+tbody tr:nth-child(even) td{background:rgba(0,0,0,0.015);}
+.tds{font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:700;color:var(--text);}
+.tdd{font-size:10.5px;color:var(--muted);}
+.tdp{font-family:'JetBrains Mono',monospace;font-size:12.5px;font-weight:700;}
+.pfree{color:var(--earth);}.plow{color:var(--ocean);}.pmid{color:var(--gold);}
+.ctotal{background:var(--ink);padding:13px 18px;display:flex;justify-content:space-between;align-items:center;}
+.ctlbl{font-family:'JetBrains Mono',monospace;font-size:9.5px;color:rgba(255,255,255,0.35);letter-spacing:2px;}
+.ctval{font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:800;color:#F5C842;}
+
+/* ROADMAP */
+.roadmap{position:relative;}
+.roadmap::before{content:'';position:absolute;left:18px;top:0;bottom:0;width:2px;background:linear-gradient(180deg,var(--fire),var(--sky),var(--earth),var(--ocean),var(--vine),var(--claude));border-radius:2px;}
+.rm{display:grid;grid-template-columns:42px 1fr;gap:14px;margin-bottom:14px;}
+.rmd{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:800;border:2px solid;flex-shrink:0;z-index:1;margin-top:2px;}
+.rm.p1 .rmd{background:var(--fire-g);border-color:var(--fire);color:var(--fire);}
+.rm.p2 .rmd{background:var(--sky-g);border-color:var(--sky);color:var(--sky);}
+.rm.p3 .rmd{background:var(--earth-g);border-color:var(--earth);color:var(--earth);}
+.rm.p4 .rmd{background:var(--ocean-g);border-color:var(--ocean);color:var(--ocean);}
+.rm.p5 .rmd{background:var(--vine-g);border-color:var(--vine);color:var(--vine);}
+.rm.p6 .rmd{background:var(--claude-g);border-color:var(--claude);color:var(--claude);}
+.rmb{background:var(--paper);border:1px solid var(--border);border-radius:11px;padding:16px 20px;}
+.rmh{display:flex;align-items:center;flex-wrap:wrap;gap:7px;margin-bottom:11px;}
+.rmt{font-size:13.5px;font-weight:700;}
+.rmdr{font-family:'JetBrains Mono',monospace;font-size:9.5px;padding:3px 9px;border-radius:20px;}
+.rm.p1 .rmdr{background:var(--fire-g);color:var(--fire);}
+.rm.p2 .rmdr{background:var(--sky-g);color:var(--sky);}
+.rm.p3 .rmdr{background:var(--earth-g);color:var(--earth);}
+.rm.p4 .rmdr{background:var(--ocean-g);color:var(--ocean);}
+.rm.p5 .rmdr{background:var(--vine-g);color:var(--vine);}
+.rm.p6 .rmdr{background:var(--claude-g);color:var(--claude);}
+.rmcost{font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:700;padding:3px 9px;border-radius:20px;background:var(--earth-g);color:var(--earth);border:1px solid var(--earth-b);}
+.rmis{display:flex;flex-wrap:wrap;gap:5px;}
+.rmi{font-size:10.5px;padding:3px 9px;border-radius:5px;background:rgba(0,0,0,0.04);border:1px solid var(--border2);color:var(--mid);}
+
+@media(max-width:960px){main{padding:32px 20px;}
+.hero-grid{grid-template-columns:1fr;}.hero-right{display:none;}
+.g4,.g5,.g6{grid-template-columns:repeat(2,1fr)!important;}
+.g3{grid-template-columns:repeat(2,1fr)!important;}}
+@media(max-width:600px){.g2,.g3,.g4,.g5,.g6{grid-template-columns:1fr!important;}main{padding:24px 14px;}}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">NGOMALA.ACADEMY</div>
+  <a href="#modules">Modules</a>
+  <a href="#archi">Architecture</a>
+  <a href="#geo">Hiérarchie Géo</a>
+  <a href="#live">Lives</a>
+  <a href="#tourisme">Tourisme</a>
+  <a href="#claude">Claude IA</a>
+  <a href="#couts">Coûts</a>
+  <a href="#roadmap">Roadmap</a>
+</nav>
+
+<div class="hero">
+  <div class="hero-grid">
+    <div class="hero-left">
+      <div class="hero-sup">Architecture V3 — Définitive & Complète</div>
+      <h1>NGOMALA.ACADEMY<br><span class="hi">Plateforme Culturelle Africaine</span></h1>
+      <p class="hero-desc">Java Modulith · Flutter · Claude AI · LiveKit · Mapbox · Neo4j<br>Tourisme · Lives · Géo-Villages · Continents · Dialectes · Art Culinaire</p>
+      <div class="chips">
+        <span class="chip fire">🏘️ Social Villages</span>
+        <span class="chip sky">🎥 Lives & Cours</span>
+        <span class="chip earth">🗺️ Tourisme & Carte</span>
+        <span class="chip ocean">🌍 Continent→Village</span>
+        <span class="chip vine">🌳 Généalogie IA</span>
+        <span class="chip gold">🗣️ Dialectes</span>
+        <span class="chip rose">🍲 Art Culinaire</span>
+        <span class="chip claude">🤖 Claude AI Natif</span>
+      </div>
+    </div>
+    <div class="hero-right">
+      <div class="stat-row"><span class="stat-label">Architecture</span><span class="stat-val" style="color:#E8C96A">Java Modulith</span></div>
+      <div class="stat-row"><span class="stat-label">Frontend</span><span class="stat-val" style="color:#54C5F8">Flutter + Next.js</span></div>
+      <div class="stat-row"><span class="stat-label">IA principale</span><span class="stat-val" style="color:var(--claude)">Claude API</span></div>
+      <div class="stat-row"><span class="stat-label">Lives</span><span class="stat-val" style="color:#4FC3F7">LiveKit Cloud</span></div>
+      <div class="stat-row"><span class="stat-label">Cartes</span><span class="stat-val" style="color:#81C784">Mapbox GL</span></div>
+      <div class="stat-row"><span class="stat-label">Graphe</span><span class="stat-val" style="color:#CE93D8">Neo4j AuraDB</span></div>
+      <div class="stat-row"><span class="stat-label">Budget MVP</span><span class="stat-val" style="color:#A5D6A7">~15–20€/mois</span></div>
+      <div class="stat-row"><span class="stat-label">Modules</span><span class="stat-val" style="color:#FFCC80">14 modules</span></div>
+    </div>
+  </div>
+</div>
+
+<main>
+
+<!-- 1. MODULES -->
+<section id="modules">
+  <div class="sec-label">01 — Vue d'ensemble</div>
+  <div class="sec-title">14 Modules Fonctionnels</div>
+  <p class="sec-sub">Chaque module = package Java isolé dans le Modulith. Communication via Spring ApplicationEvents. Extractible en microservice si besoin.</p>
+  <div class="g g4">
+    <div class="card fire"><div class="card-icon">👤</div><div class="card-title">user-module</div><div class="card-body">Profils, rôles, localisation, métiers, biographie culturelle</div><div class="ctags"><span class="ctag">Supabase Auth</span><span class="ctag">JWT</span><span class="ctag">RBAC</span></div></div>
+    <div class="card sky"><div class="card-icon">🏘️</div><div class="card-title">village-module</div><div class="card-body">Pages villages, groupes, abonnements, hiérarchie géographique</div><div class="ctags"><span class="ctag">Follow/Join</span><span class="ctag">Multi-pays</span></div></div>
+    <div class="card earth"><div class="card-icon">📰</div><div class="card-title">feed-module</div><div class="card-body">Publications, réactions, commentaires, fil personnalisé, modération</div><div class="ctags"><span class="ctag">Workflow Review</span><span class="ctag">Pinned</span></div></div>
+    <div class="card ocean"><div class="card-icon">🌍</div><div class="card-title">geo-module</div><div class="card-body">Continent→Pays→Région→Village. Groupes transversaux dialectes/cuisine</div><div class="ctags"><span class="ctag">PostGIS</span><span class="ctag">cultural_link</span></div></div>
+    <div class="card vine"><div class="card-icon">🌳</div><div class="card-title">genealogy-module</div><div class="card-body">Arbres familiaux Neo4j, suggestions IA, plan géo-familles</div><div class="ctags"><span class="ctag">Neo4j</span><span class="ctag">Claude API</span></div></div>
+    <div class="card gold"><div class="card-icon">🗣️</div><div class="card-title">language-module</div><div class="card-body">Cours par dialecte, niveaux, quiz IA, certifications</div><div class="ctags"><span class="ctag">Claude Quiz</span><span class="ctag">LiveKit</span></div></div>
+    <div class="card fire"><div class="card-icon">🎥</div><div class="card-title">live-module</div><div class="card-body">Lives cours, conférences culturelles, visites guidées, webinaires village</div><div class="ctags"><span class="ctag">LiveKit Cloud</span><span class="ctag">Recording</span></div></div>
+    <div class="card sky"><div class="card-icon">🗺️</div><div class="card-title">tourism-module</div><div class="card-body">Carte interactive, POI, guide IA, itinéraires, avis, audio-guide</div><div class="ctags"><span class="ctag">Mapbox GL</span><span class="ctag">Claude Guide</span></div></div>
+    <div class="card earth"><div class="card-icon">🍲</div><div class="card-title">culture-module</div><div class="card-body">Art culinaire, rites, musique, histoire, musée virtuel par peuple</div><div class="ctags"><span class="ctag">Contributions</span><span class="ctag">Claude enrich</span></div></div>
+    <div class="card ocean"><div class="card-icon">💬</div><div class="card-title">messaging-module</div><div class="card-body">Chat privé village, global, thématique, DMs, WebSocket STOMP</div><div class="ctags"><span class="ctag">Redis Pub/Sub</span><span class="ctag">E2E</span></div></div>
+    <div class="card vine"><div class="card-icon">💼</div><div class="card-title">jobs-module</div><div class="card-body">Offres/demandes, annuaire talents, géo-filtres, réseau pro</div><div class="ctags"><span class="ctag">Meilisearch</span><span class="ctag">Géoloc</span></div></div>
+    <div class="card gold"><div class="card-icon">🔔</div><div class="card-title">notification-module</div><div class="card-body">Push FCM, email, SMS Orange API Africa, in-app</div><div class="ctags"><span class="ctag">FCM</span><span class="ctag">Resend</span></div></div>
+    <div class="card claude"><div class="card-icon">🤖</div><div class="card-title">ai-module</div><div class="card-body">Orchestrateur Claude API : guide, quiz, généalogie, modération, contenu</div><div class="ctags"><span class="ctag">claude-sonnet-4-6</span><span class="ctag">Streaming</span><span class="ctag">RAG</span></div></div>
+    <div class="card rose"><div class="card-icon">🔍</div><div class="card-title">search-module</div><div class="card-body">Full-text multi-langues africaines, phonétique, personnes, villages, offres</div><div class="ctags"><span class="ctag">Meilisearch</span><span class="ctag">Phonétique</span></div></div>
+  </div>
+</section>
+
+<!-- 2. ARCHITECTURE -->
+<section id="archi">
+  <div class="sec-label">02 — Architecture technique</div>
+  <div class="sec-title">Java Modulith — Vue complète</div>
+  <p class="sec-sub">Un seul déploiement Spring Boot avec 14 modules internes. Communication interne via Spring ApplicationEvents (pas d'appels réseau). Migration progressive vers microservices si besoin.</p>
+  <div class="arch-box">
+    <div class="ltitle">// CLIENTS</div>
+    <div class="ar" style="grid-template-columns:repeat(4,1fr)">
+      <div class="ab c"><div class="ab-icon">🌐</div><div class="ab-name">Next.js 14</div><div class="ab-sub">Vitrine publique SEO<br>Pages villages public<br>Vercel Free</div></div>
+      <div class="ab c"><div class="ab-icon">📱</div><div class="ab-name">Flutter Mobile</div><div class="ab-sub">iOS + Android<br>Hive offline · FCM<br>flutter_map</div></div>
+      <div class="ab c"><div class="ab-icon">🌐</div><div class="ab-name">Flutter Web</div><div class="ab-sub">App connectée<br>Arbre · Lives<br>Carte interactive</div></div>
+      <div class="ab c"><div class="ab-icon">🖥️</div><div class="ab-name">Flutter Desktop</div><div class="ab-sub">Admin modération<br>Saisie arbre<br>Analytics</div></div>
+    </div>
+    <div class="conn">↓  HTTPS / WSS / WebRTC (LiveKit)  ↓</div>
+    <div class="ltitle">// GATEWAY & SÉCURITÉ</div>
+    <div class="ar" style="grid-template-columns:1fr 1fr 1fr">
+      <div class="ab d"><div class="ab-icon">🛡️</div><div class="ab-name">Spring Boot — :8080</div><div class="ab-sub">Point d'entrée unique<br>Spring Security + JWT<br>Bucket4j Rate Limiting</div></div>
+      <div class="ab d"><div class="ab-icon">🔑</div><div class="ab-name">Supabase Auth</div><div class="ab-sub">OAuth2 · JWT tokens<br>Google · Facebook · Phone<br>Row Level Security</div></div>
+      <div class="ab d"><div class="ab-icon">🌐</div><div class="ab-name">Cloudflare</div><div class="ab-sub">CDN · WAF · DDoS<br>R2 Storage médias<br>DNS · Workers edge</div></div>
+    </div>
+    <div class="sbar">
+      <span class="sb-lbl">shared-kernel</span>
+      <span class="sbp">SecurityContext</span><span class="sbp">VillageContext</span><span class="sbp">GeoContext</span>
+      <span class="sbp">AuditEntity</span><span class="sbp">DomainEvents</span><span class="sbp">ClaudeAiClient</span>
+      <span class="sbp">MediaService</span><span class="sbp">I18nMessages</span>
+    </div>
+    <div class="conn">↓  Spring ApplicationEvents — 14 Modules Java Isolés  ↓</div>
+    <div class="ltitle">// MODULES CORE</div>
+    <div class="ar" style="grid-template-columns:repeat(4,1fr);margin-bottom:9px">
+      <div class="ab j"><div class="ab-icon">👤</div><div class="ab-name">user-module</div><div class="ab-sub">Profils · Auth sync · RBAC</div></div>
+      <div class="ab j"><div class="ab-icon">🏘️</div><div class="ab-name">village-module</div><div class="ab-sub">Pages · Groupes · Follow</div></div>
+      <div class="ab j"><div class="ab-icon">📰</div><div class="ab-name">feed-module</div><div class="ab-sub">Posts · Réactions · Modération</div></div>
+      <div class="ab j"><div class="ab-icon">🌍</div><div class="ab-name">geo-module</div><div class="ab-sub">Hiérarchie · Dialectes · Links</div></div>
+    </div>
+    <div class="ltitle">// MODULES SPÉCIALISÉS</div>
+    <div class="ar" style="grid-template-columns:repeat(5,1fr);margin-bottom:9px">
+      <div class="ab g"><div class="ab-icon">🌳</div><div class="ab-name">genealogy</div><div class="ab-sub">Arbres Neo4j · IA</div></div>
+      <div class="ab g"><div class="ab-icon">🗣️</div><div class="ab-name">language</div><div class="ab-sub">Cours · Quiz · Certif</div></div>
+      <div class="ab g"><div class="ab-icon">🎥</div><div class="ab-name">live</div><div class="ab-sub">LiveKit · Recording</div></div>
+      <div class="ab g"><div class="ab-icon">🗺️</div><div class="ab-name">tourism</div><div class="ab-sub">Mapbox · POI · Guide</div></div>
+      <div class="ab g"><div class="ab-icon">🍲</div><div class="ab-name">culture</div><div class="ab-sub">Musée · Cuisine · Rites</div></div>
+    </div>
+    <div class="ltitle">// MODULES TRANSVERSAUX</div>
+    <div class="ar" style="grid-template-columns:repeat(5,1fr);margin-bottom:9px">
+      <div class="ab v"><div class="ab-icon">💬</div><div class="ab-name">messaging</div><div class="ab-sub">WebSocket · Redis</div></div>
+      <div class="ab v"><div class="ab-icon">💼</div><div class="ab-name">jobs</div><div class="ab-sub">Offres · Annuaire</div></div>
+      <div class="ab v"><div class="ab-icon">🔔</div><div class="ab-name">notification</div><div class="ab-sub">FCM · Email · SMS</div></div>
+      <div class="ab v"><div class="ab-icon">🔍</div><div class="ab-name">search</div><div class="ab-sub">Meilisearch multi-lang</div></div>
+      <div class="ab a"><div class="ab-icon">🤖</div><div class="ab-name">ai-module</div><div class="ab-sub">Claude API · RAG</div></div>
+    </div>
+    <div class="conn">↓  Spring Data JPA / Spring Data Neo4j / LiveKit SDK / Mapbox API  ↓</div>
+    <div class="ltitle">// DONNÉES & SERVICES EXTERNES</div>
+    <div class="ar" style="grid-template-columns:repeat(6,1fr)">
+      <div class="ab n"><div class="ab-icon">🐘</div><div class="ab-name">Supabase PG</div><div class="ab-sub">Données · RLS<br>Auth · Storage</div></div>
+      <div class="ab n"><div class="ab-icon">🕸️</div><div class="ab-name">Neo4j AuraDB</div><div class="ab-sub">Graphe généalogique<br>GDS Free</div></div>
+      <div class="ab n"><div class="ab-icon">⚡</div><div class="ab-name">Upstash Redis</div><div class="ab-sub">Cache · Sessions<br>Pub/Sub</div></div>
+      <div class="ab n"><div class="ab-icon">🔍</div><div class="ab-name">Meilisearch</div><div class="ab-sub">Search africain<br>Free 100K docs</div></div>
+      <div class="ab a"><div class="ab-icon">🤖</div><div class="ab-name">Claude API</div><div class="ab-sub">Sonnet 4.6<br>Opus 4.6</div></div>
+      <div class="ab n"><div class="ab-icon">🎥</div><div class="ab-name">LiveKit Cloud</div><div class="ab-sub">WebRTC managed<br>Recording · RTMP</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 3. GEO -->
+<section id="geo">
+  <div class="sec-label">03 — Hiérarchie géographique</div>
+  <div class="sec-title">Continent → Pays → Village → Famille</div>
+  <p class="sec-sub">Chaque niveau a sa page sociale, ses groupes, ses liens culturels. Les connexions transversales (dialecte, cuisine, rites) relient des villages de pays différents.</p>
+  <div class="geodiag">
+    <div class="hierarchy">
+      <div class="hlvl">
+        <div class="hcon"><div class="hdot" style="background:var(--fire)"></div><div class="hline" style="background:linear-gradient(var(--fire),var(--sky))"></div></div>
+        <div class="hcards">
+          <div class="hcard continent" style="max-width:100%">
+            <div class="hn" style="color:var(--fire)">🌍 CONTINENT</div>
+            <div class="hd">Afrique Centrale · Afrique de l'Ouest · Afrique de l'Est · Diaspora mondiale</div>
+            <div class="hprops"><span class="hp">page publique</span><span class="hp">groupes culturels</span><span class="hp">carte globale</span><span class="hp">aires linguistiques</span><span class="hp">stats démographiques</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="hlvl">
+        <div class="hcon"><div class="hdot" style="background:var(--sky)"></div><div class="hline" style="background:linear-gradient(var(--sky),var(--earth))"></div></div>
+        <div class="hcards">
+          <div class="hcard pays">
+            <div class="hn" style="color:var(--sky)">🏳️ PAYS</div>
+            <div class="hd">Cameroun · Côte d'Ivoire · Sénégal · Congo · Nigeria…</div>
+            <div class="hprops"><span class="hp">page pays</span><span class="hp">groupes pays</span><span class="hp">tourisme national</span><span class="hp">carte nationale</span><span class="hp">peuples & ethnies</span></div>
+          </div>
+          <div class="hcard dialecte">
+            <div class="hn" style="color:var(--vine)">🗣️ AIRE DIALECTALE</div>
+            <div class="hd">Relie des villages de pays différents parlant la même langue. Cross-frontières.</div>
+            <div class="hprops"><span class="hp">groupe dialecte cross-pays</span><span class="hp">cours de langue</span><span class="hp">dictionnaire collaboratif</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="hlvl">
+        <div class="hcon"><div class="hdot" style="background:var(--earth)"></div><div class="hline" style="background:linear-gradient(var(--earth),var(--gold))"></div></div>
+        <div class="hcards">
+          <div class="hcard village">
+            <div class="hn" style="color:var(--earth)">🏘️ VILLAGE</div>
+            <div class="hd">Page sociale complète + carte Mapbox + arbre généalogique + guide touristique IA</div>
+            <div class="hprops"><span class="hp">page publique</span><span class="hp">groupe privé</span><span class="hp">carte familles</span><span class="hp">POI touristiques</span><span class="hp">historique & origines</span><span class="hp">rites & traditions</span><span class="hp">art culinaire</span><span class="hp">personnalités notables</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="hlvl">
+        <div class="hcon"><div class="hdot" style="background:var(--gold)"></div><div class="hline" style="background:var(--gold);min-height:10px"></div></div>
+        <div class="hcards">
+          <div class="hcard famille">
+            <div class="hn" style="color:var(--gold)">👨‍👩‍👧‍👦 FAMILLE</div>
+            <div class="hd">Pin géolocalisé sur la carte du village. Visible membres validés seulement. Lié à l'arbre Neo4j.</div>
+            <div class="hprops"><span class="hp">coordonnées GPS</span><span class="hp">chef de famille</span><span class="hp">clan/totem</span><span class="hp">lien arbre généalogique</span><span class="hp">photos privées</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:24px;padding:18px 22px;background:var(--vine-g);border:1px solid var(--vine-b);border-radius:12px">
+      <div style="font-size:12px;font-weight:700;color:var(--vine);margin-bottom:10px">🔗 Connexions transversales — Cross-pays & Cross-continent</div>
+      <div class="g g3" style="gap:9px">
+        <div style="background:rgba(255,255,255,0.65);border-radius:8px;padding:11px">
+          <div style="font-size:11.5px;font-weight:600;margin-bottom:4px">🗣️ Par dialecte</div>
+          <div style="font-size:10.5px;color:var(--muted)">Villages Bassa (Cameroun + diaspora) reliés. Cours communs, dictionnaire partagé, lives dialecte.</div>
+        </div>
+        <div style="background:rgba(255,255,255,0.65);border-radius:8px;padding:11px">
+          <div style="font-size:11.5px;font-weight:600;margin-bottom:4px">🍲 Par art culinaire</div>
+          <div style="font-size:10.5px;color:var(--muted)">Recettes communes regroupées en aires culinaires. Claude détecte automatiquement les similitudes inter-villages.</div>
+        </div>
+        <div style="background:rgba(255,255,255,0.65);border-radius:8px;padding:11px">
+          <div style="font-size:11.5px;font-weight:600;margin-bottom:4px">🎭 Par histoire & rites</div>
+          <div style="font-size:10.5px;color:var(--muted)">Migrations communes, rites partagés détectés par Claude via tags culturels et scoring de similarité.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 4. LIVES -->
+<section id="live">
+  <div class="sec-label">04 — Vidéo en direct</div>
+  <div class="sec-title">Lives, Conférences & Cours</div>
+  <p class="sec-sub">LiveKit Cloud = WebRTC managé, SDK Flutter natif, recording cloud. Zéro infrastructure vidéo à gérer. Gratuit jusqu'à 100 participants simultanés.</p>
+  <div class="livegrid">
+    <div class="lcard lk">
+      <div class="lt">🎥 LiveKit Cloud <span class="lb free">Free tier</span></div>
+      <div class="lbody"><strong>Pourquoi LiveKit ?</strong> SDK Flutter officiel (livekit_client). WebRTC managé, scalable auto. Recording natif. RTMP vers YouTube/Facebook.<br><br><strong>Rooms :</strong><br>• <code>live_course_{id}</code> — cours de langue<br>• <code>live_conf_{id}</code> — conférence culturelle<br>• <code>live_tour_{id}</code> — visite guidée virtuelle<br>• <code>live_village_{id}</code> — webinaire privé</div>
+      <div class="ctags" style="margin-top:9px"><span class="ctag">livekit_client Flutter</span><span class="ctag">WebRTC</span><span class="ctag">E2E chiffré</span></div>
+    </div>
+    <div class="lcard rec">
+      <div class="lt">📹 Recording & Replay <span class="lb free">Inclus</span></div>
+      <div class="lbody">Sessions enregistrées → Cloudflare R2. Replay intégré dans la page du cours ou du village.<br><br>• Replay cours → language-module<br>• Replay conférence → page village<br>• <strong>Chapitrage auto via Claude AI</strong><br>• Transcription + traduction automatique</div>
+      <div class="ctags" style="margin-top:9px"><span class="ctag">Cloudflare R2</span><span class="ctag">HLS streaming</span><span class="ctag">Claude transcription</span></div>
+    </div>
+    <div class="lcard rtmp">
+      <div class="lt">📡 Diffusion externe <span class="lb paid">RTMP Egress</span></div>
+      <div class="lbody">Diffusion simultanée vers YouTube Live + Facebook Live via RTMP Egress LiveKit. Idéal pour grandes conférences culturelles avec audience diaspora mondiale.</div>
+      <div class="ctags" style="margin-top:9px"><span class="ctag">RTMP Egress</span><span class="ctag">YouTube Live</span><span class="ctag">Facebook Live</span></div>
+    </div>
+    <div class="lcard ai">
+      <div class="lt">🤖 Claude dans les Lives</div>
+      <div class="lbody">• <strong>Cours langue</strong> : correction pronunciation, quiz en chat<br>• <strong>Visite guidée</strong> : Q&A touristes en temps réel<br>• <strong>Conférence</strong> : résumé live + Q&A assisté<br>• <strong>Post-live</strong> : chapitrage, résumé, quiz génératif</div>
+      <div class="ctags" style="margin-top:9px"><span class="ctag">Claude in chat</span><span class="ctag">Résumé auto</span><span class="ctag">Quiz post-live</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- 5. TOURISME -->
+<section id="tourisme">
+  <div class="sec-label">05 — Tourisme & Géolocalisation</div>
+  <div class="sec-title">Carte Interactive & Guide IA</div>
+  <p class="sec-sub">Mapbox GL côté Next.js pour la vitrine SEO, flutter_map dans l'app. Chaque village a sa carte avec familles géolocalisées, POI et guide Claude personnalisé.</p>
+  <div class="g g4">
+    <div class="card earth">
+      <div class="card-icon">🗺️</div>
+      <div class="card-title">Carte Village (Mapbox)</div>
+      <div class="card-body">Pins familles GPS (membres seulement) · POI culturels : chefferies, marchés, monuments · Itinéraires touristiques · Galerie photos géolocalisées · Offline flutter_map</div>
+      <div class="ctags"><span class="ctag">Mapbox GL JS</span><span class="ctag">flutter_map</span><span class="ctag">PostGIS</span></div>
+    </div>
+    <div class="card ocean">
+      <div class="card-icon">🧭</div>
+      <div class="card-title">Guide Touristique</div>
+      <div class="card-body">Fiche village complète · Système d'avis · Audio-guide natif + narration Claude · Calendrier événements · Contacts hôtes locaux · Infos pratiques transport</div>
+      <div class="ctags"><span class="ctag">Contenu communautaire</span><span class="ctag">Modéré</span></div>
+    </div>
+    <div class="card gold">
+      <div class="card-icon">📡</div>
+      <div class="card-title">Géoloc Familles</div>
+      <div class="card-body">Familles saisissent leurs coordonnées GPS (maison ancestrale) · Visible membres validés seulement · Mode "retrouver ma famille" pour la diaspora</div>
+      <div class="ctags"><span class="ctag">PostGIS</span><span class="ctag">RLS Supabase</span><span class="ctag">Chiffré</span></div>
+    </div>
+    <div class="card claude">
+      <div class="card-icon">🤖</div>
+      <div class="card-title">Claude Guide IA</div>
+      <div class="card-body">Chatbot contextuel au village · Répond en FR/EN/ES + langue locale · Connait histoire, culture, cuisine · Itinéraires personnalisés · Génère descriptions POI</div>
+      <div class="ctags"><span class="ctag">claude-sonnet-4-6</span><span class="ctag">RAG village data</span><span class="ctag">Streaming</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- 6. CLAUDE AI -->
+<section id="claude">
+  <div class="sec-label">06 — Intelligence Artificielle</div>
+  <div class="sec-title">Claude AI — Architecture d'intégration</div>
+  <p class="sec-sub">Claude est le cerveau de NGOMALA. Architecture RAG + context engineering + streaming SSE. Prompt caching pour réduire les coûts de 80%.</p>
+  <div class="claude-box">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:18px">
+      <span class="chip claude">claude-sonnet-4-6 — Tâches courantes</span>
+      <span class="chip claude">claude-opus-4-6 — Tâches complexes</span>
+      <span style="font-size:11px;color:rgba(255,255,255,0.35)">Anthropic API · ~$0.30/1M tokens Sonnet · Prompt Caching natif</span>
+    </div>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2.5px;text-transform:uppercase;color:rgba(255,255,255,0.22);margin-bottom:9px">// PIPELINE RAG — 5 ÉTAPES</div>
+    <div class="cpipeline">
+      <div class="cstep"><div class="cnum">STEP 01</div><div class="ctitle">Context Assembly</div><div class="citems">• Profil utilisateur<br>• Village(s) associés<br>• Langue préférée<br>• Niveau langue<br>• Historique conv.</div></div>
+      <div class="cstep"><div class="cnum">STEP 02</div><div class="ctitle">Knowledge Retrieval</div><div class="citems">• Fiche village (PG)<br>• Arbre données (Neo4j)<br>• Contenus culturels<br>• Meilisearch semantic<br>• Historique publié</div></div>
+      <div class="cstep"><div class="cnum">STEP 03</div><div class="ctitle">Prompt Engineering</div><div class="citems">• System prompt rôle<br>• Context RAG injecté<br>• Format sortie défini<br>• Langue cible<br>• Cache Anthropic</div></div>
+      <div class="cstep"><div class="cnum">STEP 04</div><div class="ctitle">Claude API Call</div><div class="citems">• Streaming SSE<br>• Max tokens adapté<br>• Temperature réglée<br>• Tool use si besoin<br>• Timeout géré</div></div>
+      <div class="cstep"><div class="cnum">STEP 05</div><div class="ctitle">Output Processing</div><div class="citems">• Validation contenu<br>• Sauvegarde si pertinent<br>• Feedback loop<br>• Audit log IA<br>• Métriques qualité</div></div>
+    </div>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2.5px;text-transform:uppercase;color:rgba(255,255,255,0.22);margin-bottom:9px">// 8 CAS D'USAGE CONCRETS</div>
+    <div class="cucards">
+      <div class="cuc"><div class="cuch"><span class="cuci">🗺️</span><div class="cuct">Guide Touristique</div><span class="cum">Sonnet 4.6</span></div><div class="cucb">Chatbot contextuel au village visité. Répond en FR/EN/ES + langue locale. Connait histoire, rites, gastronomie, itinéraires.</div><div class="cup">System: "Tu es le guide officiel du village {village_name}. Histoire depuis {year}. Culture: {summary}. Réponds en {user_lang} avec mots en {local_lang}."</div><div class="cuco">~0.01€ / conversation · 500 tokens moy.</div></div>
+      <div class="cuc"><div class="cuch"><span class="cuci">🌳</span><div class="cuct">Matching Généalogique</div><span class="cum">Sonnet 4.6</span></div><div class="cucb">Analyse l'arbre Neo4j et suggère des liens familiaux manquants. Explique chaque suggestion. Validation humaine obligatoire.</div><div class="cup">System: "Analyse cet arbre partiel du village {v}. Identifie les liens probables. Score de confiance 0-1. Ne jamais affirmer sans preuve."</div><div class="cuco">~0.05€ / analyse · Opus pour arbres complexes</div></div>
+      <div class="cuc"><div class="cuch"><span class="cuci">🗣️</span><div class="cuct">Quiz Linguistiques</div><span class="cum">Sonnet 4.6</span></div><div class="cucb">Génère des quiz personnalisés par niveau et dialecte. Corrige avec explications culturelles. Adapte la difficulté en temps réel.</div><div class="cup">System: "Génère 5 questions niveau {level} en {dialect}. Inclus contexte culturel. Format JSON strict."</div><div class="cuco">~0.003€ / quiz 5 questions</div></div>
+      <div class="cuc"><div class="cuch"><span class="cuci">🍲</span><div class="cuct">Enrichissement Culturel</div><span class="cum">Opus 4.6</span></div><div class="cucb">Génère et enrichit les fiches culturelles villages. Détecte les connexions avec d'autres peuples africains. Modèle Opus pour la profondeur.</div><div class="cup">System: "Enrichis la fiche du village {v}. Détecte les liens avec autres cultures. Sources si possible."</div><div class="cuco">~0.15€ / enrichissement · 1×/mois par village</div></div>
+      <div class="cuc"><div class="cuch"><span class="cuci">🔗</span><div class="cuct">Connexions Culturelles</div><span class="cum">Sonnet 4.6</span></div><div class="cucb">Compare des villages et suggère des liens transversaux : dialectes proches, cuisines similaires, rites partagés, migrations historiques.</div><div class="cup">System: "Compare ces {n} fiches culturelles. Score de similarité par catégorie (dialecte, cuisine, rites, histoire). Justifie."</div><div class="cuco">~0.08€ / analyse batch villages</div></div>
+      <div class="cuc"><div class="cuch"><span class="cuci">🎥</span><div class="cuct">Post-Live Intelligence</div><span class="cum">Sonnet 4.6</span></div><div class="cucb">Après chaque live : résumé structuré, chapitrage horodaté, quiz basé sur le contenu, points clés, évaluation étudiants.</div><div class="cup">System: "Transcription du live '{title}'. Génère: résumé 300 mots, chapitrage timestamps, 5 questions, points clés."</div><div class="cuco">~0.02€ / résumé live 1h</div></div>
+      <div class="cuc"><div class="cuch"><span class="cuci">🛡️</span><div class="cuct">Modération Contenu</div><span class="cum">Sonnet 4.6</span></div><div class="cucb">Pré-modération publications avant review humaine. Détecte contenus haineux, hors-sujet, spam. Suggère action à l'ambassadeur.</div><div class="cup">System: "Modérateur culturel NGOMALA. Évalue ce post pour {village}. Retourne JSON: {action, score, reason}"</div><div class="cuco">~0.001€ / post modéré</div></div>
+      <div class="cuc"><div class="cuch"><span class="cuci">🏛️</span><div class="cuct">Itinéraires Personnalisés</div><span class="cum">Sonnet 4.6</span></div><div class="cucb">Crée des itinéraires selon le profil visiteur (diaspora, chercheur, touriste, famille). Intègre POI, durées, transports, repas locaux.</div><div class="cup">System: "Visiteur {profile} veut découvrir {village} en {days}j. Budget {budget}. Itinéraire détaillé avec POI culturels."</div><div class="cuco">~0.02€ / itinéraire généré</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 7. COÛTS -->
+<section id="couts">
+  <div class="sec-label">07 — Budget infrastructure</div>
+  <div class="sec-title">Coûts réels MVP complet</div>
+  <p class="sec-sub">Avec tous les modules : Lives, Carte, Tourisme, Claude AI — le budget reste maîtrisé grâce aux free tiers généreux des services cloud.</p>
+  <div class="cwrap">
+    <table>
+      <thead><tr><th>Service</th><th>Usage</th><th>Plan MVP</th><th>€/mois</th></tr></thead>
+      <tbody>
+        <tr><td><span class="tds">Railway.app</span></td><td><span class="tdd">Spring Boot Modulith 1GB RAM</span></td><td><span class="tdd">Hobby $5/mois</span></td><td><span class="tdp plow">~5€</span></td></tr>
+        <tr><td><span class="tds">Supabase</span></td><td><span class="tdd">PostgreSQL + Auth + Storage + Realtime</span></td><td><span class="tdd">Free (500MB DB)</span></td><td><span class="tdp pfree">0€</span></td></tr>
+        <tr><td><span class="tds">Neo4j AuraDB</span></td><td><span class="tdd">Graphe généalogique (200K nœuds)</span></td><td><span class="tdd">AuraDB Free</span></td><td><span class="tdp pfree">0€</span></td></tr>
+        <tr><td><span class="tds">Upstash Redis</span></td><td><span class="tdd">Cache + Sessions + Pub/Sub chat</span></td><td><span class="tdd">Free 10K req/j</span></td><td><span class="tdp pfree">0€</span></td></tr>
+        <tr><td><span class="tds">Cloudflare R2</span></td><td><span class="tdd">Médias + tiles cartes + replays</span></td><td><span class="tdd">Free 10GB, 0€ egress</span></td><td><span class="tdp pfree">0€</span></td></tr>
+        <tr><td><span class="tds">LiveKit Cloud</span></td><td><span class="tdd">Lives cours + conférences + tours</span></td><td><span class="tdd">Free 100 participants</span></td><td><span class="tdp pfree">0€</span></td></tr>
+        <tr><td><span class="tds">Mapbox</span></td><td><span class="tdd">Cartes villages + géoloc familles</span></td><td><span class="tdd">Free 50K map loads/mois</span></td><td><span class="tdp pfree">0€</span></td></tr>
+        <tr><td><span class="tds">Claude API (Anthropic)</span></td><td><span class="tdd">Guide, quiz, généalogie, modération, contenu</span></td><td><span class="tdd">Pay-per-use Sonnet 4.6</span></td><td><span class="tdp plow">~5–10€</span></td></tr>
+        <tr><td><span class="tds">Meilisearch Cloud</span></td><td><span class="tdd">Search full-text africain</span></td><td><span class="tdd">Free 100K docs</span></td><td><span class="tdp pfree">0€</span></td></tr>
+        <tr><td><span class="tds">Vercel</span></td><td><span class="tdd">Next.js vitrine publique SEO</span></td><td><span class="tdd">Free tier</span></td><td><span class="tdp pfree">0€</span></td></tr>
+        <tr><td><span class="tds">Firebase FCM</span></td><td><span class="tdd">Push notifications mobile</span></td><td><span class="tdd">Free illimité</span></td><td><span class="tdp pfree">0€</span></td></tr>
+        <tr><td><span class="tds">Resend.com</span></td><td><span class="tdd">Emails transactionnels</span></td><td><span class="tdd">Free 3K/mois</span></td><td><span class="tdp pfree">0€</span></td></tr>
+        <tr><td><span class="tds">Sentry</span></td><td><span class="tdd">Error tracking Java + Flutter</span></td><td><span class="tdd">Free tier</span></td><td><span class="tdp pfree">0€</span></td></tr>
+        <tr><td><span class="tds">Domaine .academy</span></td><td><span class="tdd">ngomala.academy</span></td><td><span class="tdd">~30€/an</span></td><td><span class="tdp plow">~2.5€</span></td></tr>
+      </tbody>
+    </table>
+    <div class="ctotal">
+      <div><div class="ctlbl">TOTAL MVP / MOIS</div><div style="font-size:10px;color:rgba(255,255,255,0.25);margin-top:2px">Claude AI variable selon usage réel</div></div>
+      <div class="ctval">~15–20€</div>
+    </div>
+  </div>
+  <div class="g g3" style="margin-top:12px;gap:11px">
+    <div style="background:var(--paper);border:1px solid var(--earth-b);border-radius:9px;padding:14px"><div style="font-size:11.5px;font-weight:700;color:var(--earth);margin-bottom:5px">📈 Croissance (1K villages)</div><div style="font-size:10.5px;color:var(--muted);line-height:1.7">Railway Pro ~20€ · Supabase Pro ~25€ · LiveKit Standard ~29$ · Mapbox ~50€ · Claude ~50€<br><strong>→ ~175€/mois pour 50K MAU</strong></div></div>
+    <div style="background:var(--paper);border:1px solid var(--sky-b);border-radius:9px;padding:14px"><div style="font-size:11.5px;font-weight:700;color:var(--sky);margin-bottom:5px">🎥 Lives haute fréquence</div><div style="font-size:10.5px;color:var(--muted);line-height:1.7">LiveKit facture ~$0.006/min/participant au-delà du free. 100 participants × 60min = ~36¢. Très raisonnable.</div></div>
+    <div style="background:var(--paper);border:1px solid var(--claude-b);border-radius:9px;padding:14px"><div style="font-size:11.5px;font-weight:700;color:var(--claude);margin-bottom:5px">🤖 Optimiser Claude</div><div style="font-size:10.5px;color:var(--muted);line-height:1.7">Utilise le <strong>Prompt Caching</strong> Anthropic : les system prompts (village data) mis en cache = -90% de coût sur les répétitions.</div></div>
+  </div>
+</section>
+
+<!-- 8. ROADMAP -->
+<section id="roadmap">
+  <div class="sec-label">08 — Plan de développement</div>
+  <div class="sec-title">Roadmap réaliste — 34 semaines</div>
+  <p class="sec-sub">Chaque phase est livrable et testable indépendamment. Utilise Claude Code pour développer module par module.</p>
+  <div class="roadmap">
+    <div class="rm p1"><div class="rmd">1</div><div class="rmb"><div class="rmh"><div class="rmt">Auth, Villages, Social Feed</div><div class="rmdr">6 semaines</div><div class="rmcost">~5€/mois</div></div><div class="rmis"><span class="rmi">Spring Boot Modulith setup Maven</span><span class="rmi">Supabase Auth → JWT Spring Security</span><span class="rmi">user-module + village-module</span><span class="rmi">RBAC 6 rôles</span><span class="rmi">feed-module workflow modération</span><span class="rmi">Hiérarchie Continent→Pays→Village v1</span><span class="rmi">Flutter app skeleton</span><span class="rmi">Next.js vitrine SEO</span><span class="rmi">Railway CI/CD GitHub Actions</span></div></div></div>
+    <div class="rm p2"><div class="rmd">2</div><div class="rmb"><div class="rmh"><div class="rmt">Carte Interactive + Tourisme + Claude Guide</div><div class="rmdr">6 semaines</div><div class="rmcost">~15€/mois</div></div><div class="rmis"><span class="rmi">tourism-module + Mapbox GL</span><span class="rmi">POI villages CRUD backend</span><span class="rmi">Géolocalisation familles PostGIS + RLS</span><span class="rmi">flutter_map offline</span><span class="rmi">culture-module (fiches, cuisine, rites)</span><span class="rmi">ai-module Claude API client + RAG</span><span class="rmi">Guide touristique chatbot streaming</span><span class="rmi">Itinéraires personnalisés Claude</span></div></div></div>
+    <div class="rm p3"><div class="rmd">3</div><div class="rmb"><div class="rmh"><div class="rmt">Arbre Généalogique + Chat + Notifications</div><div class="rmdr">7 semaines</div><div class="rmcost">~15€/mois</div></div><div class="rmis"><span class="rmi">Neo4j AuraDB + Spring Data Neo4j</span><span class="rmi">genealogy-module CRUD + Cypher</span><span class="rmi">Flutter arbre interactif (flutter_graph_view)</span><span class="rmi">Claude suggestions liens + interface validation</span><span class="rmi">messaging-module WebSocket STOMP</span><span class="rmi">Redis Pub/Sub chat temps réel</span><span class="rmi">notification-module FCM + Resend</span><span class="rmi">Meilisearch search-module</span></div></div></div>
+    <div class="rm p4"><div class="rmd">4</div><div class="rmb"><div class="rmh"><div class="rmt">Lives, Conférences & Cours en direct</div><div class="rmdr">6 semaines</div><div class="rmcost">~15€/mois</div></div><div class="rmis"><span class="rmi">live-module LiveKit Cloud Java SDK</span><span class="rmi">livekit_client Flutter intégration</span><span class="rmi">Lives cours + conférences + webinaires</span><span class="rmi">Visites guidées virtuelles</span><span class="rmi">Recording → Cloudflare R2 + HLS replay</span><span class="rmi">Claude post-live résumé + chapitrage + quiz</span><span class="rmi">language-module cours + niveaux + certifications</span><span class="rmi">RTMP Egress YouTube/Facebook</span></div></div></div>
+    <div class="rm p5"><div class="rmd">5</div><div class="rmb"><div class="rmh"><div class="rmt">Dialectes, Connexions Culturelles & Emploi</div><div class="rmdr">5 semaines</div><div class="rmcost">~20€/mois</div></div><div class="rmis"><span class="rmi">geo-module v2 : aires dialectales cross-pays</span><span class="rmi">cultural_link table + scoring Claude</span><span class="rmi">Groupes transversaux (dialecte, cuisine, rites)</span><span class="rmi">Musée virtuel par peuple</span><span class="rmi">jobs-module offres + annuaire talents</span><span class="rmi">SMS notifications Orange API Afrique</span></div></div></div>
+    <div class="rm p6"><div class="rmd">6</div><div class="rmb"><div class="rmh"><div class="rmt">IA Avancée, Scale & Monétisation</div><div class="rmdr">4 semaines</div><div class="rmcost">~25€/mois</div></div><div class="rmis"><span class="rmi">Prompt Caching Anthropic (-80% coûts Claude)</span><span class="rmi">Reconstruction ancêtres probabiliste</span><span class="rmi">Analytics migrations + patterns familiaux</span><span class="rmi">API publique chercheurs / linguistes</span><span class="rmi">Freemium : villages Premium + lives illimités</span><span class="rmi">Multi-langues diaspora (EN, ES, PT)</span></div></div></div>
+  </div>
+</section>
+
+<!-- CLOSING -->
+<div style="background:var(--ink);border-radius:16px;padding:32px 36px;display:grid;grid-template-columns:1fr 1fr;gap:28px">
+  <div>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,0.22);margin-bottom:12px">// Conseils pour Claude Code</div>
+    <div style="display:flex;flex-direction:column;gap:9px">
+      <div style="display:flex;gap:9px;font-size:12.5px;color:rgba(255,255,255,0.55);line-height:1.6"><span style="color:var(--claude)">▸</span><span>Crée un <strong style="color:#fff">ARCHITECTURE.md</strong> exhaustif dès le départ. Claude Code s'y réfère à chaque session.</span></div>
+      <div style="display:flex;gap:9px;font-size:12.5px;color:rgba(255,255,255,0.55);line-height:1.6"><span style="color:var(--claude)">▸</span><span>Développe <strong style="color:#fff">un module à la fois</strong>. Précise toujours dans ton prompt le module courant et les events Spring utilisés.</span></div>
+      <div style="display:flex;gap:9px;font-size:12.5px;color:rgba(255,255,255,0.55);line-height:1.6"><span style="color:var(--claude)">▸</span><span>Demande toujours <strong style="color:#fff">les tests JUnit 5 + Testcontainers</strong> avec le code. Ça documente et sécurise.</span></div>
+      <div style="display:flex;gap:9px;font-size:12.5px;color:rgba(255,255,255,0.55);line-height:1.6"><span style="color:var(--claude)">▸</span><span>Pour les <strong style="color:#fff">entités Neo4j</strong>, demande à Claude Code les annotations @Node, @Relationship et les repository Cypher en même temps.</span></div>
+    </div>
+  </div>
+  <div>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,0.22);margin-bottom:12px">// Ordre de priorité MVP</div>
+    <div style="display:flex;flex-direction:column;gap:7px">
+      <div style="background:rgba(232,76,10,0.12);border:1px solid rgba(232,76,10,0.2);border-radius:7px;padding:9px 13px;font-size:11.5px;color:rgba(255,255,255,0.65)"><span style="color:var(--fire);font-weight:700">Phase 1 :</span> Auth + Village + Feed → valider l'adoption sociale</div>
+      <div style="background:rgba(10,110,232,0.1);border:1px solid rgba(10,110,232,0.2);border-radius:7px;padding:9px 13px;font-size:11.5px;color:rgba(255,255,255,0.65)"><span style="color:var(--sky);font-weight:700">Phase 2 :</span> Carte + Tourisme + Claude → différenciation unique</div>
+      <div style="background:rgba(46,125,50,0.1);border:1px solid rgba(46,125,50,0.2);border-radius:7px;padding:9px 13px;font-size:11.5px;color:rgba(255,255,255,0.65)"><span style="color:var(--earth);font-weight:700">Phase 3 :</span> Généalogie + Chat → rétention profonde</div>
+      <div style="background:rgba(0,131,143,0.1);border:1px solid rgba(0,131,143,0.2);border-radius:7px;padding:9px 13px;font-size:11.5px;color:rgba(255,255,255,0.65)"><span style="color:var(--ocean);font-weight:700">Phase 4 :</span> Lives + Cours → monétisation naturelle</div>
+      <div style="background:rgba(217,119,6,0.1);border:1px solid rgba(217,119,6,0.2);border-radius:7px;padding:9px 13px;font-size:11.5px;color:rgba(255,255,255,0.65)"><span style="color:var(--claude);font-weight:700">Phase 5-6 :</span> Dialectes + IA avancée → impact & scale</div>
+    </div>
+  </div>
+</div>
+
+</main>
+</body>
+</html>

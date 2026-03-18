@@ -1,0 +1,37 @@
+# Flutter
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+build/
+
+# Generated files
+*.g.dart
+*.freezed.dart
+
+# Environment
+.env
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# iOS
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+ios/Runner.xcworkspace/xcshareddata/
+
+# Android
+android/.gradle/
+android/captures/
+android/local.properties
+android/key.properties
+
+# macOS
+macos/Pods/
+
+# Web
+web/

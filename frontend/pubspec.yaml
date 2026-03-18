@@ -1,0 +1,75 @@
+name: gwangmeu
+description: "GWANG MEU - Patrimoine Culturel Africain | Langues · Culture · Futur"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+  flutter: '>=3.22.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # Auth & Backend
+  supabase_flutter: ^2.5.0
+
+  # Navigation
+  go_router: ^14.0.0
+
+  # State management
+  flutter_riverpod: ^2.5.0
+  riverpod_annotation: ^2.3.0
+
+  # HTTP
+  dio: ^5.4.0
+
+  # Storage
+  flutter_secure_storage: ^9.0.0
+
+  # Images
+  cached_network_image: ^3.3.0
+  image_picker: ^1.1.0
+
+  # Loading UI
+  shimmer: ^3.0.0
+
+  # Models
+  freezed_annotation: ^2.4.0
+  json_annotation: ^4.9.0
+
+  # i18n + dates
+  intl: ^0.20.2
+  timeago: ^3.6.1
+
+  # .env
+  flutter_dotenv: ^5.2.0
+
+  # Icons
+  cupertino_icons: ^1.0.8
+
+  # Social login icons (Google, Facebook, Apple, GitHub...)
+  font_awesome_flutter: ^10.7.0
+
+  # Ouvrir navigateur pour OAuth (Google, Facebook, etc.)
+  url_launcher: ^6.3.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  mocktail: ^1.0.4
+  flutter_lints: ^4.0.0
+  build_runner: ^2.4.0
+  freezed: ^2.5.0
+  json_serializable: ^6.8.0
+  riverpod_generator: ^2.4.0
+  custom_lint: ^0.6.0
+  riverpod_lint: ^2.3.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - .env
+    - assets/images/

@@ -1,0 +1,88 @@
+version: '3.9'
+
+# =============================================================
+# GWANG MEU — Docker Compose Dev
+# Usage : make dev | make stop | make logs | make reset-db
+# =============================================================
+
+services:
+
+  # ----- PostgreSQL + PostGIS -----
+  postgres:
+    image: postgis/postgis:16-3.4-alpine
+    container_name: gwangmeu-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: gwangmeu_dev
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-gwangmeu_secret}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d gwangmeu_dev"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # ----- Redis -----
+  redis:
+    image: redis:7-alpine
+    container_name: gwangmeu-redis
+    restart: unless-stopped
+    command: redis-server --save 60 1 --loglevel warning
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ----- Neo4j -----
+  neo4j:
+    image: neo4j:5-community
+    container_name: gwangmeu-neo4j
+    restart: unless-stopped
+    environment:
+      NEO4J_AUTH: neo4j/${NEO4J_PASSWORD:-gwangmeu_neo4j}
+      NEO4J_PLUGINS: '["apoc"]'
+    ports:
+      - "7474:7474"   # Browser UI
+      - "7687:7687"   # Bolt protocol
+    volumes:
+      - neo4j_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:7474 || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  # ----- Meilisearch -----
+  meilisearch:
+    image: getmeili/meilisearch:latest
+    container_name: gwangmeu-meilisearch
+    restart: unless-stopped
+    environment:
+      MEILI_MASTER_KEY: ${MEILISEARCH_API_KEY:-gwangmeu_meili}
+      MEILI_ENV: development
+    ports:
+      - "7700:7700"
+    volumes:
+      - meilisearch_data:/meili_data
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:7700/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+  redis_data:
+  neo4j_data:
+  meilisearch_data:

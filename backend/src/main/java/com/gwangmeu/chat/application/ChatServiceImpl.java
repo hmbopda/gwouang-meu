@@ -1,0 +1,117 @@
+package com.gwangmeu.chat.application;
+
+import com.gwangmeu.chat.domain.ChatGroup;
+import com.gwangmeu.chat.domain.ChatGroupMember;
+import com.gwangmeu.chat.domain.ChatMessage;
+import com.gwangmeu.chat.infrastructure.ChatGroupMemberRepository;
+import com.gwangmeu.chat.infrastructure.ChatGroupRepository;
+import com.gwangmeu.chat.infrastructure.ChatMessageRepository;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Instant;
+import java.util.List;
+import java.util.UUID;
+
+@Slf4j
+@Service
+@Transactional
+@RequiredArgsConstructor
+class ChatServiceImpl implements ChatService {
+
+    private final ChatGroupRepository groupRepository;
+    private final ChatGroupMemberRepository memberRepository;
+    private final ChatMessageRepository messageRepository;
+
+    @Override
+    public ChatGroup createGroup(UUID villageId, String name, String description,
+                                 ChatGroup.GroupType type, UUID creatorId) {
+        ChatGroup group = ChatGroup.builder()
+                .villageId(villageId)
+                .name(name)
+                .description(description)
+                .type(type != null ? type : ChatGroup.GroupType.GENERAL)
+                .createdBy(creatorId)
+                .build();
+
+        ChatGroup saved = groupRepository.save(group);
+
+        // Le créateur est automatiquement admin du groupe
+        memberRepository.save(ChatGroupMember.builder()
+                .groupId(saved.getId())
+                .userId(creatorId)
+                .role(ChatGroupMember.MemberRole.ADMIN)
+                .build());
+
+        // Message système d'accueil
+        messageRepository.save(ChatMessage.builder()
+                .groupId(saved.getId())
+                .senderId(creatorId)
+                .content("Groupe \"" + name + "\" créé.")
+                .type(ChatMessage.MessageType.SYSTEM)
+                .build());
+
+        log.info("Chat group created: {} in village {}", name, villageId);
+        return saved;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ChatGroup> getGroupsByVillage(UUID villageId) {
+        return groupRepository.findByVillageIdOrderByCreatedAtAsc(villageId);
+    }
+
+    @Override
+    public ChatGroupMember joinGroup(UUID groupId, UUID userId) {
+        if (memberRepository.existsByGroupIdAndUserId(groupId, userId)) {
+            throw new IllegalStateException("Utilisateur déjà membre de ce groupe");
+        }
+
+        return memberRepository.save(ChatGroupMember.builder()
+                .groupId(groupId)
+                .userId(userId)
+                .role(ChatGroupMember.MemberRole.MEMBER)
+                .build());
+    }
+
+    @Override
+    public void leaveGroup(UUID groupId, UUID userId) {
+        memberRepository.deleteByGroupIdAndUserId(groupId, userId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ChatGroupMember> getGroupMembers(UUID groupId) {
+        return memberRepository.findByGroupId(groupId);
+    }
+
+    @Override
+    public ChatMessage sendMessage(UUID groupId, UUID senderId, String content) {
+        if (!memberRepository.existsByGroupIdAndUserId(groupId, senderId)) {
+            throw new IllegalStateException("Utilisateur non membre de ce groupe");
+        }
+
+        return messageRepository.save(ChatMessage.builder()
+                .groupId(groupId)
+                .senderId(senderId)
+                .content(content)
+                .type(ChatMessage.MessageType.TEXT)
+                .build());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ChatMessage> getMessages(UUID groupId, int limit) {
+        return messageRepository.findByGroupIdOrderByCreatedAtDesc(
+                groupId, PageRequest.of(0, Math.min(limit, 100)));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ChatMessage> getMessagesSince(UUID groupId, Instant since) {
+        return messageRepository.findByGroupIdAndCreatedAtAfterOrderByCreatedAtAsc(groupId, since);
+    }
+}

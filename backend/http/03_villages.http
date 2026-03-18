@@ -1,0 +1,19 @@
+### Liste villages
+GET {{baseUrl}}/api/v1/villages?page=0&size=20
+
+### Recherche par nom et pays
+GET {{baseUrl}}/api/v1/villages?search=bassa&country=Cameroun
+
+### Creer un village
+POST {{baseUrl}}/api/v1/villages
+Authorization: Bearer {{jwt}}
+Content-Type: application/json
+
+{"name": "Bassa-Likoko", "countryId": "uuid", "description": "Village traditionnel Bassa"}
+
+### Rejoindre un village
+POST {{baseUrl}}/api/v1/villages/{{villageId}}/join
+Authorization: Bearer {{jwt}}
+
+### Continents
+GET {{baseUrl}}/api/v1/geo/continents
