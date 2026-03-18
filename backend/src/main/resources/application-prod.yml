@@ -23,13 +23,25 @@ spring:
           starttls:
             enable: true
 
-  # ===== Hikari : pool adapte a Railway (1 replica) =====
+  # ===== Hikari : pool adapte a Railway + PgBouncer Supabase (port 6543) =====
   datasource:
     hikari:
       maximum-pool-size: 5
       minimum-idle: 1
       connection-timeout: 20000
       initialization-fail-timeout: 60000
+      # PgBouncer (Transaction Pooler Supabase) : desactive prepared statements
+      data-source-properties:
+        prepareThreshold: 0
+
+  jpa:
+    properties:
+      hibernate:
+        # Desactive les prepared statements cote Hibernate (incompatible PgBouncer)
+        jdbc:
+          use_get_generated_keys: false
+        query:
+          in_clause_parameter_padding: true
 
 # ===== Actuator : health toujours accessible sans auth pour Railway =====
 management:
