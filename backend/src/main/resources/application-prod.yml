@@ -1,8 +1,56 @@
 spring:
   jpa:
     show-sql: false
+
   flyway:
     out-of-order: false
+
+  # ===== Neo4j : timeout reduit pour eviter blocage au demarrage =====
+  neo4j:
+    connection-timeout: 10s
+    max-transaction-retry-time: 15s
+
+  # ===== Mail (Resend en prod) =====
+  mail:
+    host: smtp.resend.com
+    port: 465
+    username: resend
+    password: ${RESEND_API_KEY:}
+    protocol: smtps
+    properties:
+      mail:
+        smtp:
+          auth: true
+          ssl:
+            enable: true
+
+  # ===== Hikari : pool adapte a Railway (1 replica) =====
+  datasource:
+    hikari:
+      maximum-pool-size: 5
+      minimum-idle: 1
+      connection-timeout: 20000
+      initialization-fail-timeout: 60000
+
+# ===== Actuator : health toujours accessible sans auth pour Railway =====
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never
+      # Neo4j health non-bloquant : DOWN ne bloque pas le demarrage
+      probes:
+        enabled: true
+  health:
+    neo4j:
+      enabled: true
+    redis:
+      enabled: true
+    db:
+      enabled: true
 
 springdoc:
   swagger-ui:
@@ -14,8 +62,5 @@ logging:
   level:
     com.gwangmeu: WARN
     org.springframework.security: WARN
-
-management:
-  endpoint:
-    health:
-      show-details: never
+    org.springframework.data.neo4j: WARN
+    io.lettuce: WARN

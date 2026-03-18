@@ -3,7 +3,7 @@ builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile"
 
 [deploy]
-startCommand = "java -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -jar app.jar"
+startCommand = "java -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -Dspring.profiles.active=prod -Djava.security.egd=file:/dev/./urandom -jar app.jar"
 healthcheckPath = "/actuator/health"
 healthcheckTimeout = 300
 restartPolicyType = "ON_FAILURE"
@@ -11,6 +11,8 @@ restartPolicyMaxRetries = 3
 
 [environments.staging.deploy]
 healthcheckPath = "/actuator/health"
+startCommand = "java -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -Dspring.profiles.active=prod -Djava.security.egd=file:/dev/./urandom -jar app.jar"
 
 [environments.production.deploy]
 healthcheckPath = "/actuator/health"
+startCommand = "java -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -Dspring.profiles.active=prod -Djava.security.egd=file:/dev/./urandom -jar app.jar"

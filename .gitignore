@@ -77,3 +77,6 @@ Thumbs.db:encryptable
 /*.docx
 /*.html
 /*.bat
+
+# ----- Secrets production (jamais committer) -----
+backend/prod.md
