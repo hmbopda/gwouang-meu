@@ -12,13 +12,11 @@ WORKDIR /build
 # Copier d'abord pom.xml seul pour profiter du cache des dependances Maven
 COPY pom.xml .
 COPY .mvn/ .mvn/
-RUN --mount=type=cache,id=gwangmeu-m2,target=/root/.m2 \
-    mvn dependency:go-offline -B 2>/dev/null || true
+RUN mvn dependency:go-offline -B 2>/dev/null || true
 
 # Copier les sources et compiler
 COPY src/ src/
-RUN --mount=type=cache,id=gwangmeu-m2,target=/root/.m2 \
-    mvn clean package -DskipTests -B && \
+RUN mvn clean package -DskipTests -B && \
     mv target/*.jar target/app.jar
 
 # -------- Stage 2 : Runtime --------
