@@ -293,7 +293,7 @@ class _LeftRail extends ConsumerWidget {
                         context: context,
                         isScrollControlled: true,
                         backgroundColor: Colors.transparent,
-                        builder: (_) => ProfileEditSheet(user: user),
+                        builder: (_) => const ProfileEditSheet(),
                       );
                     },
                     child: Row(
