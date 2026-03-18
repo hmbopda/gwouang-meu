@@ -69,6 +69,8 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
 
   // Enfants
   final List<PersonGenealogy> _children = [];
+  bool _childrenLoading = false;
+  bool _childrenLoaded = false;
   // Inline child creation
   bool _creatingChild = false;
   final _createChildFormKey = GlobalKey<FormState>();
@@ -82,8 +84,9 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
 
   List<String> get _sections {
     final base = ['Identite', 'Parents', 'Famille'];
-    final count = int.tryParse(_childrenCountCtrl.text.trim()) ?? 0;
-    if (count > 0) base.add('Enfants');
+    final declared = int.tryParse(_childrenCountCtrl.text.trim()) ?? 0;
+    // Afficher l'onglet si enfants déclarés OU enfants déjà liés
+    if (declared > 0 || _children.isNotEmpty) base.add('Enfants');
     base.addAll(['Origines', 'Residence & Metier']);
     return base;
   }
@@ -142,6 +145,33 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
       _employerCtrl.text = user.employer ?? '';
       _residenceCityCtrl.text = user.residenceCity ?? '';
       _residenceCountryCtrl.text = user.residenceCountry ?? '';
+    }
+    // Charger les enfants liés après le premier frame
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadLinkedChildren());
+  }
+
+  Future<void> _loadLinkedChildren() async {
+    if (!mounted) return;
+    setState(() => _childrenLoading = true);
+    try {
+      final api = ref.read(genealogyApiServiceProvider);
+      final myPerson = await api.getMyPerson();
+      final linked = await api.getChildren(myPerson.id);
+      if (!mounted) return;
+      setState(() {
+        _children.clear();
+        _children.addAll(linked);
+        _childrenLoaded = true;
+        // Si le nb d'enfants liés dépasse la valeur déclarée, on met à jour
+        final declared = int.tryParse(_childrenCountCtrl.text.trim()) ?? 0;
+        if (linked.length > declared) {
+          _childrenCountCtrl.text = linked.length.toString();
+        }
+      });
+    } catch (_) {
+      if (mounted) setState(() => _childrenLoaded = true);
+    } finally {
+      if (mounted) setState(() => _childrenLoading = false);
     }
   }
 
@@ -827,20 +857,40 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
 
   Widget _buildChildrenSection(BuildContext context) {
     final accent = Theme.of(context).colorScheme.primary;
-    final count = int.tryParse(_childrenCountCtrl.text.trim()) ?? 0;
+    final declared = int.tryParse(_childrenCountCtrl.text.trim()) ?? 0;
+    final linked = _children.length;
+    // Afficher le plus grand des deux : liés ou déclarés
+    final displayed = linked > declared ? linked : declared;
     return Column(
       key: const ValueKey('children'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _sectionHeader(context, Icons.child_care, 'Mes enfants'),
         const SizedBox(height: 8),
-        Text(
-          'Vous avez declare $count enfant${count > 1 ? 's' : ''}. '
-          'Ajoutez leurs fiches pour les lier a votre arbre.',
-          style: TextStyle(fontSize: 12, color: AppColors.textHint),
-        ),
+        if (_childrenLoading)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: CircularProgressIndicator(strokeWidth: 1.5, color: accent),
+                ),
+                const SizedBox(width: 8),
+                Text('Chargement des enfants liés...', style: TextStyle(fontSize: 12, color: AppColors.textHint)),
+              ],
+            ),
+          )
+        else
+          Text(
+            displayed == 0
+                ? 'Aucun enfant déclaré. Ajoutez leurs fiches pour les lier à votre arbre.'
+                : '$displayed enfant${displayed > 1 ? 's' : ''} (${linked > 0 ? '$linked lié${linked > 1 ? 's' : ''} à votre arbre' : 'aucun lié encore'}).',
+            style: TextStyle(fontSize: 12, color: AppColors.textHint),
+          ),
         const SizedBox(height: 16),
-        // Liste des enfants deja ajoutes
+        // Liste des enfants deja lies
         ..._children.asMap().entries.map((entry) => Padding(
           padding: const EdgeInsets.only(bottom: 10),
           child: _childCard(context, entry.value, entry.key),
@@ -1128,6 +1178,11 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
         setState(() {
           _children.add(child);
           _creatingChild = false;
+          // Mettre à jour le compteur si le nb liés dépasse la valeur déclarée
+          final declared = int.tryParse(_childrenCountCtrl.text.trim()) ?? 0;
+          if (_children.length > declared) {
+            _childrenCountCtrl.text = _children.length.toString();
+          }
         });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -1224,7 +1279,13 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
               );
             }
           }
-          setState(() => _children.add(person));
+          setState(() {
+            _children.add(person);
+            final declared = int.tryParse(_childrenCountCtrl.text.trim()) ?? 0;
+            if (_children.length > declared) {
+              _childrenCountCtrl.text = _children.length.toString();
+            }
+          });
           if (context.mounted) {
             Navigator.of(context, rootNavigator: true).pop();
           }
