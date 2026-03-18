@@ -56,10 +56,15 @@ public class MediaService {
     @PostConstruct
     public void init() throws IOException {
         if (accessKeyId.isBlank() || accountId.isBlank()) {
-            log.warn("R2 credentials non configures — fallback stockage local ./uploads/");
+            log.warn("R2 credentials non configures — fallback stockage local /tmp/uploads/");
             useLocal = true;
-            localRoot = Path.of("uploads");
-            Files.createDirectories(localRoot);
+            localRoot = Path.of("/tmp/uploads");
+            try {
+                Files.createDirectories(localRoot);
+            } catch (IOException e) {
+                log.warn("Impossible de creer le dossier local {} : {} — uploads locaux desactives", localRoot, e.getMessage());
+                localRoot = null;
+            }
             return;
         }
         useLocal = false;
@@ -88,6 +93,9 @@ public class MediaService {
         String key = folder + "/" + filename + ext;
 
         if (useLocal) {
+            if (localRoot == null) {
+                throw new IOException("Stockage local non disponible et R2 non configure");
+            }
             Path target = localRoot.resolve(key);
             Files.createDirectories(target.getParent());
             Files.copy(inputStream, target, StandardCopyOption.REPLACE_EXISTING);
