@@ -259,32 +259,54 @@ class _LeftRail extends ConsumerWidget {
                 ),
 
                 const _RailDivider(),
-                const _RailSection(label: 'NAVIGATION'),
+                const _RailSection(label: 'MES CLANS'),
 
-                _RailNavItem(
-                  icon: Icons.auto_awesome,
-                  label: 'Aperçu',
-                  active: true,
-                ),
-                _RailNavItem(
-                  icon: Icons.article_outlined,
-                  label: 'Publications',
-                  count: '—',
-                ),
-                _RailNavItem(
-                  icon: Icons.account_tree_outlined,
-                  label: 'Généalogie',
-                  count: '—',
-                ),
-                _RailNavItem(
-                  icon: Icons.record_voice_over_outlined,
-                  label: 'Langues',
-                  count: '—',
-                ),
-                _RailNavItem(
-                  icon: Icons.school_outlined,
-                  label: 'Formations',
-                  count: '—',
+                // Clans actifs
+                ..._activeClanNames(user).map((name) => _RailClanItem(
+                      name: name,
+                      pending: false,
+                      c: c,
+                    )),
+
+                // Clans en attente de validation (placeholder — sera alimenté par l'API)
+                // ignore: dead_code
+                ...(_pendingClanNames(user)).map((name) => _RailClanItem(
+                      name: name,
+                      pending: true,
+                      c: c,
+                    )),
+
+                if (_activeClanNames(user).isEmpty && _pendingClanNames(user).isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                    child: Text(
+                      'Aucun clan associé',
+                      style: TextStyle(fontSize: 12, color: c.stoneFaint),
+                    ),
+                  ),
+
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+                  child: GestureDetector(
+                    onTap: () {
+                      showModalBottomSheet(
+                        context: context,
+                        isScrollControlled: true,
+                        backgroundColor: Colors.transparent,
+                        builder: (_) => ProfileEditSheet(user: user),
+                      );
+                    },
+                    child: Row(
+                      children: [
+                        Icon(Icons.add_circle_outline, size: 14, color: c.goldDim),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Gérer mes clans',
+                          style: TextStyle(fontSize: 12, color: c.goldDim),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
 
                 const _RailDivider(),
@@ -381,6 +403,18 @@ class _LeftRail extends ConsumerWidget {
       ),
     );
   }
+
+  List<String> _activeClanNames(UserModel u) {
+    if (u.clan == null || u.clan!.trim().isEmpty) return [];
+    return u.clan!
+        .split(',')
+        .map((s) => s.trim())
+        .where((s) => s.isNotEmpty)
+        .toList();
+  }
+
+  // Placeholder — à connecter à un futur endpoint /api/v1/clans/pending
+  List<String> _pendingClanNames(UserModel u) => [];
 
   int _calcCompletion(UserModel u) {
     int score = 0;
@@ -2105,6 +2139,74 @@ class _RailNavItem extends StatelessWidget {
               ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// ── Item clan dans le rail gauche ────────────────────────────
+class _RailClanItem extends StatelessWidget {
+  const _RailClanItem({
+    required this.name,
+    required this.pending,
+    required this.c,
+  });
+  final String name;
+  final bool pending;
+  final GwColors c;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 7),
+      child: Row(
+        children: [
+          // Icône clan / en attente
+          Container(
+            width: 28,
+            height: 28,
+            decoration: BoxDecoration(
+              color: pending ? c.inkRaise : c.goldFaint,
+              border: Border.all(color: pending ? c.line : c.goldLine),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            alignment: Alignment.center,
+            child: Icon(
+              pending ? Icons.hourglass_top_outlined : Icons.fort_outlined,
+              size: 13,
+              color: pending ? c.stoneFaint : c.goldDim,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              name,
+              style: TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w400,
+                color: pending ? c.stoneFaint : c.stoneDim,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          if (pending)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+              decoration: BoxDecoration(
+                color: c.inkRaise,
+                borderRadius: BorderRadius.circular(3),
+              ),
+              child: Text(
+                'EN ATTENTE',
+                style: TextStyle(
+                  fontFamily: _mono,
+                  fontSize: 7.5,
+                  letterSpacing: 0.6,
+                  color: c.stoneFaint,
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
