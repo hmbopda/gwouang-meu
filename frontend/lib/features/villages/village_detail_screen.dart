@@ -9,7 +9,9 @@ import '../../shared/models/village_member_model.dart';
 import '../../shared/models/village_model.dart';
 import '../../shared/widgets/error_widget.dart';
 import '../../core/theme/gw_colors.dart';
-import '../chat/chat_screen.dart';
+import '../../shared/models/chat_group_model.dart';
+import '../../shared/models/chat_message_model.dart';
+import '../chat/chat_notifier.dart';
 import 'villages_notifier.dart';
 
 // ═══════════════════════════════════════════════════════
@@ -341,7 +343,7 @@ class _CenterPanel extends ConsumerStatefulWidget {
 
 class _CenterPanelState extends ConsumerState<_CenterPanel> with SingleTickerProviderStateMixin {
   late final TabController _tabCtrl;
-  static const _tabs = ['Aperçu', 'Plan', 'Ligne des chefs', 'Membres', 'Publications'];
+  static const _tabs = ['Aperçu', 'Plan', 'Ligne des chefs', 'Membres', 'Publications', 'Chat'];
 
   VillageModel get v => widget.village;
 
@@ -387,6 +389,7 @@ class _CenterPanelState extends ConsumerState<_CenterPanel> with SingleTickerPro
               _tabItem(context, 'Ligne des chefs', '12'),
               _tabItem(context, 'Membres', '${v.memberCount}'),
               _tabItem(context, 'Publications', '89'),
+              _tabItem(context, 'Chat', null),
             ],
           ),
         ),
@@ -401,6 +404,7 @@ class _CenterPanelState extends ConsumerState<_CenterPanel> with SingleTickerPro
               _ChefsTab(village: v),
               _MembresTab(village: v),
               _PublicationsTab(village: v),
+              _ChatTab(village: v),
             ],
           ),
         ),
@@ -956,7 +960,6 @@ class _PublicationsTabState extends ConsumerState<_PublicationsTab> {
                 padding: EdgeInsets.zero,
                 children: [
                   const _LiveBanner(),
-                  _chatButton(context),
                   if (posts.isEmpty)
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 40),
@@ -1015,24 +1018,578 @@ class _PublicationsTabState extends ConsumerState<_PublicationsTab> {
     );
   }
 
-  Widget _chatButton(BuildContext context) {
+}
+
+// ═══════════════════════════════════════════════════════
+// ONGLET CHAT — groupes + messages inline
+// ═══════════════════════════════════════════════════════
+
+class _ChatTab extends ConsumerStatefulWidget {
+  const _ChatTab({required this.village});
+  final VillageModel village;
+
+  @override
+  ConsumerState<_ChatTab> createState() => _ChatTabState();
+}
+
+class _ChatTabState extends ConsumerState<_ChatTab> {
+  ChatGroupModel? _selectedGroup;
+
+  @override
+  Widget build(BuildContext context) {
     final c = GwColors.of(context);
+    final groupsAsync = ref.watch(chatGroupsProvider(widget.village.id));
+    final width = MediaQuery.of(context).size.width;
+    final isSplit = width >= 700; // desktop/tablet : 2 colonnes
+
+    return groupsAsync.when(
+      loading: () => Center(child: CircularProgressIndicator(color: c.gold)),
+      error: (e, _) => Center(
+        child: Text('Erreur de chargement du chat', style: TextStyle(color: c.stoneDim)),
+      ),
+      data: (groups) {
+        if (isSplit) {
+          return Row(
+            children: [
+              // Colonne gauche — liste des groupes
+              SizedBox(
+                width: 260,
+                child: _GroupList(
+                  village: widget.village,
+                  groups: groups,
+                  selectedId: _selectedGroup?.id,
+                  onSelect: (g) => setState(() => _selectedGroup = g),
+                ),
+              ),
+              VerticalDivider(width: 1, color: c.line),
+              // Colonne droite — messages
+              Expanded(
+                child: _selectedGroup == null
+                    ? _noGroupSelected(context, c, groups)
+                    : _InlineMessages(group: _selectedGroup!),
+              ),
+            ],
+          );
+        }
+
+        // Mobile — vue unique : si groupe sélectionné → messages, sinon liste
+        if (_selectedGroup != null) {
+          return Column(
+            children: [
+              // Barre retour
+              Container(
+                color: c.ink,
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: Icon(Icons.arrow_back, color: c.stone, size: 20),
+                      onPressed: () => setState(() => _selectedGroup = null),
+                    ),
+                    Text(
+                      _selectedGroup!.name,
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: c.stone),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(child: _InlineMessages(group: _selectedGroup!)),
+            ],
+          );
+        }
+        return _GroupList(
+          village: widget.village,
+          groups: groups,
+          selectedId: null,
+          onSelect: (g) => setState(() => _selectedGroup = g),
+        );
+      },
+    );
+  }
+
+  Widget _noGroupSelected(BuildContext context, GwColors c, List<ChatGroupModel> groups) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.forum_outlined, size: 48, color: c.stoneFaint),
+          const SizedBox(height: 12),
+          Text(
+            groups.isEmpty ? 'Aucun groupe de discussion' : 'Sélectionnez un groupe',
+            style: TextStyle(color: c.stoneDim, fontSize: 14),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Liste des groupes ────────────────────────────────────
+
+class _GroupList extends ConsumerWidget {
+  const _GroupList({
+    required this.village,
+    required this.groups,
+    required this.selectedId,
+    required this.onSelect,
+  });
+  final VillageModel village;
+  final List<ChatGroupModel> groups;
+  final String? selectedId;
+  final ValueChanged<ChatGroupModel> onSelect;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final c = GwColors.of(context);
+    final cs = Theme.of(context).colorScheme;
+
+    return Column(
+      children: [
+        // Header groupe
+        Container(
+          padding: const EdgeInsets.fromLTRB(16, 12, 8, 10),
+          decoration: BoxDecoration(border: Border(bottom: BorderSide(color: c.line))),
+          child: Row(
+            children: [
+              Icon(Icons.forum_outlined, color: c.gold, size: 16),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Groupes',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600,
+                      color: c.stoneDim, letterSpacing: 0.5),
+                ),
+              ),
+              IconButton(
+                icon: Icon(Icons.add, size: 18, color: c.goldDim),
+                tooltip: 'Créer un groupe',
+                onPressed: () => _showCreateDialog(context, ref),
+              ),
+            ],
+          ),
+        ),
+        // Liste
+        Expanded(
+          child: groups.isEmpty
+              ? _emptyGroups(context, ref, c)
+              : ListView.builder(
+                  itemCount: groups.length,
+                  itemBuilder: (context, i) {
+                    final g = groups[i];
+                    final isSelected = g.id == selectedId;
+                    final isCommission = g.type == 'COMMISSION';
+                    return GestureDetector(
+                      onTap: () => onSelect(g),
+                      child: Container(
+                        color: isSelected ? c.goldFaint : Colors.transparent,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 36,
+                              height: 36,
+                              decoration: BoxDecoration(
+                                color: (isCommission ? cs.tertiary : c.gold).withAlpha(20),
+                                borderRadius: BorderRadius.circular(10),
+                                border: isSelected ? Border.all(color: c.goldLine) : null,
+                              ),
+                              alignment: Alignment.center,
+                              child: Icon(
+                                isCommission ? Icons.groups_outlined : Icons.chat_bubble_outline,
+                                size: 18,
+                                color: isSelected ? c.gold : (isCommission ? cs.tertiary : c.stoneDim),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    g.name,
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                                      color: isSelected ? c.gold : c.stone,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  Text(
+                                    '${g.memberCount} membre${g.memberCount > 1 ? 's' : ''}',
+                                    style: TextStyle(fontSize: 11, color: c.stoneFaint),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            if (isSelected)
+                              Icon(Icons.chevron_right, size: 16, color: c.goldDim),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+        ),
+      ],
+    );
+  }
+
+  Widget _emptyGroups(BuildContext context, WidgetRef ref, GwColors c) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.forum_outlined, size: 36, color: c.stoneFaint),
+            const SizedBox(height: 10),
+            Text('Aucun groupe', style: TextStyle(color: c.stoneDim, fontSize: 13)),
+            const SizedBox(height: 12),
+            GestureDetector(
+              onTap: () => _showCreateDialog(context, ref),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
+                  color: c.goldFaint,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: c.goldLine),
+                ),
+                child: Text('+ Créer un groupe', style: TextStyle(fontSize: 12, color: c.gold)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showCreateDialog(BuildContext context, WidgetRef ref) {
+    final nameCtrl = TextEditingController();
+    final descCtrl = TextEditingController();
+    String type = 'GENERAL';
+    final accent = Theme.of(context).colorScheme.primary;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setD) => AlertDialog(
+          title: const Text('Nouveau groupe'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameCtrl,
+                decoration: const InputDecoration(labelText: 'Nom du groupe *', isDense: true),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: descCtrl,
+                decoration: const InputDecoration(labelText: 'Description', isDense: true),
+                maxLines: 2,
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  const Text('Type : ', style: TextStyle(fontSize: 13)),
+                  const SizedBox(width: 8),
+                  ChoiceChip(
+                    label: const Text('Général'),
+                    selected: type == 'GENERAL',
+                    onSelected: (_) => setD(() => type = 'GENERAL'),
+                    selectedColor: accent.withAlpha(40),
+                  ),
+                  const SizedBox(width: 8),
+                  ChoiceChip(
+                    label: const Text('Commission'),
+                    selected: type == 'COMMISSION',
+                    onSelected: (_) => setD(() => type = 'COMMISSION'),
+                    selectedColor: accent.withAlpha(40),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Annuler'),
+            ),
+            FilledButton(
+              onPressed: () async {
+                if (nameCtrl.text.trim().length < 2) return;
+                Navigator.pop(ctx);
+                try {
+                  await ref.read(createChatGroupProvider.notifier).create(
+                    villageId: village.id,
+                    name: nameCtrl.text.trim(),
+                    description: descCtrl.text.trim().isNotEmpty ? descCtrl.text.trim() : null,
+                    type: type,
+                  );
+                } catch (_) {}
+              },
+              style: FilledButton.styleFrom(
+                backgroundColor: accent,
+                foregroundColor: Colors.black,
+              ),
+              child: const Text('Créer'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Messages inline ──────────────────────────────────────
+
+class _InlineMessages extends ConsumerStatefulWidget {
+  const _InlineMessages({required this.group});
+  final ChatGroupModel group;
+
+  @override
+  ConsumerState<_InlineMessages> createState() => _InlineMessagesState();
+}
+
+class _InlineMessagesState extends ConsumerState<_InlineMessages> {
+  final _msgCtrl = TextEditingController();
+  bool _sending = false;
+
+  @override
+  void dispose() {
+    _msgCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _send() async {
+    final text = _msgCtrl.text.trim();
+    if (text.isEmpty) return;
+    setState(() => _sending = true);
+    _msgCtrl.clear();
+    try {
+      await ref
+          .read(chatMessagesNotifierProvider(widget.group.id).notifier)
+          .sendMessage(text);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Erreur d\'envoi')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _sending = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = GwColors.of(context);
+    final cs = Theme.of(context).colorScheme;
+    final messagesAsync = ref.watch(chatMessagesNotifierProvider(widget.group.id));
+
+    return Column(
+      children: [
+        // Header groupe actif
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          decoration: BoxDecoration(border: Border(bottom: BorderSide(color: c.line))),
+          child: Row(
+            children: [
+              Icon(
+                widget.group.type == 'COMMISSION' ? Icons.groups_outlined : Icons.chat_bubble_outline,
+                size: 16,
+                color: c.gold,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.group.name,
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: c.stone),
+                    ),
+                    Text(
+                      '${widget.group.memberCount} membre${widget.group.memberCount > 1 ? 's' : ''}',
+                      style: TextStyle(fontSize: 10, color: c.stoneFaint),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                icon: Icon(Icons.refresh, size: 16, color: c.stoneDim),
+                onPressed: () => ref
+                    .read(chatMessagesNotifierProvider(widget.group.id).notifier)
+                    .refresh(),
+              ),
+            ],
+          ),
+        ),
+
+        // Messages
+        Expanded(
+          child: messagesAsync.when(
+            loading: () => Center(child: CircularProgressIndicator(color: c.gold)),
+            error: (e, _) => Center(
+              child: Text('Erreur', style: TextStyle(color: c.stoneDim)),
+            ),
+            data: (messages) => messages.isEmpty
+                ? Center(
+                    child: Text(
+                      'Aucun message\nSoyez le premier à écrire !',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: c.stoneFaint, fontSize: 13, height: 1.6),
+                    ),
+                  )
+                : ListView.builder(
+                    reverse: true,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    itemCount: messages.length,
+                    itemBuilder: (_, i) => _InlineBubble(message: messages[i]),
+                  ),
+          ),
+        ),
+
+        // Champ de saisie
+        Container(
+          padding: const EdgeInsets.fromLTRB(12, 8, 8, 12),
+          decoration: BoxDecoration(
+            color: cs.surface,
+            border: Border(top: BorderSide(color: c.line)),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _msgCtrl,
+                  textInputAction: TextInputAction.send,
+                  onSubmitted: (_) => _send(),
+                  maxLines: 3,
+                  minLines: 1,
+                  style: TextStyle(fontSize: 13, color: c.stone),
+                  decoration: InputDecoration(
+                    hintText: 'Écrire un message...',
+                    hintStyle: TextStyle(color: c.stoneFaint),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(20),
+                      borderSide: BorderSide.none,
+                    ),
+                    filled: true,
+                    fillColor: c.inkRaise,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    isDense: true,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: _sending ? null : _send,
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: _sending ? c.goldDim : c.gold,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: _sending
+                      ? SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: c.ink),
+                        )
+                      : Icon(Icons.send, color: c.ink, size: 18),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Bulle de message inline ──────────────────────────────
+
+class _InlineBubble extends StatelessWidget {
+  const _InlineBubble({required this.message});
+  final ChatMessageModel message;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = GwColors.of(context);
+    final cs = Theme.of(context).colorScheme;
+
+    if (message.type == 'SYSTEM') {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Center(
+          child: Text(
+            message.content,
+            style: TextStyle(fontSize: 11, color: c.stoneFaint, fontStyle: FontStyle.italic),
+          ),
+        ),
+      );
+    }
+
+    final time = message.createdAt != null
+        ? '${message.createdAt!.hour.toString().padLeft(2, '0')}:${message.createdAt!.minute.toString().padLeft(2, '0')}'
+        : '';
+
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-      child: GestureDetector(
-        onTap: () => showModalBottomSheet(
-          context: context, isScrollControlled: true, backgroundColor: Colors.transparent,
-          builder: (_) => ChatGroupsSheet(villageId: widget.village.id, villageName: widget.village.name),
-        ),
-        child: Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(color: c.inkLift, borderRadius: BorderRadius.circular(8), border: Border.all(color: c.line)),
-          child: Row(children: [
-            Icon(Icons.forum_outlined, color: c.gold, size: 18), const SizedBox(width: 10),
-            Text('Groupes de discussion', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w500, color: c.stone)),
-            const Spacer(), Icon(Icons.chevron_right, color: c.stoneFaint, size: 16),
-          ]),
-        ),
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Avatar
+          Container(
+            width: 30,
+            height: 30,
+            decoration: BoxDecoration(
+              color: c.goldFaint,
+              shape: BoxShape.circle,
+              border: Border.all(color: c.goldLine),
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              (message.senderName?.isNotEmpty == true)
+                  ? message.senderName![0].toUpperCase()
+                  : '?',
+              style: TextStyle(color: c.gold, fontSize: 11, fontWeight: FontWeight.w700),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      message.senderName ?? 'Inconnu',
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: c.stone),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(time, style: TextStyle(fontSize: 10, color: c.stoneFaint)),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: cs.surfaceContainerHighest,
+                    borderRadius: const BorderRadius.only(
+                      topRight: Radius.circular(12),
+                      bottomLeft: Radius.circular(12),
+                      bottomRight: Radius.circular(12),
+                    ),
+                  ),
+                  child: Text(
+                    message.content,
+                    style: TextStyle(fontSize: 13, color: c.stone, height: 1.4),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
