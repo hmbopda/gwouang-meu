@@ -135,6 +135,7 @@ class _GenealogyBody extends ConsumerWidget {
                 tree: tree,
                 personId: personId,
                 onAddParent: () => _showAddDialog(context, ref, isParent: true),
+                onAddChild: () => _showAddDialog(context, ref, isParent: false),
                 onAddUnion: () => _showUnionDialog(context, ref, tree),
                 onExport: () {
                   // TODO: export tree (PDF, image, etc.)

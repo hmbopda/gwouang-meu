@@ -775,7 +775,12 @@ class _FixedActions extends StatelessWidget {
             foregroundColor: const Color(0xFFE57373),
             borderColor: const Color(0xFF6D2B2B),
             onTap: () {
-              // TODO: navigate to migration map
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Carte de migration bientôt disponible'),
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
             },
           ),
           const SizedBox(height: 8),

@@ -17,6 +17,7 @@ class TreeCanvas extends ConsumerStatefulWidget {
   final FamilyTree tree;
   final String personId;
   final VoidCallback? onAddParent;
+  final VoidCallback? onAddChild;
   final VoidCallback? onAddUnion;
   final VoidCallback? onExport;
 
@@ -25,6 +26,7 @@ class TreeCanvas extends ConsumerStatefulWidget {
     required this.tree,
     required this.personId,
     this.onAddParent,
+    this.onAddChild,
     this.onAddUnion,
     this.onExport,
   });
@@ -264,12 +266,12 @@ class _TreeCanvasState extends ConsumerState<TreeCanvas> {
           onAddParent: () {
             notifier.selectPerson(node.person.id);
             setState(() => _tooltipNodeId = null);
-            // TODO: trigger add parent dialog
+            widget.onAddParent?.call();
           },
           onAddChild: () {
             notifier.selectPerson(node.person.id);
             setState(() => _tooltipNodeId = null);
-            // TODO: trigger add child dialog
+            widget.onAddChild?.call();
           },
         ),
       ),

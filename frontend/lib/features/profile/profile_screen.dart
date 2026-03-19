@@ -1032,9 +1032,12 @@ class _HeroActions extends StatelessWidget {
         const SizedBox(width: 8),
         // Settings
         GestureDetector(
-          onTap: () {
-            // TODO: settings
-          },
+          onTap: () => showModalBottomSheet(
+            context: context,
+            isScrollControlled: true,
+            backgroundColor: Colors.transparent,
+            builder: (_) => const ProfileEditSheet(),
+          ),
           child: Container(
             width: 40,
             height: 40,
@@ -1051,7 +1054,14 @@ class _HeroActions extends StatelessWidget {
         // Partager
         GestureDetector(
           onTap: () {
-            // TODO: share profile
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text('Partage de profil bientôt disponible'),
+                backgroundColor: c.inkRaise,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+            );
           },
           child: Container(
             width: 40,
