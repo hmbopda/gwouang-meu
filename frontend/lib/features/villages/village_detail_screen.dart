@@ -12,6 +12,7 @@ import 'package:gwangmeu/core/theme/gw_colors.dart';
 import 'package:gwangmeu/shared/models/chat_group_model.dart';
 import 'package:gwangmeu/shared/models/chat_message_model.dart';
 import 'package:gwangmeu/features/chat/chat_notifier.dart';
+import 'package:gwangmeu/features/profile/profile_notifier.dart';
 import 'package:gwangmeu/features/villages/villages_notifier.dart';
 
 // ═══════════════════════════════════════════════════════
@@ -1351,8 +1352,9 @@ class _GroupList extends ConsumerWidget {
 // ── Messages inline ──────────────────────────────────────
 
 class _InlineMessages extends ConsumerStatefulWidget {
-  const _InlineMessages({required this.group});
+  const _InlineMessages({required this.group, this.onClose});
   final ChatGroupModel group;
+  final VoidCallback? onClose;
 
   @override
   ConsumerState<_InlineMessages> createState() => _InlineMessagesState();
@@ -1360,11 +1362,13 @@ class _InlineMessages extends ConsumerStatefulWidget {
 
 class _InlineMessagesState extends ConsumerState<_InlineMessages> {
   final _msgCtrl = TextEditingController();
+  final _focusNode = FocusNode();
   bool _sending = false;
 
   @override
   void dispose() {
     _msgCtrl.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
@@ -1391,125 +1395,141 @@ class _InlineMessagesState extends ConsumerState<_InlineMessages> {
   @override
   Widget build(BuildContext context) {
     final c = GwColors.of(context);
-    final cs = Theme.of(context).colorScheme;
     final messagesAsync = ref.watch(chatMessagesNotifierProvider(widget.group.id));
+    final currentUserId = ref.watch(profileNotifierProvider).valueOrNull?.id;
 
-    return Column(
-      children: [
-        // Header groupe actif
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          decoration: BoxDecoration(border: Border(bottom: BorderSide(color: c.line))),
-          child: Row(
-            children: [
-              Icon(
-                widget.group.type == 'COMMISSION' ? Icons.groups_outlined : Icons.chat_bubble_outline,
-                size: 16,
-                color: c.gold,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      widget.group.name,
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: c.stone),
-                    ),
-                    Text(
-                      '${widget.group.memberCount} membre${widget.group.memberCount > 1 ? 's' : ''}',
-                      style: TextStyle(fontSize: 10, color: c.stoneFaint),
-                    ),
-                  ],
-                ),
-              ),
-              IconButton(
-                icon: Icon(Icons.refresh, size: 16, color: c.stoneDim),
-                onPressed: () => ref
-                    .read(chatMessagesNotifierProvider(widget.group.id).notifier)
-                    .refresh(),
-              ),
-            ],
-          ),
-        ),
-
-        // Messages
-        Expanded(
-          child: messagesAsync.when(
-            loading: () => Center(child: CircularProgressIndicator(color: c.gold)),
-            error: (e, _) => Center(
-              child: Text('Erreur', style: TextStyle(color: c.stoneDim)),
+    return Container(
+      color: c.ink,
+      child: Column(
+        children: [
+          // ── Header compact ──
+          Container(
+            height: 44,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            decoration: BoxDecoration(
+              color: c.inkRaise,
+              border: Border(bottom: BorderSide(color: c.line, width: 0.5)),
             ),
-            data: (messages) => messages.isEmpty
-                ? Center(
+            child: Row(
+              children: [
+                if (widget.group.type == 'DIRECT')
+                  Container(
+                    width: 28,
+                    height: 28,
+                    decoration: BoxDecoration(color: c.goldFaint, shape: BoxShape.circle),
+                    alignment: Alignment.center,
                     child: Text(
-                      'Aucun message\nSoyez le premier à écrire !',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: c.stoneFaint, fontSize: 13, height: 1.6),
+                      widget.group.name.isNotEmpty ? widget.group.name[0].toUpperCase() : '?',
+                      style: TextStyle(color: c.gold, fontSize: 12, fontWeight: FontWeight.w700),
                     ),
                   )
-                : ListView.builder(
-                    reverse: true,
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    itemCount: messages.length,
-                    itemBuilder: (_, i) => _InlineBubble(message: messages[i]),
+                else
+                  Icon(Icons.groups_outlined, size: 18, color: c.gold),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    widget.group.name,
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: c.stone),
+                    overflow: TextOverflow.ellipsis,
                   ),
+                ),
+                IconButton(
+                  icon: Icon(Icons.refresh_rounded, size: 16, color: c.stoneDim),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                  onPressed: () => ref
+                      .read(chatMessagesNotifierProvider(widget.group.id).notifier)
+                      .refresh(),
+                ),
+                if (widget.onClose != null)
+                  IconButton(
+                    icon: Icon(Icons.close, size: 16, color: c.stoneDim),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                    onPressed: widget.onClose,
+                  ),
+              ],
+            ),
           ),
-        ),
 
-        // Champ de saisie
-        Container(
-          padding: const EdgeInsets.fromLTRB(12, 8, 8, 12),
-          decoration: BoxDecoration(
-            color: cs.surface,
-            border: Border(top: BorderSide(color: c.line)),
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _msgCtrl,
-                  textInputAction: TextInputAction.send,
-                  onSubmitted: (_) => _send(),
-                  maxLines: 3,
-                  minLines: 1,
-                  style: TextStyle(fontSize: 13, color: c.stone),
-                  decoration: InputDecoration(
-                    hintText: 'Écrire un message...',
-                    hintStyle: TextStyle(color: c.stoneFaint),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(20),
-                      borderSide: BorderSide.none,
+          // ── Messages ──
+          Expanded(
+            child: messagesAsync.when(
+              loading: () => Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: c.gold, strokeWidth: 2))),
+              error: (e, _) => Center(child: Text('Erreur', style: TextStyle(color: c.stoneDim, fontSize: 12))),
+              data: (messages) => messages.isEmpty
+                  ? Center(
+                      child: Text(
+                        'Aucun message',
+                        style: TextStyle(color: c.stoneFaint, fontSize: 12),
+                      ),
+                    )
+                  : ListView.builder(
+                      reverse: true,
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      itemCount: messages.length,
+                      itemBuilder: (_, i) => _InlineBubble(
+                        message: messages[i],
+                        isMe: currentUserId != null && messages[i].senderId == currentUserId,
+                      ),
                     ),
-                    filled: true,
-                    fillColor: c.inkRaise,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                    isDense: true,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              GestureDetector(
-                onTap: _sending ? null : _send,
-                child: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: _sending ? c.goldDim : c.gold,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: _sending
-                      ? SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: c.ink),
-                        )
-                      : Icon(Icons.send, color: c.ink, size: 18),
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
-      ],
+
+          // ── Input ──
+          Container(
+            padding: EdgeInsets.fromLTRB(8, 6, 8, MediaQuery.of(context).viewInsets.bottom + 6),
+            decoration: BoxDecoration(
+              color: c.inkRaise,
+              border: Border(top: BorderSide(color: c.line, width: 0.5)),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _msgCtrl,
+                    focusNode: _focusNode,
+                    textInputAction: TextInputAction.send,
+                    onSubmitted: (_) => _send(),
+                    maxLines: 4,
+                    minLines: 1,
+                    style: TextStyle(fontSize: 13, color: c.stone),
+                    decoration: InputDecoration(
+                      hintText: 'Aa',
+                      hintStyle: TextStyle(color: c.stoneFaint),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(18),
+                        borderSide: BorderSide.none,
+                      ),
+                      filled: true,
+                      fillColor: c.ink,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      isDense: true,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                GestureDetector(
+                  onTap: _sending ? null : _send,
+                  child: Container(
+                    width: 34,
+                    height: 34,
+                    decoration: BoxDecoration(
+                      color: _sending ? c.goldDim : c.gold,
+                      shape: BoxShape.circle,
+                    ),
+                    alignment: Alignment.center,
+                    child: _sending
+                        ? SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: c.ink))
+                        : Icon(Icons.send_rounded, color: c.ink, size: 16),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -1517,21 +1537,22 @@ class _InlineMessagesState extends ConsumerState<_InlineMessages> {
 // ── Bulle de message inline ──────────────────────────────
 
 class _InlineBubble extends StatelessWidget {
-  const _InlineBubble({required this.message});
+  const _InlineBubble({required this.message, required this.isMe});
   final ChatMessageModel message;
+  final bool isMe;
 
   @override
   Widget build(BuildContext context) {
     final c = GwColors.of(context);
-    final cs = Theme.of(context).colorScheme;
 
+    // Message système centré
     if (message.type == 'SYSTEM') {
       return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6),
+        padding: const EdgeInsets.symmetric(vertical: 4),
         child: Center(
           child: Text(
             message.content,
-            style: TextStyle(fontSize: 11, color: c.stoneFaint, fontStyle: FontStyle.italic),
+            style: TextStyle(fontSize: 10, color: c.stoneFaint, fontStyle: FontStyle.italic),
           ),
         ),
       );
@@ -1542,61 +1563,71 @@ class _InlineBubble extends StatelessWidget {
         : '';
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: 2),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          // Avatar
-          Container(
-            width: 30,
-            height: 30,
-            decoration: BoxDecoration(
-              color: c.goldFaint,
-              shape: BoxShape.circle,
-              border: Border.all(color: c.goldLine),
+          // Avatar (seulement pour les autres)
+          if (!isMe) ...[
+            Container(
+              width: 24,
+              height: 24,
+              decoration: BoxDecoration(color: c.goldFaint, shape: BoxShape.circle),
+              alignment: Alignment.center,
+              child: Text(
+                (message.senderName?.isNotEmpty == true) ? message.senderName![0].toUpperCase() : '?',
+                style: TextStyle(color: c.gold, fontSize: 10, fontWeight: FontWeight.w700),
+              ),
             ),
-            alignment: Alignment.center,
-            child: Text(
-              (message.senderName?.isNotEmpty == true)
-                  ? message.senderName![0].toUpperCase()
-                  : '?',
-              style: TextStyle(color: c.gold, fontSize: 11, fontWeight: FontWeight.w700),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
+            const SizedBox(width: 4),
+          ],
+
+          // Bulle
+          Flexible(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Text(
-                      message.senderName ?? 'Inconnu',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: c.stone),
+                // Nom de l'expéditeur (seulement pour les autres, groupe non-DIRECT)
+                if (!isMe && message.type != 'DIRECT')
+                  Padding(
+                    padding: const EdgeInsets.only(left: 4, bottom: 1),
+                    child: Text(
+                      message.senderName ?? '',
+                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: c.stoneDim),
                     ),
-                    const SizedBox(width: 6),
-                    Text(time, style: TextStyle(fontSize: 10, color: c.stoneFaint)),
-                  ],
-                ),
-                const SizedBox(height: 2),
+                  ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.65),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
                   decoration: BoxDecoration(
-                    color: cs.surfaceContainerHighest,
-                    borderRadius: const BorderRadius.only(
-                      topRight: Radius.circular(12),
-                      bottomLeft: Radius.circular(12),
-                      bottomRight: Radius.circular(12),
+                    color: isMe ? c.gold : c.inkRaise,
+                    borderRadius: BorderRadius.only(
+                      topLeft: const Radius.circular(16),
+                      topRight: const Radius.circular(16),
+                      bottomLeft: Radius.circular(isMe ? 16 : 4),
+                      bottomRight: Radius.circular(isMe ? 4 : 16),
                     ),
                   ),
                   child: Text(
                     message.content,
-                    style: TextStyle(fontSize: 13, color: c.stone, height: 1.4),
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: isMe ? c.ink : c.stone,
+                      height: 1.3,
+                    ),
                   ),
+                ),
+                // Heure
+                Padding(
+                  padding: const EdgeInsets.only(top: 1, left: 4, right: 4),
+                  child: Text(time, style: TextStyle(fontSize: 9, color: c.stoneFaint)),
                 ),
               ],
             ),
           ),
+
+          if (isMe) const SizedBox(width: 4),
         ],
       ),
     );
@@ -2261,13 +2292,39 @@ class _OnlineMembers extends ConsumerWidget {
         context: context,
         isScrollControlled: true,
         backgroundColor: Colors.transparent,
-        builder: (_) => DraggableScrollableSheet(
-          initialChildSize: 0.85,
-          minChildSize: 0.5,
-          maxChildSize: 0.95,
-          builder: (_, scrollCtrl) => ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-            child: _InlineMessages(group: group),
+        builder: (ctx) => DraggableScrollableSheet(
+          initialChildSize: 0.52,
+          minChildSize: 0.35,
+          maxChildSize: 0.92,
+          snap: true,
+          snapSizes: const [0.52, 0.75, 0.92],
+          builder: (_, __) => ClipRRect(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
+            child: Column(
+              children: [
+                // Handle de drag
+                Container(
+                  color: c.inkRaise,
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Center(
+                    child: Container(
+                      width: 36,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: c.line,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: _InlineMessages(
+                    group: group,
+                    onClose: () => Navigator.of(ctx).pop(),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       );
