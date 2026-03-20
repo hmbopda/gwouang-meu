@@ -86,3 +86,26 @@ class CreateChatGroup extends _$CreateChatGroup {
 Future<void> joinChatGroup(ApiClient client, String groupId) async {
   await client.post('/api/v1/chat/groups/$groupId/join');
 }
+
+/// Ouvrir ou créer une discussion privée (DIRECT) avec un autre utilisateur
+@riverpod
+class CreateDirectChat extends _$CreateDirectChat {
+  @override
+  FutureOr<void> build() {}
+
+  Future<ChatGroupModel> openWith({
+    required String villageId,
+    required String targetUserId,
+    required String targetName,
+  }) async {
+    final client = ref.read(apiClientProvider);
+    final json = await client.post('/api/v1/chat/groups', data: {
+      'villageId': villageId,
+      'name': targetName,
+      'type': 'DIRECT',
+      'targetUserId': targetUserId,
+    });
+    ref.invalidate(chatGroupsProvider(villageId));
+    return ChatGroupModel.fromJson(json['data'] as Map<String, dynamic>);
+  }
+}

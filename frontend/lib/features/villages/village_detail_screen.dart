@@ -631,7 +631,7 @@ class _RightPanel extends StatelessWidget {
 
                 // EN LIGNE MAINTENANT
                 _rightSectionLabel(context, 'En ligne maintenant'),
-                const _OnlineMembers(),
+                _OnlineMembers(village: village),
 
                 const SizedBox(height: 40),
               ],
@@ -716,7 +716,7 @@ class _ApercuTab extends ConsumerWidget {
           Container(height: 1, color: c.line),
           _Section(title: 'Chef actuel · Administrateur', isMonoTitle: true, child: _ChefCard(village: village)),
           const _Section(title: 'Votre lien de filiation', isMonoTitle: true, child: _FiliationTree()),
-          const _Section(title: 'En ligne maintenant', isMonoTitle: true, child: _OnlineMembers()),
+          _Section(title: 'En ligne maintenant', isMonoTitle: true, child: _OnlineMembers(village: village)),
           _Section(title: 'Activité récente', isMonoTitle: true, child: _ActivityLog(villageName: village.name)),
         ],
 
@@ -2134,57 +2134,155 @@ class _FiliationTree extends StatelessWidget {
 
 // ── Online Members ──
 
-class _OnlineMembers extends StatelessWidget {
-  const _OnlineMembers();
+class _OnlineMembers extends ConsumerWidget {
+  const _OnlineMembers({required this.village});
+  final VillageModel village;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final c = GwColors.of(context);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-      child: Column(
-        children: [
-          _onlineMember(context, 'FK', 'Fanta Koné', 'Foumbot Royal', c.ember, c.emberLight, null),
-          const SizedBox(height: 8),
-          _onlineMember(context, 'PN', 'Prof. Nkomo', 'Bassa-Likoko', c.sage, c.sageLight, 'LIVE'),
-        ],
+    final membersAsync = ref.watch(villageMembersProvider(village.id));
+
+    return membersAsync.when(
+      loading: () => Padding(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+        child: Center(child: CircularProgressIndicator(strokeWidth: 1.5, color: c.gold)),
       ),
+      error: (_, __) => const SizedBox.shrink(),
+      data: (members) {
+        if (members.isEmpty) {
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+            child: Text('Aucun membre en ligne', style: TextStyle(fontSize: 12, color: c.stoneFaint)),
+          );
+        }
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+          child: Column(
+            children: members.take(5).map((member) {
+              final name = member.displayName ?? 'Membre';
+              final initials = name.trim().split(' ').take(2)
+                  .map((w) => w.isNotEmpty ? w[0].toUpperCase() : '')
+                  .join();
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: GestureDetector(
+                  onTap: () => _openDirectChat(context, ref, member),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                    decoration: BoxDecoration(
+                      color: Colors.transparent,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            CircleAvatar(
+                              radius: 18,
+                              backgroundColor: Color.alphaBlend(c.sage.withAlpha(40), c.inkLift),
+                              backgroundImage: member.avatarUrl != null && member.avatarUrl!.isNotEmpty
+                                  ? NetworkImage(member.avatarUrl!) : null,
+                              child: member.avatarUrl == null || member.avatarUrl!.isEmpty
+                                  ? Text(initials, style: TextStyle(fontSize: 11, color: c.sageLight))
+                                  : null,
+                            ),
+                            // Point vert "en ligne"
+                            Positioned(
+                              bottom: 0, right: 0,
+                              child: Container(
+                                width: 8, height: 8,
+                                decoration: BoxDecoration(
+                                  color: c.sage,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: c.inkDeep, width: 1.5),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(name, style: TextStyle(fontSize: 12.5, color: c.stoneMid)),
+                              Text(
+                                member.type == 'CHEF' ? 'Chef · Administrateur' : 'Résident',
+                                style: TextStyle(fontFamily: 'monospace', fontSize: 9, color: c.stoneFaint),
+                              ),
+                            ],
+                          ),
+                        ),
+                        // Icône message indiquant que c'est cliquable
+                        Icon(Icons.chat_bubble_outline, size: 14, color: c.goldDim),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        );
+      },
     );
   }
 
-  Widget _onlineMember(BuildContext context, String initials, String name, String location, Color dotColor, Color avatarColor, String? badge) {
+  Future<void> _openDirectChat(BuildContext context, WidgetRef ref, VillageMemberModel member) async {
     final c = GwColors.of(context);
-    return Row(
-      children: [
-        Stack(
-          clipBehavior: Clip.none,
-          children: [
-            CircleAvatar(radius: 18, backgroundColor: Color.alphaBlend(avatarColor.withAlpha(40), c.inkLift),
-              child: Text(initials, style: TextStyle(fontSize: 11, color: avatarColor))),
-            Positioned(
-              bottom: 0, right: 0,
-              child: Container(width: 8, height: 8, decoration: BoxDecoration(color: dotColor, shape: BoxShape.circle, border: Border.all(color: c.inkDeep, width: 1.5))),
-            ),
-          ],
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(name, style: TextStyle(fontSize: 12.5, color: c.stoneMid)),
-              Text(location, style: TextStyle(fontFamily: 'monospace', fontSize: 9, color: c.stoneFaint)),
-            ],
-          ),
-        ),
-        if (badge != null)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-            decoration: BoxDecoration(color: c.emberBg, borderRadius: BorderRadius.circular(3), border: Border.all(color: c.emberLine)),
-            child: Text(badge, style: TextStyle(fontFamily: 'monospace', fontSize: 8, fontWeight: FontWeight.w600, color: c.ember)),
-          ),
-      ],
+    final name = member.displayName ?? 'Membre';
+
+    // Indicateur de chargement
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(children: [
+          SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: c.inkDeep)),
+          const SizedBox(width: 10),
+          Text('Ouverture de la discussion avec $name…'),
+        ]),
+        duration: const Duration(seconds: 3),
+        backgroundColor: c.inkRaise,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
     );
+
+    try {
+      final group = await ref.read(createDirectChatProvider.notifier).openWith(
+        villageId: village.id,
+        targetUserId: member.userId,
+        targetName: name,
+      );
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      // Ouvrir la discussion en bottom sheet
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (_) => DraggableScrollableSheet(
+          initialChildSize: 0.85,
+          minChildSize: 0.5,
+          maxChildSize: 0.95,
+          builder: (_, scrollCtrl) => ClipRRect(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+            child: _InlineMessages(group: group),
+          ),
+        ),
+      );
+    } catch (_) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Impossible d\'ouvrir la discussion'),
+          backgroundColor: c.ember,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+      );
+    }
   }
 }
 
