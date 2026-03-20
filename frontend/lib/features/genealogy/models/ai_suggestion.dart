@@ -1,5 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
-import 'person_genealogy.dart';
+import 'package:gwangmeu/features/genealogy/models/person_genealogy.dart';
 
 part 'ai_suggestion.freezed.dart';
 part 'ai_suggestion.g.dart';

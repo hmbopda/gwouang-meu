@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../shared/models/country_model.dart';
-import '../../../../shared/models/language_model.dart';
-import '../../../../shared/models/village_model.dart';
-import '../../../../shared/widgets/country_village_selector.dart';
-import '../../../../shared/widgets/person_lookup_widget.dart';
-import '../../../geo/geo_notifier.dart';
-import '../../models/family_tree.dart';
-import '../../models/person_genealogy.dart';
-import '../../services/genealogy_api_service.dart';
+import 'package:gwangmeu/shared/models/country_model.dart';
+import 'package:gwangmeu/shared/models/language_model.dart';
+import 'package:gwangmeu/shared/models/village_model.dart';
+import 'package:gwangmeu/shared/widgets/country_village_selector.dart';
+import 'package:gwangmeu/shared/widgets/person_lookup_widget.dart';
+import 'package:gwangmeu/features/geo/geo_notifier.dart';
+import 'package:gwangmeu/features/genealogy/models/family_tree.dart';
+import 'package:gwangmeu/features/genealogy/models/person_genealogy.dart';
+import 'package:gwangmeu/features/genealogy/services/genealogy_api_service.dart';
 
 /// Dialog pour ajouter une union (mariage/dot) a une personne.
 /// Si la personne est MALE → elle est le mari, on sélectionne l'épouse.
@@ -368,7 +368,7 @@ class _AddUnionDialogState extends ConsumerState<AddUnionDialog> {
                 fontSize: 12, color: Theme.of(context).textTheme.bodySmall?.color),
           ),
           value: _isDotPaid,
-          activeColor: Theme.of(context).colorScheme.primary,
+          activeThumbColor: Theme.of(context).colorScheme.primary,
           contentPadding: EdgeInsets.zero,
           onChanged: (v) => setState(() => _isDotPaid = v),
         ),
@@ -633,7 +633,7 @@ class _AddUnionDialogState extends ConsumerState<AddUnionDialog> {
           SwitchListTile(
             title: Text('${_isMale ? 'Elle' : 'Il'} est en vie ?'),
             value: _spouseIsAlive,
-            activeColor: Theme.of(context).colorScheme.primary,
+            activeThumbColor: Theme.of(context).colorScheme.primary,
             dense: true,
             contentPadding: EdgeInsets.zero,
             onChanged: (v) => setState(() {

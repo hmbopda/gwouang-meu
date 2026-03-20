@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../home/home_screen.dart';
-import 'genealogy_notifier.dart';
-import 'models/family_tree.dart';
-import 'services/genealogy_api_service.dart';
-import 'state/tree_tokens.dart';
-import 'state/tree_view_state.dart';
-import 'widgets/dialogs/add_person_dialog.dart';
-import 'widgets/dialogs/add_union_dialog.dart';
-import 'widgets/left_panel/genealogy_left_panel.dart';
-import 'widgets/right_panel/genealogy_right_panel.dart';
-import 'widgets/tree_canvas/tree_canvas.dart';
+import 'package:gwangmeu/features/home/home_screen.dart';
+import 'package:gwangmeu/features/genealogy/genealogy_notifier.dart';
+import 'package:gwangmeu/features/genealogy/models/family_tree.dart';
+import 'package:gwangmeu/features/genealogy/services/genealogy_api_service.dart';
+import 'package:gwangmeu/features/genealogy/state/tree_tokens.dart';
+import 'package:gwangmeu/features/genealogy/state/tree_view_state.dart';
+import 'package:gwangmeu/features/genealogy/widgets/dialogs/add_person_dialog.dart';
+import 'package:gwangmeu/features/genealogy/widgets/dialogs/add_union_dialog.dart';
+import 'package:gwangmeu/features/genealogy/widgets/left_panel/genealogy_left_panel.dart';
+import 'package:gwangmeu/features/genealogy/widgets/right_panel/genealogy_right_panel.dart';
+import 'package:gwangmeu/features/genealogy/widgets/tree_canvas/tree_canvas.dart';
 
 class GenealogyScreen extends ConsumerWidget {
   const GenealogyScreen({super.key});

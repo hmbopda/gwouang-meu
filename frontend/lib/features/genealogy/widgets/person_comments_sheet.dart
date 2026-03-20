@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
-import '../models/person_comment_model.dart';
-import '../services/genealogy_api_service.dart';
+import 'package:gwangmeu/features/genealogy/models/person_comment_model.dart';
+import 'package:gwangmeu/features/genealogy/services/genealogy_api_service.dart';
 
 /// Provider pour charger les commentaires d'une personne
 final personCommentsProvider =

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../features/genealogy/models/person_genealogy.dart';
-import '../../features/notifications/services/notification_api_service.dart';
+import 'package:gwangmeu/features/genealogy/models/person_genealogy.dart';
+import 'package:gwangmeu/features/notifications/services/notification_api_service.dart';
 
 /// Widget de recherche par email/phone avant création d'une personne.
 /// Affiche les résultats trouvés pour sélection ou propose la création.
@@ -153,12 +153,12 @@ class _PersonLookupWidgetState extends ConsumerState<PersonLookupWidget> {
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: Colors.orange.withAlpha(60)),
               ),
-              child: Row(
+              child: const Row(
                 children: [
-                  const Icon(Icons.info_outline,
+                  Icon(Icons.info_outline,
                       size: 16, color: Colors.orange),
-                  const SizedBox(width: 8),
-                  const Expanded(
+                  SizedBox(width: 8),
+                  Expanded(
                     child: Text(
                       'Aucune personne trouvee avec ces coordonnees.',
                       style: TextStyle(fontSize: 12, color: Colors.orange),

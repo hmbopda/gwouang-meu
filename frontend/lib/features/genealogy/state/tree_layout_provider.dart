@@ -2,10 +2,10 @@ import 'dart:ui';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../models/family_tree.dart';
-import '../models/person_genealogy.dart';
-import '../models/sibling_genealogy.dart';
-import 'tree_view_state.dart';
+import 'package:gwangmeu/features/genealogy/models/family_tree.dart';
+import 'package:gwangmeu/features/genealogy/models/person_genealogy.dart';
+import 'package:gwangmeu/features/genealogy/models/sibling_genealogy.dart';
+import 'package:gwangmeu/features/genealogy/state/tree_view_state.dart';
 
 /// Result of layout computation.
 class TreeLayout {

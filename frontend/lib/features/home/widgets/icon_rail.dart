@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/router/breadcrumb_provider.dart';
-import '../../../core/router/route_names.dart';
+import 'package:gwangmeu/core/router/breadcrumb_provider.dart';
+import 'package:gwangmeu/core/router/route_names.dart';
 
 /// Définition d'un item de la barre latérale icônes.
 class NavRailItem {

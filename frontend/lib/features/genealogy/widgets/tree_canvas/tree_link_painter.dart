@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../state/tree_tokens.dart';
-import '../../state/tree_view_state.dart';
+import 'package:gwangmeu/features/genealogy/state/tree_tokens.dart';
+import 'package:gwangmeu/features/genealogy/state/tree_view_state.dart';
 
 /// Paints Bézier-curve links between tree nodes.
 class TreeLinkPainter extends CustomPainter {

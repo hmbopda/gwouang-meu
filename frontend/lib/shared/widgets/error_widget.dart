@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../core/theme/app_theme.dart';
-import 'gwang_button.dart';
+import 'package:gwangmeu/core/theme/app_theme.dart';
+import 'package:gwangmeu/shared/widgets/gwang_button.dart';
 
 /// Widget d'erreur avec bouton de réessai.
 class GwangErrorWidget extends StatelessWidget {

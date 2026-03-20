@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/router/breadcrumb_provider.dart';
-import '../../../core/router/route_names.dart';
-import '../../../core/theme/app_theme.dart';
-import '../../notifications/widgets/notification_bell.dart';
-import 'accent_color_picker.dart';
+import 'package:gwangmeu/core/router/breadcrumb_provider.dart';
+import 'package:gwangmeu/core/router/route_names.dart';
+import 'package:gwangmeu/core/theme/app_theme.dart';
+import 'package:gwangmeu/features/notifications/widgets/notification_bell.dart';
+import 'package:gwangmeu/features/home/widgets/accent_color_picker.dart';
 
 /// Barre supérieure du layout desktop — breadcrumb dynamique, recherche, notifications, users.
 class TopBar extends ConsumerWidget {
@@ -47,10 +47,10 @@ class TopBar extends ConsumerWidget {
           const SizedBox(width: 16),
 
           // ── Actions ──
-          _ActionButton(
+          const _ActionButton(
             icon: Icons.notifications_outlined,
             hasDot: true,
-            child: const NotificationBell(),
+            child: NotificationBell(),
           ),
           const SizedBox(width: 8),
           _IconCircle(
@@ -111,15 +111,15 @@ class _DynamicBreadcrumb extends ConsumerWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         // GWANG MEU prefix
-        Text(
+        const Text(
           'GWANG MEU',
           style: TextStyle(fontFamily: 'monospace', fontSize: 9, letterSpacing: 1.2, color: AppColors.textHint),
         ),
 
         // Breadcrumb segments
         for (int i = 0; i < crumbs.length; i++) ...[
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 6),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 6),
             child: Text('—', style: TextStyle(color: AppColors.textHint, fontSize: 9)),
           ),
           if (i < crumbs.length - 1)
@@ -134,7 +134,7 @@ class _DynamicBreadcrumb extends ConsumerWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                 child: Text(
                   crumbs[i].label.toUpperCase(),
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontFamily: 'monospace',
                     fontSize: 9,
                     letterSpacing: 1,
@@ -172,12 +172,12 @@ class _StaticBreadcrumb extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(
+        const Text(
           'GWANG MEU',
           style: TextStyle(fontFamily: 'monospace', fontSize: 9, letterSpacing: 1.2, color: AppColors.textHint),
         ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8),
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 8),
           child: Text('—', style: TextStyle(color: AppColors.textHint, fontSize: 9)),
         ),
         Text(
@@ -213,10 +213,10 @@ class _SearchBar extends StatelessWidget {
         border: Border.all(color: borderColor),
         borderRadius: BorderRadius.circular(99),
       ),
-      child: Row(
+      child: const Row(
         children: [
           Icon(Icons.search, size: 14, color: AppColors.textHint),
-          const SizedBox(width: 8),
+          SizedBox(width: 8),
           Expanded(
             child: Text('Rechercher…', style: TextStyle(fontSize: 12, color: AppColors.textHint)),
           ),

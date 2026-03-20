@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/theme/app_theme.dart';
-import '../models/notification_model.dart';
-import '../notifications_notifier.dart';
-import 'confirmation_dialogs.dart';
+import 'package:gwangmeu/core/theme/app_theme.dart';
+import 'package:gwangmeu/features/notifications/models/notification_model.dart';
+import 'package:gwangmeu/features/notifications/notifications_notifier.dart';
+import 'package:gwangmeu/features/notifications/widgets/confirmation_dialogs.dart';
 
 /// Panel dropdown style Facebook/Instagram — affiché sous la cloche.
 class NotificationPanel extends ConsumerWidget {
@@ -198,7 +198,7 @@ class _NotificationTile extends ConsumerWidget {
                   const SizedBox(height: 2),
                   Text(
                     notification.body,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 12,
                       color: AppColors.textSecondary,
                     ),
@@ -209,7 +209,7 @@ class _NotificationTile extends ConsumerWidget {
                     const SizedBox(height: 4),
                     Text(
                       _timeAgo(notification.createdAt!),
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 11,
                         color: AppColors.textHint,
                       ),

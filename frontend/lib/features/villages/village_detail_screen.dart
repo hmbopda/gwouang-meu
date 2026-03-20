@@ -2,17 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../core/router/breadcrumb_provider.dart';
-import '../../core/router/route_names.dart';
-import '../../shared/models/post_model.dart';
-import '../../shared/models/village_member_model.dart';
-import '../../shared/models/village_model.dart';
-import '../../shared/widgets/error_widget.dart';
-import '../../core/theme/gw_colors.dart';
-import '../../shared/models/chat_group_model.dart';
-import '../../shared/models/chat_message_model.dart';
-import '../chat/chat_notifier.dart';
-import 'villages_notifier.dart';
+import 'package:gwangmeu/core/router/breadcrumb_provider.dart';
+import 'package:gwangmeu/core/router/route_names.dart';
+import 'package:gwangmeu/shared/models/post_model.dart';
+import 'package:gwangmeu/shared/models/village_member_model.dart';
+import 'package:gwangmeu/shared/models/village_model.dart';
+import 'package:gwangmeu/shared/widgets/error_widget.dart';
+import 'package:gwangmeu/core/theme/gw_colors.dart';
+import 'package:gwangmeu/shared/models/chat_group_model.dart';
+import 'package:gwangmeu/shared/models/chat_message_model.dart';
+import 'package:gwangmeu/features/chat/chat_notifier.dart';
+import 'package:gwangmeu/features/villages/villages_notifier.dart';
 
 // ═══════════════════════════════════════════════════════
 // ÉCRAN DÉTAIL VILLAGE — responsive 3 colonnes
@@ -715,8 +715,8 @@ class _ApercuTab extends ConsumerWidget {
         if (includeRightPanel) ...[
           Container(height: 1, color: c.line),
           _Section(title: 'Chef actuel · Administrateur', isMonoTitle: true, child: _ChefCard(village: village)),
-          _Section(title: 'Votre lien de filiation', isMonoTitle: true, child: const _FiliationTree()),
-          _Section(title: 'En ligne maintenant', isMonoTitle: true, child: const _OnlineMembers()),
+          const _Section(title: 'Votre lien de filiation', isMonoTitle: true, child: _FiliationTree()),
+          const _Section(title: 'En ligne maintenant', isMonoTitle: true, child: _OnlineMembers()),
           _Section(title: 'Activité récente', isMonoTitle: true, child: _ActivityLog(villageName: village.name)),
         ],
 
@@ -749,9 +749,9 @@ class _PlanTab extends StatelessWidget {
               const SizedBox(width: 10),
               Text('● Synchronisé', style: TextStyle(fontFamily: 'monospace', fontSize: 9, color: c.sage)),
               const Spacer(),
-              _PlanBtn(label: '+ Concession', isPrimary: false),
+              const _PlanBtn(label: '+ Concession', isPrimary: false),
               const SizedBox(width: 8),
-              _PlanBtn(label: 'Satellite', isPrimary: true),
+              const _PlanBtn(label: 'Satellite', isPrimary: true),
             ],
           ),
         ),
@@ -1733,9 +1733,9 @@ class _MapPlaceholder extends StatelessWidget {
             ),
           ),
           // Controls
-          Positioned(
+          const Positioned(
             bottom: 14, right: 14,
-            child: Column(children: [_MapCtrlBtn('+'), const SizedBox(height: 4), _MapCtrlBtn('−'), const SizedBox(height: 4), _MapCtrlBtn('⊙')]),
+            child: Column(children: [_MapCtrlBtn('+'), SizedBox(height: 4), _MapCtrlBtn('−'), SizedBox(height: 4), _MapCtrlBtn('⊙')]),
           ),
         ],
       ),

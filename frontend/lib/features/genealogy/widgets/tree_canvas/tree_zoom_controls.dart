@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../state/tree_tokens.dart';
+import 'package:gwangmeu/features/genealogy/state/tree_tokens.dart';
 
 /// Floating zoom controls (+, -, reset).
 class TreeZoomControls extends StatelessWidget {

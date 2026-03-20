@@ -1,13 +1,12 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
-import '../../../../shared/models/country_model.dart';
-import '../../../../shared/models/village_model.dart';
-import '../../../../shared/widgets/country_village_selector.dart';
-import '../../models/person_genealogy.dart';
-import '../../services/genealogy_api_service.dart';
+import 'package:gwangmeu/shared/models/country_model.dart';
+import 'package:gwangmeu/shared/models/village_model.dart';
+import 'package:gwangmeu/shared/widgets/country_village_selector.dart';
+import 'package:gwangmeu/features/genealogy/models/person_genealogy.dart';
+import 'package:gwangmeu/features/genealogy/services/genealogy_api_service.dart';
 
 /// Dialog to edit a person's info, pre-filled with current data.
 class EditPersonDialog extends ConsumerStatefulWidget {

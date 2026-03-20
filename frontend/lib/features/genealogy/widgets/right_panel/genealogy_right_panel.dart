@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../models/ai_suggestion.dart';
-import '../../models/family_tree.dart';
-import '../../models/person_genealogy.dart';
-import '../../models/sibling_genealogy.dart';
-import '../../services/genealogy_api_service.dart';
-import '../../state/tree_tokens.dart';
-import '../../state/tree_view_state.dart';
-import '../dialogs/add_person_dialog.dart';
+import 'package:gwangmeu/features/genealogy/models/ai_suggestion.dart';
+import 'package:gwangmeu/features/genealogy/models/family_tree.dart';
+import 'package:gwangmeu/features/genealogy/models/person_genealogy.dart';
+import 'package:gwangmeu/features/genealogy/models/sibling_genealogy.dart';
+import 'package:gwangmeu/features/genealogy/services/genealogy_api_service.dart';
+import 'package:gwangmeu/features/genealogy/state/tree_tokens.dart';
+import 'package:gwangmeu/features/genealogy/state/tree_view_state.dart';
+import 'package:gwangmeu/features/genealogy/widgets/dialogs/add_person_dialog.dart';
 
 /// Right panel with 3 tabs: Personne, Migration, IA.
 class GenealogyRightPanel extends ConsumerWidget {

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../notifications_notifier.dart';
-import 'notification_panel.dart';
+import 'package:gwangmeu/features/notifications/notifications_notifier.dart';
+import 'package:gwangmeu/features/notifications/widgets/notification_panel.dart';
 
 /// Icone cloche avec badge compteur + ouverture du panel dropdown.
 class NotificationBell extends ConsumerWidget {

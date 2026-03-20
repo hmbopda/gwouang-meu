@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../models/family_tree.dart';
-import '../../state/tree_layout_provider.dart';
-import '../../state/tree_tokens.dart';
-import '../../state/tree_view_state.dart';
-import 'tree_link_painter.dart';
-import '../dialogs/person_detail_popup.dart';
-import 'tree_node_tooltip.dart';
-import 'tree_node_widget.dart';
-import 'tree_toolbar.dart';
-import 'tree_zoom_controls.dart';
+import 'package:gwangmeu/features/genealogy/models/family_tree.dart';
+import 'package:gwangmeu/features/genealogy/state/tree_layout_provider.dart';
+import 'package:gwangmeu/features/genealogy/state/tree_tokens.dart';
+import 'package:gwangmeu/features/genealogy/state/tree_view_state.dart';
+import 'package:gwangmeu/features/genealogy/widgets/tree_canvas/tree_link_painter.dart';
+import 'package:gwangmeu/features/genealogy/widgets/dialogs/person_detail_popup.dart';
+import 'package:gwangmeu/features/genealogy/widgets/tree_canvas/tree_node_tooltip.dart';
+import 'package:gwangmeu/features/genealogy/widgets/tree_canvas/tree_node_widget.dart';
+import 'package:gwangmeu/features/genealogy/widgets/tree_canvas/tree_toolbar.dart';
+import 'package:gwangmeu/features/genealogy/widgets/tree_canvas/tree_zoom_controls.dart';
 
 /// The main center canvas: interactive tree with pan/zoom, nodes and links.
 class TreeCanvas extends ConsumerStatefulWidget {
@@ -218,17 +218,17 @@ class _TreeCanvasState extends ConsumerState<TreeCanvas> {
                   borderRadius: BorderRadius.circular(T.r),
                   border: Border.all(color: T.border2),
                 ),
-                child: Column(
+                child: const Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.account_tree_outlined, size: 48, color: T.txt3),
-                    const SizedBox(height: 12),
-                    const Text(
+                    Icon(Icons.account_tree_outlined, size: 48, color: T.txt3),
+                    SizedBox(height: 12),
+                    Text(
                       'Votre arbre est encore vide',
                       style: TextStyle(color: T.txt1, fontSize: 15, fontWeight: FontWeight.w600),
                     ),
-                    const SizedBox(height: 4),
-                    const Text(
+                    SizedBox(height: 4),
+                    Text(
                       'Utilisez les boutons pour ajouter des membres',
                       style: TextStyle(color: T.txt3, fontSize: 12),
                     ),

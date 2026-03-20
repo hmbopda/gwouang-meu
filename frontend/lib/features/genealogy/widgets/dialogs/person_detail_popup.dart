@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
-import '../../genealogy_notifier.dart';
-import '../../models/person_genealogy.dart';
-import '../../services/genealogy_api_service.dart';
+import 'package:gwangmeu/features/genealogy/genealogy_notifier.dart';
+import 'package:gwangmeu/features/genealogy/models/person_genealogy.dart';
+import 'package:gwangmeu/features/genealogy/services/genealogy_api_service.dart';
 
 /// Popup dialog showing person details (father, mother, birth date, etc.)
 /// when the user clicks on a tree node.

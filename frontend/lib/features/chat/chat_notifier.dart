@@ -1,8 +1,8 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../../core/network/api_client.dart';
-import '../../shared/models/chat_group_model.dart';
-import '../../shared/models/chat_message_model.dart';
+import 'package:gwangmeu/core/network/api_client.dart';
+import 'package:gwangmeu/shared/models/chat_group_model.dart';
+import 'package:gwangmeu/shared/models/chat_message_model.dart';
 
 part 'chat_notifier.g.dart';
 

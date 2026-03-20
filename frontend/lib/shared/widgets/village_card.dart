@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shimmer/shimmer.dart';
 
-import '../../core/router/route_names.dart';
-import '../../core/theme/app_theme.dart';
-import '../models/village_model.dart';
+import 'package:gwangmeu/core/router/route_names.dart';
+import 'package:gwangmeu/core/theme/app_theme.dart';
+import 'package:gwangmeu/shared/models/village_model.dart';
 
 /// Carte village réutilisable — liste, grille, recherche.
 class VillageCard extends StatelessWidget {

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/theme/theme_notifier.dart';
+import 'package:gwangmeu/core/theme/theme_notifier.dart';
 
 /// Bouton qui ouvre un popup de personnalisation (mode + couleur).
 class AccentColorButton extends ConsumerWidget {

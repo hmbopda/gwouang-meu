@@ -4,16 +4,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
-import '../../core/router/breadcrumb_provider.dart';
-import '../../core/router/route_names.dart';
-import '../../shared/models/user_model.dart';
-import '../../shared/widgets/gwang_button.dart';
-import '../genealogy/genealogy_notifier.dart';
-import '../villages/villages_notifier.dart';
-import 'profile_edit_sheet.dart';
-import 'profile_notifier.dart';
+import 'package:gwangmeu/core/router/breadcrumb_provider.dart';
+import 'package:gwangmeu/core/router/route_names.dart';
+import 'package:gwangmeu/shared/models/user_model.dart';
+import 'package:gwangmeu/shared/widgets/gwang_button.dart';
+import 'package:gwangmeu/features/genealogy/genealogy_notifier.dart';
+import 'package:gwangmeu/features/villages/villages_notifier.dart';
+import 'package:gwangmeu/features/profile/profile_edit_sheet.dart';
+import 'package:gwangmeu/features/profile/profile_notifier.dart';
 
-import '../../core/theme/gw_colors.dart';
+import 'package:gwangmeu/core/theme/gw_colors.dart';
 
 const _serif = 'Georgia';
 const _mono = 'monospace';
@@ -353,8 +353,8 @@ class _LeftRail extends ConsumerWidget {
 
                 const _RailDivider(),
                 const _RailSection(label: 'PARAMÈTRES'),
-                _RailNavItem(icon: Icons.settings_outlined, label: 'Paramètres'),
-                _RailNavItem(
+                const _RailNavItem(icon: Icons.settings_outlined, label: 'Paramètres'),
+                const _RailNavItem(
                     icon: Icons.lock_outline, label: 'Confidentialité'),
 
                 const SizedBox(height: 16),
@@ -515,15 +515,15 @@ class _CenterPanelState extends ConsumerState<_CenterPanel>
               hasGenealogy: hasGenealogy,
             ),
             // ── Publications ──
-            _ComingSoonPane(title: 'Publications', icon: Icons.article_outlined),
+            const _ComingSoonPane(title: 'Publications', icon: Icons.article_outlined),
             // ── Généalogie ──
-            _ComingSoonPane(
+            const _ComingSoonPane(
                 title: 'Généalogie', icon: Icons.account_tree_outlined),
             // ── Langues ──
-            _ComingSoonPane(
+            const _ComingSoonPane(
                 title: 'Langues', icon: Icons.record_voice_over_outlined),
             // ── Formations ──
-            _ComingSoonPane(title: 'Formations', icon: Icons.school_outlined),
+            const _ComingSoonPane(title: 'Formations', icon: Icons.school_outlined),
           ],
         ),
       ),
@@ -1134,11 +1134,11 @@ class _StatsBar extends StatelessWidget {
       ),
       child: Row(
         children: [
-          _StatCell(value: '—', label: 'CONNEXIONS', highlight: true),
+          const _StatCell(value: '—', label: 'CONNEXIONS', highlight: true),
           _StatCell(value: '$villageCount', label: 'VILLAGES'),
-          _StatCell(value: '—', label: 'ANCÊTRES'),
-          _StatCell(value: '—', label: 'FORMATIONS'),
-          _StatCell(value: '—', label: 'PUBLICATIONS', isLast: true),
+          const _StatCell(value: '—', label: 'ANCÊTRES'),
+          const _StatCell(value: '—', label: 'FORMATIONS'),
+          const _StatCell(value: '—', label: 'PUBLICATIONS', isLast: true),
         ],
       ),
     );
@@ -1852,9 +1852,9 @@ class _CompletionChecklist extends StatelessWidget {
       _CheckItem('Identité renseignée', user.displayName != null),
       _CheckItem('Biographie ajoutée', user.bio != null && user.bio!.isNotEmpty),
       _CheckItem('Photo de profil', user.avatarUrl != null, bonus: 8),
-      _CheckItem('Village rejoint', true), // s'il voit le profil, il est inscrit
+      const _CheckItem('Village rejoint', true), // s'il voit le profil, il est inscrit
       _CheckItem('Parents ajoutés', user.fatherName != null || user.motherName != null, bonus: 12),
-      _CheckItem('Date de naissance', false, bonus: 8),
+      const _CheckItem('Date de naissance', false, bonus: 8),
     ];
 
     return Column(
@@ -2079,7 +2079,7 @@ class _RailSection extends StatelessWidget {
 }
 
 class _RailNavItem extends StatelessWidget {
-  _RailNavItem({
+  const _RailNavItem({
     required this.icon,
     required this.label,
     this.count,
@@ -2294,25 +2294,25 @@ class _HeroCanvasPainter extends CustomPainter {
 
     // Gold centre-right glow
     final goldPaint = Paint()
-      ..shader = RadialGradient(
-        center: const Alignment(0.3, -0.2),
+      ..shader = const RadialGradient(
+        center: Alignment(0.3, -0.2),
         radius: 0.8,
         colors: [
-          const Color(0x22B48A32),
-          const Color(0x0D785A1E),
-          const Color(0x00000000),
+          Color(0x22B48A32),
+          Color(0x0D785A1E),
+          Color(0x00000000),
         ],
       ).createShader(Rect.fromLTWH(0, 0, w, h));
     canvas.drawRect(Rect.fromLTWH(0, 0, w, h), goldPaint);
 
     // Sage left breath
     final sagePaint = Paint()
-      ..shader = RadialGradient(
-        center: const Alignment(-0.84, 0.4),
+      ..shader = const RadialGradient(
+        center: Alignment(-0.84, 0.4),
         radius: 0.5,
         colors: [
-          const Color(0x122A7A5C),
-          const Color(0x00000000),
+          Color(0x122A7A5C),
+          Color(0x00000000),
         ],
       ).createShader(Rect.fromLTWH(0, 0, w, h));
     canvas.drawRect(Rect.fromLTWH(0, 0, w, h), sagePaint);

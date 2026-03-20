@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../models/person_genealogy.dart';
-import '../../state/tree_tokens.dart';
-import '../../state/tree_view_state.dart';
+import 'package:gwangmeu/features/genealogy/models/person_genealogy.dart';
+import 'package:gwangmeu/features/genealogy/state/tree_tokens.dart';
+import 'package:gwangmeu/features/genealogy/state/tree_view_state.dart';
 
 /// A single tree node (circle with initials, name, clan badge).
 class TreeNodeWidget extends StatefulWidget {
@@ -102,7 +102,7 @@ class _TreeNodeWidgetState extends State<TreeNodeWidget>
                           spreadRadius: 2,
                         ),
                       if (n.isSubject)
-                        BoxShadow(
+                        const BoxShadow(
                           color: T.goldGlow,
                           blurRadius: 16,
                           spreadRadius: 4,

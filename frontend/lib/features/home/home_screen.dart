@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../core/router/breadcrumb_provider.dart';
-import '../../core/router/route_names.dart';
-import 'widgets/accent_color_picker.dart';
-import 'widgets/icon_rail.dart';
-import 'widgets/top_bar.dart';
+import 'package:gwangmeu/core/router/breadcrumb_provider.dart';
+import 'package:gwangmeu/core/router/route_names.dart';
+import 'package:gwangmeu/features/home/widgets/accent_color_picker.dart';
+import 'package:gwangmeu/features/home/widgets/icon_rail.dart';
+import 'package:gwangmeu/features/home/widgets/top_bar.dart';
 
 /// Shell de navigation responsive :
 /// - Desktop (>= 1024px) : Icon Rail + TopBar + Content

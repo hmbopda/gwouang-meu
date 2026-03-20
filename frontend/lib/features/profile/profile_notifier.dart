@@ -1,9 +1,9 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../../core/network/api_client.dart';
-import '../../core/network/supabase_service.dart';
-import '../../shared/models/user_model.dart';
+import 'package:gwangmeu/core/network/api_client.dart';
+import 'package:gwangmeu/core/network/supabase_service.dart';
+import 'package:gwangmeu/shared/models/user_model.dart';
 
 part 'profile_notifier.g.dart';
 

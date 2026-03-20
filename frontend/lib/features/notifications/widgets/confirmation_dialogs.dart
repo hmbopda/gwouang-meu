@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../genealogy/genealogy_notifier.dart';
-import '../../genealogy/services/genealogy_api_service.dart';
-import '../models/notification_model.dart';
-import '../services/notification_api_service.dart';
-import '../notifications_notifier.dart';
+import 'package:gwangmeu/features/genealogy/genealogy_notifier.dart';
+import 'package:gwangmeu/features/genealogy/services/genealogy_api_service.dart';
+import 'package:gwangmeu/features/notifications/models/notification_model.dart';
+import 'package:gwangmeu/features/notifications/services/notification_api_service.dart';
+import 'package:gwangmeu/features/notifications/notifications_notifier.dart';
 
 /// Ouvre le bon dialog de confirmation selon le type de notification.
 void openConfirmationDialog(BuildContext context, NotificationModel notification) {
@@ -106,11 +106,11 @@ class _UnionConfirmationDialogState
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Row(
+      title: const Row(
         children: [
           Icon(Icons.favorite, color: Colors.pink, size: 24),
-          const SizedBox(width: 8),
-          const Expanded(
+          SizedBox(width: 8),
+          Expanded(
             child: Text('Demande d\'union',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
           ),
@@ -259,11 +259,11 @@ class _ParentAddedDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Row(
+      title: const Row(
         children: [
           Icon(Icons.family_restroom, color: Colors.blue, size: 24),
-          const SizedBox(width: 8),
-          const Expanded(
+          SizedBox(width: 8),
+          Expanded(
             child: Text('Lien de parente',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
           ),
@@ -356,11 +356,11 @@ class _DivorceConfirmationDialogState
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Row(
+      title: const Row(
         children: [
           Icon(Icons.heart_broken, color: Colors.orange, size: 24),
-          const SizedBox(width: 8),
-          const Expanded(
+          SizedBox(width: 8),
+          Expanded(
             child: Text('Demande de divorce',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
           ),
@@ -512,11 +512,11 @@ class _DeathContestationDialogState
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Row(
+      title: const Row(
         children: [
           Icon(Icons.warning_amber, color: Colors.red, size: 24),
-          const SizedBox(width: 8),
-          const Expanded(
+          SizedBox(width: 8),
+          Expanded(
             child: Text('Declaration de deces',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
           ),
@@ -632,11 +632,11 @@ class _ChildAssociationDialogState
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Row(
+      title: const Row(
         children: [
           Icon(Icons.child_care, color: Colors.teal, size: 24),
-          const SizedBox(width: 8),
-          const Expanded(
+          SizedBox(width: 8),
+          Expanded(
             child: Text('Demande d\'association d\'enfant',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
           ),
@@ -900,11 +900,11 @@ class _PersonModificationRequestDialogState
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Row(
+      title: const Row(
         children: [
           Icon(Icons.edit_note, color: Colors.indigo, size: 24),
-          const SizedBox(width: 8),
-          const Expanded(
+          SizedBox(width: 8),
+          Expanded(
             child: Text('Demande de modification',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
           ),

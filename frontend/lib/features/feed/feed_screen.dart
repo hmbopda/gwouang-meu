@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../shared/models/post_model.dart';
-import '../../shared/models/village_model.dart';
-import '../../shared/widgets/compose_box.dart';
-import '../../shared/widgets/loading_overlay.dart';
-import '../../shared/widgets/post_card.dart';
-import '../../shared/widgets/stories_row.dart';
-import '../../shared/widgets/village_highlight_card.dart';
-import '../home/home_screen.dart';
-import 'feed_notifier.dart';
+import 'package:gwangmeu/shared/models/post_model.dart';
+import 'package:gwangmeu/shared/models/village_model.dart';
+import 'package:gwangmeu/shared/widgets/compose_box.dart';
+import 'package:gwangmeu/shared/widgets/loading_overlay.dart';
+import 'package:gwangmeu/shared/widgets/post_card.dart';
+import 'package:gwangmeu/shared/widgets/stories_row.dart';
+import 'package:gwangmeu/shared/widgets/village_highlight_card.dart';
+import 'package:gwangmeu/features/home/home_screen.dart';
+import 'package:gwangmeu/features/feed/feed_notifier.dart';
 
 class FeedScreen extends ConsumerWidget {
   const FeedScreen({super.key});
@@ -152,7 +152,7 @@ final _demoStories = [
   ),
 ];
 
-final _demoVillage = VillageModel(
+const _demoVillage = VillageModel(
   id: 'demo-1',
   name: 'Bassa-Likoko',
   country: 'Cameroun',

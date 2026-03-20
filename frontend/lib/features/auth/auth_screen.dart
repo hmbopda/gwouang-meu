@@ -4,14 +4,14 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../../core/router/route_names.dart';
-import '../../core/theme/app_theme.dart';
-import '../../shared/models/country_model.dart';
-import '../../shared/models/village_model.dart';
-import '../../shared/widgets/country_village_selector.dart';
-import '../../shared/widgets/gwang_button.dart';
-import '../geo/geo_notifier.dart';
-import 'auth_notifier.dart';
+import 'package:gwangmeu/core/router/route_names.dart';
+import 'package:gwangmeu/core/theme/app_theme.dart';
+import 'package:gwangmeu/shared/models/country_model.dart';
+import 'package:gwangmeu/shared/models/village_model.dart';
+import 'package:gwangmeu/shared/widgets/country_village_selector.dart';
+import 'package:gwangmeu/shared/widgets/gwang_button.dart';
+import 'package:gwangmeu/features/geo/geo_notifier.dart';
+import 'package:gwangmeu/features/auth/auth_notifier.dart';
 
 class AuthScreen extends ConsumerStatefulWidget {
   const AuthScreen({super.key});
@@ -375,7 +375,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
           const SizedBox(height: 14),
 
           DropdownButtonFormField<String>(
-            value: _regSelectedGender,
+            initialValue: _regSelectedGender,
             decoration: const InputDecoration(
               labelText: 'Genre',
               hintText: 'Selectionnez votre genre',
@@ -541,14 +541,14 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
             controller: _regBioCtrl,
             maxLines: 3,
             maxLength: 200,
-            decoration: InputDecoration(
+            decoration: const InputDecoration(
               hintText: 'Diaspora Paris, passionne de culture Bassa...',
-              hintStyle: const TextStyle(color: AppColors.textHint, fontSize: 13),
-              prefixIcon: const Padding(
+              hintStyle: TextStyle(color: AppColors.textHint, fontSize: 13),
+              prefixIcon: Padding(
                 padding: EdgeInsets.only(bottom: 48),
                 child: Icon(Icons.short_text_outlined),
               ),
-              counterStyle: const TextStyle(color: AppColors.textHint, fontSize: 10),
+              counterStyle: TextStyle(color: AppColors.textHint, fontSize: 10),
             ),
           ),
 

@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../core/router/breadcrumb_provider.dart';
-import '../../core/router/route_names.dart';
-import '../../core/theme/gw_colors.dart';
-import '../../shared/models/village_model.dart';
-import 'villages_notifier.dart';
+import 'package:gwangmeu/core/router/breadcrumb_provider.dart';
+import 'package:gwangmeu/core/router/route_names.dart';
+import 'package:gwangmeu/core/theme/gw_colors.dart';
+import 'package:gwangmeu/shared/models/village_model.dart';
+import 'package:gwangmeu/features/villages/villages_notifier.dart';
 
 // ═══════════════════════════════════════════════
 // MES VILLAGES — Maquette gwangmeu-village-v3

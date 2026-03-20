@@ -1,11 +1,10 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../models/ai_suggestion.dart';
-import '../models/family_tree.dart';
-import '../models/person_genealogy.dart';
-import '../services/genealogy_api_service.dart';
-import 'person_comments_sheet.dart';
+import 'package:gwangmeu/features/genealogy/models/ai_suggestion.dart';
+import 'package:gwangmeu/features/genealogy/models/family_tree.dart';
+import 'package:gwangmeu/features/genealogy/models/person_genealogy.dart';
+import 'package:gwangmeu/features/genealogy/services/genealogy_api_service.dart';
+import 'package:gwangmeu/features/genealogy/widgets/person_comments_sheet.dart';
 
 class FamilyTreeWidget extends ConsumerStatefulWidget {
   final String personId;

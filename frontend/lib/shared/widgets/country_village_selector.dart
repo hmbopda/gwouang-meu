@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../features/geo/geo_notifier.dart';
-import '../models/country_model.dart';
-import '../models/village_model.dart';
+import 'package:gwangmeu/features/geo/geo_notifier.dart';
+import 'package:gwangmeu/shared/models/country_model.dart';
+import 'package:gwangmeu/shared/models/village_model.dart';
 
 /// Widget réutilisable pour sélectionner un pays d'origine puis un ou plusieurs villages.
 /// Supporte le mode multi-select avec recherche intégrée.

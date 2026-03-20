@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../models/village_model.dart';
+import 'package:gwangmeu/shared/models/village_model.dart';
 
 class VillageHighlightCard extends StatelessWidget {
   const VillageHighlightCard({

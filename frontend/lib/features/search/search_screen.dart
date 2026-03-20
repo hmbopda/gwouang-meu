@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../core/network/api_client.dart';
-import '../../core/router/breadcrumb_provider.dart';
-import '../../core/router/route_names.dart';
-import '../../core/theme/app_theme.dart';
-import '../../shared/widgets/loading_overlay.dart';
-import '../home/home_screen.dart';
+import 'package:gwangmeu/core/network/api_client.dart';
+import 'package:gwangmeu/core/router/breadcrumb_provider.dart';
+import 'package:gwangmeu/core/router/route_names.dart';
+import 'package:gwangmeu/core/theme/app_theme.dart';
+import 'package:gwangmeu/shared/widgets/loading_overlay.dart';
+import 'package:gwangmeu/features/home/home_screen.dart';
 
 // Provider de recherche globale
 final _searchQueryProvider = StateProvider<String>((ref) => '');

@@ -2,7 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../models/person_genealogy.dart';
+import 'package:gwangmeu/features/genealogy/models/person_genealogy.dart';
 
 // ── Enum types ──────────────────────────────────────────────
 

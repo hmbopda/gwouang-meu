@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
 
-import '../../core/theme/app_theme.dart';
+import 'package:gwangmeu/core/theme/app_theme.dart';
 
 /// Overlay de chargement plein écran.
 class LoadingOverlay extends StatelessWidget {

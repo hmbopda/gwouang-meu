@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/theme/app_theme.dart';
-import '../../shared/models/village_model.dart';
-import 'villages_notifier.dart';
+import 'package:gwangmeu/core/theme/app_theme.dart';
+import 'package:gwangmeu/shared/models/village_model.dart';
+import 'package:gwangmeu/features/villages/villages_notifier.dart';
 
 /// Écran d'édition village — champs modifiables via PUT /api/v1/villages/{id}
 class EditVillageScreen extends ConsumerStatefulWidget {
@@ -234,7 +234,7 @@ class _EditVillageScreenState extends ConsumerState<EditVillageScreen> {
           style: theme.textTheme.bodyMedium,
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: TextStyle(color: AppColors.textHint),
+            hintStyle: const TextStyle(color: AppColors.textHint),
             filled: true,
             fillColor: theme.colorScheme.surface,
             border: OutlineInputBorder(

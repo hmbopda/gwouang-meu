@@ -2,16 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/theme/app_theme.dart';
-import '../../shared/models/country_model.dart';
-import '../../shared/models/language_model.dart';
-import '../../shared/models/village_model.dart';
-import '../../shared/widgets/country_village_selector.dart';
-import '../../shared/widgets/gwang_button.dart';
-import '../genealogy/models/person_genealogy.dart';
-import '../genealogy/services/genealogy_api_service.dart';
-import '../geo/geo_notifier.dart';
-import 'profile_notifier.dart';
+import 'package:gwangmeu/core/theme/app_theme.dart';
+import 'package:gwangmeu/shared/models/country_model.dart';
+import 'package:gwangmeu/shared/models/language_model.dart';
+import 'package:gwangmeu/shared/models/village_model.dart';
+import 'package:gwangmeu/shared/widgets/country_village_selector.dart';
+import 'package:gwangmeu/shared/widgets/gwang_button.dart';
+import 'package:gwangmeu/features/genealogy/models/person_genealogy.dart';
+import 'package:gwangmeu/features/genealogy/services/genealogy_api_service.dart';
+import 'package:gwangmeu/features/geo/geo_notifier.dart';
+import 'package:gwangmeu/features/profile/profile_notifier.dart';
 
 /// Formulaire complet d'edition du profil — ouvert en bottom sheet plein ecran.
 class ProfileEditSheet extends ConsumerStatefulWidget {
@@ -73,7 +73,6 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
   // Enfants
   final List<PersonGenealogy> _children = [];
   bool _childrenLoading = false;
-  bool _childrenLoaded = false;
   // Inline child creation
   bool _creatingChild = false;
   final _createChildFormKey = GlobalKey<FormState>();
@@ -175,7 +174,6 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
         // Enfants liés
         _children.clear();
         _children.addAll(tree.children);
-        _childrenLoaded = true;
         // Mettre à jour childrenCount si dépassé
         final declared = int.tryParse(_childrenCountCtrl.text.trim()) ?? 0;
         if (tree.children.length > declared) {
@@ -183,7 +181,7 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
         }
       });
     } catch (_) {
-      if (mounted) setState(() => _childrenLoaded = true);
+      // ignore
     } finally {
       if (mounted) {
         setState(() {
@@ -416,7 +414,7 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
                   child: CircularProgressIndicator(strokeWidth: 1.5, color: accent),
                 ),
                 const SizedBox(width: 8),
-                Text('Chargement des parents liés...', style: TextStyle(fontSize: 12, color: AppColors.textHint)),
+                const Text('Chargement des parents liés...', style: TextStyle(fontSize: 12, color: AppColors.textHint)),
               ],
             ),
           )
@@ -425,7 +423,7 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
             _selectedFather == null && _selectedMother == null
                 ? 'Sélectionnez un membre existant d\'un de vos clans ou créez une nouvelle fiche.'
                 : 'Parents liés à votre arbre généalogique. Vous pouvez modifier leurs informations.',
-            style: TextStyle(fontSize: 12, color: AppColors.textHint),
+            style: const TextStyle(fontSize: 12, color: AppColors.textHint),
           ),
         const SizedBox(height: 16),
         _parentCard(
@@ -543,7 +541,7 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
                         if (selectedPerson.clan != null)
                           Text(
                             'Clan: ${selectedPerson.clan}',
-                            style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                            style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
                           ),
                       ],
                     ),
@@ -828,7 +826,7 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
               style: const TextStyle(fontSize: 11, color: Colors.grey),
             ),
             value: _createIsAlive,
-            activeColor: accent,
+            activeThumbColor: accent,
             contentPadding: EdgeInsets.zero,
             dense: true,
             onChanged: (v) => setState(() => _createIsAlive = v),
@@ -1009,7 +1007,7 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
                   child: CircularProgressIndicator(strokeWidth: 1.5, color: accent),
                 ),
                 const SizedBox(width: 8),
-                Text('Chargement des enfants liés...', style: TextStyle(fontSize: 12, color: AppColors.textHint)),
+                const Text('Chargement des enfants liés...', style: TextStyle(fontSize: 12, color: AppColors.textHint)),
               ],
             ),
           )
@@ -1018,7 +1016,7 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
             displayed == 0
                 ? 'Aucun enfant déclaré. Ajoutez leurs fiches pour les lier à votre arbre.'
                 : '$displayed enfant${displayed > 1 ? 's' : ''} (${linked > 0 ? '$linked lié${linked > 1 ? 's' : ''} à votre arbre' : 'aucun lié encore'}).',
-            style: TextStyle(fontSize: 12, color: AppColors.textHint),
+            style: const TextStyle(fontSize: 12, color: AppColors.textHint),
           ),
         const SizedBox(height: 16),
         // Liste des enfants deja lies
@@ -1111,7 +1109,7 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
                 ),
                 Text(
                   child.gender == 'MALE' ? 'Fils' : 'Fille',
-                  style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                  style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
                 ),
               ],
             ),
@@ -1571,8 +1569,8 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
       error: (_, __) => const Text('Impossible de charger les langues'),
       data: (languages) {
         if (languages.isEmpty) {
-          return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
+          return const Padding(
+            padding: EdgeInsets.symmetric(vertical: 8),
             child: Text(
               'Aucune langue enregistree pour ce pays',
               style: TextStyle(color: AppColors.textHint, fontSize: 13),
@@ -1817,7 +1815,7 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 2),
-              Text(
+              const Text(
                 'Tous les champs sont optionnels',
                 style: TextStyle(fontSize: 12, color: AppColors.textHint),
               ),
@@ -1878,7 +1876,7 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
   }) {
     final accent = Theme.of(context).colorScheme.primary;
     return DropdownButtonFormField<String>(
-      value: value,
+      initialValue: value,
       decoration: InputDecoration(
         labelText: label,
         prefixIcon: Icon(icon, size: 18),
@@ -1915,7 +1913,7 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
   }) {
     final accent = Theme.of(context).colorScheme.primary;
     return DropdownButtonFormField<T>(
-      value: items.contains(value) ? value : null,
+      initialValue: items.contains(value) ? value : null,
       decoration: InputDecoration(
         labelText: label,
         prefixIcon: Icon(icon, size: 18),
@@ -2044,14 +2042,14 @@ class _SearchParentDialogState extends ConsumerState<_SearchParentDialog> {
             const SizedBox(height: 8),
             Text(
               'Clan: ${widget.clan}',
-              style: TextStyle(fontSize: 12, color: AppColors.textHint),
+              style: const TextStyle(fontSize: 12, color: AppColors.textHint),
             ),
             const SizedBox(height: 8),
             Expanded(
               child: _loading
                   ? Center(child: CircularProgressIndicator(color: accent))
                   : _results.isEmpty
-                      ? Center(
+                      ? const Center(
                           child: Text(
                             'Aucun membre trouve dans ce clan',
                             style: TextStyle(color: AppColors.textHint, fontSize: 13),

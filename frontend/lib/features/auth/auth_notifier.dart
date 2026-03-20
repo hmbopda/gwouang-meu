@@ -2,8 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../../core/network/api_client.dart';
-import '../../core/network/supabase_service.dart';
+import 'package:gwangmeu/core/network/api_client.dart';
+import 'package:gwangmeu/core/network/supabase_service.dart';
 
 part 'auth_notifier.g.dart';
 

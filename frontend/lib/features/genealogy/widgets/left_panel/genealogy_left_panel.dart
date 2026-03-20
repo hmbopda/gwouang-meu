@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../models/family_tree.dart';
-import '../../models/person_genealogy.dart';
-import '../../state/tree_tokens.dart';
-import '../../state/tree_view_state.dart';
+import 'package:gwangmeu/features/genealogy/models/family_tree.dart';
+import 'package:gwangmeu/features/genealogy/models/person_genealogy.dart';
+import 'package:gwangmeu/features/genealogy/state/tree_tokens.dart';
+import 'package:gwangmeu/features/genealogy/state/tree_view_state.dart';
 
 /// Left sidebar: Stats grid, Legend, Generation filters, Clan members list.
 class GenealogyLeftPanel extends ConsumerWidget {
@@ -59,19 +59,19 @@ class GenealogyLeftPanel extends ConsumerWidget {
               padding: const EdgeInsets.all(12),
               children: [
                 // ── Stats grid ──
-                _SectionTitle(title: 'Statistiques'),
+                const _SectionTitle(title: 'Statistiques'),
                 const SizedBox(height: 8),
                 _StatsGrid(tree: tree),
                 const SizedBox(height: 16),
 
                 // ── Legend ──
-                _SectionTitle(title: 'Légende'),
+                const _SectionTitle(title: 'Légende'),
                 const SizedBox(height: 8),
                 _LegendSection(),
                 const SizedBox(height: 16),
 
                 // ── Generation filters ──
-                _SectionTitle(title: 'Générations'),
+                const _SectionTitle(title: 'Générations'),
                 const SizedBox(height: 8),
                 _GenerationFilters(
                   hiddenGenerations: viewState.hiddenGenerations,

@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../../core/router/route_names.dart';
-import 'services/genealogy_api_service.dart';
+import 'package:gwangmeu/core/router/route_names.dart';
+import 'package:gwangmeu/features/genealogy/services/genealogy_api_service.dart';
 
 /// Ecran d'acceptation d'invitation.
 /// Accessible via le lien /invite?token=xxx

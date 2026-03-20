@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/network/api_client.dart';
-import '../models/notification_model.dart';
-import '../../genealogy/models/person_genealogy.dart';
+import 'package:gwangmeu/core/network/api_client.dart';
+import 'package:gwangmeu/features/notifications/models/notification_model.dart';
+import 'package:gwangmeu/features/genealogy/models/person_genealogy.dart';
 
 class NotificationApiService {
   final ApiClient _api;

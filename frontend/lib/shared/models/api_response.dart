@@ -33,7 +33,7 @@ class PageResponse<T> {
   final int page;
   final int size;
   final int totalPages;
-  final long totalElements;
+  final int totalElements;
   final bool first;
   final bool last;
 
@@ -66,4 +66,3 @@ class PageResponse<T> {
   }
 }
 
-typedef long = int;

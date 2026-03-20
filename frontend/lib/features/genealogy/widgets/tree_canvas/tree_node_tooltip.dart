@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../models/person_genealogy.dart';
-import '../../state/tree_tokens.dart';
-import '../../state/tree_view_state.dart';
+import 'package:gwangmeu/features/genealogy/models/person_genealogy.dart';
+import 'package:gwangmeu/features/genealogy/state/tree_tokens.dart';
+import 'package:gwangmeu/features/genealogy/state/tree_view_state.dart';
 
 /// Hover tooltip overlay for a tree node — shows person details + action buttons.
 class TreeNodeTooltip extends StatelessWidget {

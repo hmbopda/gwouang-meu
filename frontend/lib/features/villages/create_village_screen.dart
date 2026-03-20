@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../core/theme/app_theme.dart';
-import 'villages_notifier.dart';
+import 'package:gwangmeu/core/theme/app_theme.dart';
+import 'package:gwangmeu/features/villages/villages_notifier.dart';
 
 class CreateVillageScreen extends ConsumerStatefulWidget {
   const CreateVillageScreen({super.key});

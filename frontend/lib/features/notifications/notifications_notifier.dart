@@ -1,6 +1,6 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'models/notification_model.dart';
-import 'services/notification_api_service.dart';
+import 'package:gwangmeu/features/notifications/models/notification_model.dart';
+import 'package:gwangmeu/features/notifications/services/notification_api_service.dart';
 
 part 'notifications_notifier.g.dart';
 

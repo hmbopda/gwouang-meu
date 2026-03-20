@@ -2,17 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
-import '../../../../shared/models/country_model.dart';
-import '../../../../shared/models/language_model.dart';
-import '../../../../shared/models/village_model.dart';
-import '../../../../shared/widgets/country_village_selector.dart';
-import '../../../../shared/widgets/person_lookup_widget.dart';
-import '../../../geo/geo_notifier.dart';
-import '../../genealogy_notifier.dart';
-import '../../models/clan_model.dart';
-import '../../models/genealogy_union.dart';
-import '../../models/person_genealogy.dart';
-import '../../services/genealogy_api_service.dart';
+import 'package:gwangmeu/shared/models/country_model.dart';
+import 'package:gwangmeu/shared/models/language_model.dart';
+import 'package:gwangmeu/shared/models/village_model.dart';
+import 'package:gwangmeu/shared/widgets/country_village_selector.dart';
+import 'package:gwangmeu/shared/widgets/person_lookup_widget.dart';
+import 'package:gwangmeu/features/geo/geo_notifier.dart';
+import 'package:gwangmeu/features/genealogy/genealogy_notifier.dart';
+import 'package:gwangmeu/features/genealogy/models/clan_model.dart';
+import 'package:gwangmeu/features/genealogy/models/genealogy_union.dart';
+import 'package:gwangmeu/features/genealogy/models/person_genealogy.dart';
+import 'package:gwangmeu/features/genealogy/services/genealogy_api_service.dart';
 
 enum AddPersonStep { chooseAction, lookupContact, selectClan, selectPerson, createForm, checkDuplicate, selectCoParent }
 
@@ -703,7 +703,7 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
               ),
             ),
             value: _isAlive,
-            activeColor: Theme.of(context).colorScheme.primary,
+            activeThumbColor: Theme.of(context).colorScheme.primary,
             contentPadding: EdgeInsets.zero,
             onChanged: (v) => setState(() => _isAlive = v),
           ),
@@ -1209,12 +1209,12 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
     }
 
     if (spouses.isEmpty) {
-      return Column(
+      return const Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.people_outline, size: 48, color: Colors.grey),
-          const SizedBox(height: 12),
-          const Text(
+          Icon(Icons.people_outline, size: 48, color: Colors.grey),
+          SizedBox(height: 12),
+          Text(
             'Aucun conjoint trouve dans les unions.',
             textAlign: TextAlign.center,
             style: TextStyle(color: Colors.grey),

@@ -1,5 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
-import 'person_genealogy.dart';
+import 'package:gwangmeu/features/genealogy/models/person_genealogy.dart';
 
 part 'genealogy_union.freezed.dart';
 part 'genealogy_union.g.dart';

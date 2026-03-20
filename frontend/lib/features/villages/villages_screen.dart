@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../core/router/breadcrumb_provider.dart';
-import '../../core/router/route_names.dart';
-import '../../core/theme/app_theme.dart';
-import '../../shared/widgets/loading_overlay.dart';
-import '../../shared/models/village_model.dart';
-import '../../shared/widgets/village_card.dart';
-import '../home/home_screen.dart';
-import 'villages_notifier.dart';
+import 'package:gwangmeu/core/router/breadcrumb_provider.dart';
+import 'package:gwangmeu/core/router/route_names.dart';
+import 'package:gwangmeu/core/theme/app_theme.dart';
+import 'package:gwangmeu/shared/widgets/loading_overlay.dart';
+import 'package:gwangmeu/shared/models/village_model.dart';
+import 'package:gwangmeu/shared/widgets/village_card.dart';
+import 'package:gwangmeu/features/home/home_screen.dart';
+import 'package:gwangmeu/features/villages/villages_notifier.dart';
 
 class VillagesScreen extends ConsumerStatefulWidget {
   const VillagesScreen({super.key});
@@ -57,7 +57,7 @@ class _VillagesScreenState extends ConsumerState<VillagesScreen>
             ? TextField(
                 controller: _searchCtrl,
                 autofocus: true,
-                style: TextStyle(color: AppColors.textPrimary),
+                style: const TextStyle(color: AppColors.textPrimary),
                 decoration: const InputDecoration(
                   hintText: 'Rechercher un village...',
                   border: InputBorder.none,
@@ -234,13 +234,13 @@ class _DiscoverTab extends ConsumerWidget {
       ),
       data: (villages) {
         if (villages.isEmpty) {
-          return Center(
+          return const Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.holiday_village_outlined, size: 48, color: AppColors.textHint),
-                const SizedBox(height: 12),
-                const Text('Aucun village pour le moment',
+                Icon(Icons.holiday_village_outlined, size: 48, color: AppColors.textHint),
+                SizedBox(height: 12),
+                Text('Aucun village pour le moment',
                     style: TextStyle(color: AppColors.textSecondary)),
               ],
             ),
@@ -280,13 +280,13 @@ class _MyVillagesTab extends ConsumerWidget {
 
     return myVillagesState.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(
+      error: (e, _) => const Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.wifi_off, size: 48, color: AppColors.textHint),
-            const SizedBox(height: 12),
-            const Text('Impossible de charger', style: TextStyle(color: AppColors.textSecondary)),
+            Icon(Icons.wifi_off, size: 48, color: AppColors.textHint),
+            SizedBox(height: 12),
+            Text('Impossible de charger', style: TextStyle(color: AppColors.textSecondary)),
           ],
         ),
       ),
@@ -423,11 +423,11 @@ class _MyVillageTile extends ConsumerWidget {
                     const SizedBox(height: 6),
                     Row(
                       children: [
-                        Icon(Icons.group_outlined, size: 14, color: AppColors.textHint),
+                        const Icon(Icons.group_outlined, size: 14, color: AppColors.textHint),
                         const SizedBox(width: 4),
                         Text(
                           '${village.memberCount} membre${village.memberCount > 1 ? 's' : ''}',
-                          style: TextStyle(color: AppColors.textHint, fontSize: 12),
+                          style: const TextStyle(color: AppColors.textHint, fontSize: 12),
                         ),
                         const SizedBox(width: 12),
                         Container(
@@ -451,8 +451,8 @@ class _MyVillageTile extends ConsumerWidget {
                 ),
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.only(right: 12),
+            const Padding(
+              padding: EdgeInsets.only(right: 12),
               child: Icon(Icons.chevron_right, color: AppColors.textHint, size: 20),
             ),
           ],

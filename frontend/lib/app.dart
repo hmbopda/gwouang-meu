@@ -5,9 +5,9 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import 'core/router/app_router.dart';
-import 'core/theme/app_theme.dart';
-import 'core/theme/theme_notifier.dart';
+import 'package:gwangmeu/core/router/app_router.dart';
+import 'package:gwangmeu/core/theme/app_theme.dart';
+import 'package:gwangmeu/core/theme/theme_notifier.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // BootstrapApp — s'affiche INSTANTANÉMENT, init Supabase en arrière-plan
@@ -131,15 +131,15 @@ class _SplashScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return const MaterialApp(
       debugShowCheckedModeBanner: false,
       home: Scaffold(
-        backgroundColor: const Color(0xFF080709),
+        backgroundColor: Color(0xFF080709),
         body: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
+              Text(
                 'GWANG MEU',
                 style: TextStyle(
                   color: Color(0xFFD4A843),
@@ -148,8 +148,8 @@ class _SplashScreen extends StatelessWidget {
                   letterSpacing: 4,
                 ),
               ),
-              const SizedBox(height: 24),
-              const SizedBox(
+              SizedBox(height: 24),
+              SizedBox(
                 width: 24,
                 height: 24,
                 child: CircularProgressIndicator(

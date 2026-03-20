@@ -6,29 +6,29 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 // ── Eager imports (pages initiales / toujours visibles) ──
-import '../../features/auth/auth_screen.dart';
-import '../../features/feed/feed_screen.dart';
-import '../../features/home/home_screen.dart';
-import '../../shared/models/village_model.dart';
-import '../../shared/widgets/deferred_widget.dart';
+import 'package:gwangmeu/features/auth/auth_screen.dart';
+import 'package:gwangmeu/features/feed/feed_screen.dart';
+import 'package:gwangmeu/features/home/home_screen.dart';
+import 'package:gwangmeu/shared/models/village_model.dart';
+import 'package:gwangmeu/shared/widgets/deferred_widget.dart';
 
 // ── Deferred imports (chargés à la demande — réduit ~30-40% bundle web) ──
-import '../../features/genealogy/genealogy_screen.dart' deferred as genealogy;
-import '../../features/genealogy/invitation_screen.dart'
+import 'package:gwangmeu/features/genealogy/genealogy_screen.dart' deferred as genealogy;
+import 'package:gwangmeu/features/genealogy/invitation_screen.dart'
     deferred as invitation;
-import '../../features/profile/profile_screen.dart' deferred as profile;
-import '../../features/search/search_screen.dart' deferred as search;
-import '../../features/villages/create_village_screen.dart'
+import 'package:gwangmeu/features/profile/profile_screen.dart' deferred as profile;
+import 'package:gwangmeu/features/search/search_screen.dart' deferred as search;
+import 'package:gwangmeu/features/villages/create_village_screen.dart'
     deferred as create_village;
-import '../../features/villages/edit_village_screen.dart'
+import 'package:gwangmeu/features/villages/edit_village_screen.dart'
     deferred as edit_village;
-import '../../features/villages/my_villages_screen.dart'
+import 'package:gwangmeu/features/villages/my_villages_screen.dart'
     deferred as my_villages;
-import '../../features/villages/village_detail_screen.dart'
+import 'package:gwangmeu/features/villages/village_detail_screen.dart'
     deferred as village_detail;
-import '../../features/villages/villages_screen.dart' deferred as villages;
+import 'package:gwangmeu/features/villages/villages_screen.dart' deferred as villages;
 
-import 'route_names.dart';
+import 'package:gwangmeu/core/router/route_names.dart';
 
 /// ChangeNotifier qui écoute un Stream et notifie GoRouter à chaque event.
 /// Permet au router de ré-évaluer les redirections lors des changements d'auth

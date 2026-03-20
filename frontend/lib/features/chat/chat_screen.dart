@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/theme/app_theme.dart';
-import '../../shared/models/chat_group_model.dart';
-import '../../shared/models/chat_message_model.dart';
-import 'chat_notifier.dart';
+import 'package:gwangmeu/core/theme/app_theme.dart';
+import 'package:gwangmeu/shared/models/chat_group_model.dart';
+import 'package:gwangmeu/shared/models/chat_message_model.dart';
+import 'package:gwangmeu/features/chat/chat_notifier.dart';
 
 // ─────────────────────────────────────────────
 // Liste des groupes d'un village
@@ -70,7 +70,7 @@ class ChatGroupsSheet extends ConsumerWidget {
             Expanded(
               child: groupsAsync.when(
                 loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, _) => Center(
+                error: (e, _) => const Center(
                   child: Text('Erreur de chargement', style: TextStyle(color: AppColors.textSecondary)),
                 ),
                 data: (groups) => groups.isEmpty
@@ -262,7 +262,7 @@ class _GroupTile extends StatelessWidget {
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       ),
-      trailing: Icon(Icons.chevron_right, color: AppColors.textHint, size: 20),
+      trailing: const Icon(Icons.chevron_right, color: AppColors.textHint, size: 20),
     );
   }
 }
@@ -304,8 +304,8 @@ class _ChatMessagesScreenState extends ConsumerState<ChatMessagesScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Erreur d\'envoi'),
+          const SnackBar(
+            content: Text('Erreur d\'envoi'),
             backgroundColor: AppColors.error,
             behavior: SnackBarBehavior.floating,
           ),
@@ -339,7 +339,7 @@ class _ChatMessagesScreenState extends ConsumerState<ChatMessagesScreen> {
           Expanded(
             child: messagesAsync.when(
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Center(
+              error: (e, _) => const Center(
                 child: Text('Erreur de chargement', style: TextStyle(color: AppColors.textSecondary)),
               ),
               data: (messages) {
@@ -382,7 +382,7 @@ class _ChatMessagesScreenState extends ConsumerState<ChatMessagesScreen> {
                       style: theme.textTheme.bodyMedium,
                       decoration: InputDecoration(
                         hintText: 'Écrire un message...',
-                        hintStyle: TextStyle(color: AppColors.textHint),
+                        hintStyle: const TextStyle(color: AppColors.textHint),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(20),
                           borderSide: BorderSide.none,

@@ -1,8 +1,8 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
-import 'ai_suggestion.dart';
-import 'genealogy_union.dart';
-import 'person_genealogy.dart';
-import 'sibling_genealogy.dart';
+import 'package:gwangmeu/features/genealogy/models/ai_suggestion.dart';
+import 'package:gwangmeu/features/genealogy/models/genealogy_union.dart';
+import 'package:gwangmeu/features/genealogy/models/person_genealogy.dart';
+import 'package:gwangmeu/features/genealogy/models/sibling_genealogy.dart';
 
 part 'family_tree.freezed.dart';
 part 'family_tree.g.dart';

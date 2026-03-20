@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../state/tree_tokens.dart';
-import '../../state/tree_view_state.dart';
+import 'package:gwangmeu/features/genealogy/state/tree_tokens.dart';
+import 'package:gwangmeu/features/genealogy/state/tree_view_state.dart';
 
 /// Floating toolbar for switching tree views (Full, Ancestors, Descendants, Migration).
 /// Adapts to screen width: shows labels on desktop, icons-only + tooltip on mobile.

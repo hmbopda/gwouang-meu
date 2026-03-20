@@ -1,10 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../../core/network/api_client.dart';
-import '../../shared/models/country_model.dart';
-import '../../shared/models/language_model.dart';
-import '../../shared/models/village_model.dart';
+import 'package:gwangmeu/core/network/api_client.dart';
+import 'package:gwangmeu/shared/models/country_model.dart';
+import 'package:gwangmeu/shared/models/language_model.dart';
+import 'package:gwangmeu/shared/models/village_model.dart';
 
 part 'geo_notifier.g.dart';
 
