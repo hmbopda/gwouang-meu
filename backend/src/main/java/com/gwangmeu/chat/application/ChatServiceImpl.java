@@ -60,33 +60,51 @@ class ChatServiceImpl implements ChatService {
 
     @Override
     public ChatGroup createOrGetDirectGroup(UUID villageId, String name, UUID creatorId, UUID targetUserId) {
-        // Retourner le groupe existant si déjà créé entre les deux utilisateurs
-        return groupRepository.findDirectGroup(villageId, creatorId, targetUserId, ChatGroup.GroupType.DIRECT)
-                .orElseGet(() -> {
-                    ChatGroup group = ChatGroup.builder()
-                            .villageId(villageId)
-                            .name(name)
-                            .type(ChatGroup.GroupType.DIRECT)
-                            .createdBy(creatorId)
-                            .build();
+        // 1. Chercher un groupe DIRECT complet (les deux membres présents)
+        Optional<ChatGroup> existing = groupRepository.findDirectGroup(
+                villageId, creatorId, targetUserId, ChatGroup.GroupType.DIRECT);
+        if (existing.isPresent()) {
+            return existing.get();
+        }
 
-                    ChatGroup saved = groupRepository.save(group);
+        // 2. Chercher un groupe DIRECT créé par l'un ou l'autre mais incomplet (ex: échec partiel)
+        List<ChatGroup> partials = new java.util.ArrayList<>();
+        partials.addAll(groupRepository.findByVillageIdAndTypeAndCreatedBy(
+                villageId, ChatGroup.GroupType.DIRECT, creatorId));
+        partials.addAll(groupRepository.findByVillageIdAndTypeAndCreatedBy(
+                villageId, ChatGroup.GroupType.DIRECT, targetUserId));
 
-                    memberRepository.save(ChatGroupMember.builder()
-                            .groupId(saved.getId())
-                            .userId(creatorId)
-                            .role(ChatGroupMember.MemberRole.MEMBER)
-                            .build());
+        if (!partials.isEmpty()) {
+            ChatGroup partial = partials.get(0);
+            // Compléter les membres manquants
+            addMemberIfAbsent(partial.getId(), creatorId);
+            addMemberIfAbsent(partial.getId(), targetUserId);
+            return partial;
+        }
 
-                    memberRepository.save(ChatGroupMember.builder()
-                            .groupId(saved.getId())
-                            .userId(targetUserId)
-                            .role(ChatGroupMember.MemberRole.MEMBER)
-                            .build());
+        // 3. Créer le groupe et ses deux membres
+        ChatGroup group = ChatGroup.builder()
+                .villageId(villageId)
+                .name(name)
+                .type(ChatGroup.GroupType.DIRECT)
+                .createdBy(creatorId)
+                .build();
+        ChatGroup saved = groupRepository.save(group);
+        addMemberIfAbsent(saved.getId(), creatorId);
+        addMemberIfAbsent(saved.getId(), targetUserId);
 
-                    log.info("Direct chat group created between {} and {} in village {}", creatorId, targetUserId, villageId);
-                    return saved;
-                });
+        log.info("Direct chat group created between {} and {} in village {}", creatorId, targetUserId, villageId);
+        return saved;
+    }
+
+    private void addMemberIfAbsent(UUID groupId, UUID userId) {
+        if (!memberRepository.existsByGroupIdAndUserId(groupId, userId)) {
+            memberRepository.save(ChatGroupMember.builder()
+                    .groupId(groupId)
+                    .userId(userId)
+                    .role(ChatGroupMember.MemberRole.MEMBER)
+                    .build());
+        }
     }
 
     @Override
