@@ -1040,56 +1040,32 @@ class _ChatTabState extends ConsumerState<_ChatTab> {
   Widget build(BuildContext context) {
     final c = GwColors.of(context);
     final groupsAsync = ref.watch(chatGroupsProvider(widget.village.id));
-    final width = MediaQuery.of(context).size.width;
-    final isSplit = width >= 700; // desktop/tablet : 2 colonnes
-
     return groupsAsync.when(
       loading: () => Center(child: CircularProgressIndicator(color: c.gold)),
       error: (e, _) => Center(
         child: Text('Erreur de chargement du chat', style: TextStyle(color: c.stoneDim)),
       ),
       data: (groups) {
-        if (isSplit) {
-          return Row(
-            children: [
-              // Colonne gauche — liste des groupes
-              SizedBox(
-                width: 260,
-                child: _GroupList(
-                  village: widget.village,
-                  groups: groups,
-                  selectedId: _selectedGroup?.id,
-                  onSelect: (g) => setState(() => _selectedGroup = g),
-                ),
-              ),
-              VerticalDivider(width: 1, color: c.line),
-              // Colonne droite — messages
-              Expanded(
-                child: _selectedGroup == null
-                    ? _noGroupSelected(context, c, groups)
-                    : _InlineMessages(group: _selectedGroup!),
-              ),
-            ],
-          );
-        }
-
-        // Mobile — vue unique : si groupe sélectionné → messages, sinon liste
+        // Vue messages si groupe sélectionné
         if (_selectedGroup != null) {
           return Column(
             children: [
               // Barre retour
               Container(
                 color: c.ink,
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                 child: Row(
                   children: [
                     IconButton(
                       icon: Icon(Icons.arrow_back, color: c.stone, size: 20),
                       onPressed: () => setState(() => _selectedGroup = null),
                     ),
-                    Text(
-                      _selectedGroup!.name,
-                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: c.stone),
+                    Expanded(
+                      child: Text(
+                        _selectedGroup!.name,
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: c.stone),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                   ],
                 ),
@@ -1098,6 +1074,7 @@ class _ChatTabState extends ConsumerState<_ChatTab> {
             ],
           );
         }
+        // Vue liste des groupes
         return _GroupList(
           village: widget.village,
           groups: groups,
