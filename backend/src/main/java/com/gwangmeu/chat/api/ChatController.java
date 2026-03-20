@@ -51,8 +51,9 @@ public class ChatController {
         ChatGroup group;
         if (request.type() == ChatGroup.GroupType.DIRECT) {
             if (request.targetUserId() == null) {
-                return ResponseEntity.badRequest()
-                        .body(ApiResponse.error("targetUserId requis pour un groupe DIRECT", 400));
+                throw new org.springframework.web.server.ResponseStatusException(
+                        org.springframework.http.HttpStatus.BAD_REQUEST,
+                        "targetUserId requis pour un groupe DIRECT");
             }
             group = chatService.createOrGetDirectGroup(
                     request.villageId(), request.name(), userId, request.targetUserId());
