@@ -48,9 +48,19 @@ public class ChatController {
             @Valid @RequestBody CreateChatGroupRequest request,
             @CurrentUser Jwt jwt) {
         UUID userId = resolveUserId(jwt);
-        ChatGroup group = chatService.createGroup(
-                request.villageId(), request.name(), request.description(),
-                request.type(), userId);
+        ChatGroup group;
+        if (request.type() == ChatGroup.GroupType.DIRECT) {
+            if (request.targetUserId() == null) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("targetUserId requis pour un groupe DIRECT", 400));
+            }
+            group = chatService.createOrGetDirectGroup(
+                    request.villageId(), request.name(), userId, request.targetUserId());
+        } else {
+            group = chatService.createGroup(
+                    request.villageId(), request.name(), request.description(),
+                    request.type(), userId);
+        }
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.created(toGroupDto(group)));
     }

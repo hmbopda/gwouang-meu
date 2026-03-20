@@ -59,6 +59,37 @@ class ChatServiceImpl implements ChatService {
     }
 
     @Override
+    public ChatGroup createOrGetDirectGroup(UUID villageId, String name, UUID creatorId, UUID targetUserId) {
+        // Retourner le groupe existant si déjà créé entre les deux utilisateurs
+        return groupRepository.findDirectGroup(villageId, creatorId, targetUserId, ChatGroup.GroupType.DIRECT)
+                .orElseGet(() -> {
+                    ChatGroup group = ChatGroup.builder()
+                            .villageId(villageId)
+                            .name(name)
+                            .type(ChatGroup.GroupType.DIRECT)
+                            .createdBy(creatorId)
+                            .build();
+
+                    ChatGroup saved = groupRepository.save(group);
+
+                    memberRepository.save(ChatGroupMember.builder()
+                            .groupId(saved.getId())
+                            .userId(creatorId)
+                            .role(ChatGroupMember.MemberRole.MEMBER)
+                            .build());
+
+                    memberRepository.save(ChatGroupMember.builder()
+                            .groupId(saved.getId())
+                            .userId(targetUserId)
+                            .role(ChatGroupMember.MemberRole.MEMBER)
+                            .build());
+
+                    log.info("Direct chat group created between {} and {} in village {}", creatorId, targetUserId, villageId);
+                    return saved;
+                });
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public List<ChatGroup> getGroupsByVillage(UUID villageId) {
         return groupRepository.findByVillageIdOrderByCreatedAtAsc(villageId);

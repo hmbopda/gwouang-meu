@@ -35,6 +35,7 @@ public class ChatGroup extends AuditEntity {
 
     public enum GroupType {
         GENERAL,
-        COMMISSION
+        COMMISSION,
+        DIRECT
     }
 }

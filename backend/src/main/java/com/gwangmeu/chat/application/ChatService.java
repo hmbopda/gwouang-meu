@@ -13,6 +13,9 @@ public interface ChatService {
     ChatGroup createGroup(UUID villageId, String name, String description,
                           ChatGroup.GroupType type, UUID creatorId);
 
+    /** Crée ou retourne un groupe DIRECT existant entre deux utilisateurs. */
+    ChatGroup createOrGetDirectGroup(UUID villageId, String name, UUID creatorId, UUID targetUserId);
+
     List<ChatGroup> getGroupsByVillage(UUID villageId);
 
     ChatGroupMember joinGroup(UUID groupId, UUID userId);
