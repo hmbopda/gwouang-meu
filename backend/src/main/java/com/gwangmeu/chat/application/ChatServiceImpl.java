@@ -13,7 +13,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Slf4j
@@ -68,7 +70,7 @@ class ChatServiceImpl implements ChatService {
         }
 
         // 2. Chercher un groupe DIRECT créé par l'un ou l'autre mais incomplet (ex: échec partiel)
-        List<ChatGroup> partials = new java.util.ArrayList<>();
+        List<ChatGroup> partials = new ArrayList<>();
         partials.addAll(groupRepository.findByVillageIdAndTypeAndCreatedBy(
                 villageId, ChatGroup.GroupType.DIRECT, creatorId));
         partials.addAll(groupRepository.findByVillageIdAndTypeAndCreatedBy(
