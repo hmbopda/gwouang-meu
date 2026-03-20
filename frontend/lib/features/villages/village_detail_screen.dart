@@ -1288,24 +1288,32 @@ class _GroupList extends ConsumerWidget {
                 maxLines: 2,
               ),
               const SizedBox(height: 10),
-              Row(
-                children: [
-                  const Text('Type : ', style: TextStyle(fontSize: 13)),
-                  const SizedBox(width: 8),
-                  ChoiceChip(
-                    label: const Text('Général'),
-                    selected: type == 'GENERAL',
-                    onSelected: (_) => setD(() => type = 'GENERAL'),
-                    selectedColor: accent.withAlpha(40),
-                  ),
-                  const SizedBox(width: 8),
-                  ChoiceChip(
-                    label: const Text('Commission'),
-                    selected: type == 'COMMISSION',
-                    onSelected: (_) => setD(() => type = 'COMMISSION'),
-                    selectedColor: accent.withAlpha(40),
-                  ),
-                ],
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Type :', style: TextStyle(fontSize: 13)),
+                    const SizedBox(height: 6),
+                    Wrap(
+                      spacing: 8,
+                      children: [
+                        ChoiceChip(
+                          label: const Text('Général'),
+                          selected: type == 'GENERAL',
+                          onSelected: (_) => setD(() => type = 'GENERAL'),
+                          selectedColor: accent.withAlpha(40),
+                        ),
+                        ChoiceChip(
+                          label: const Text('Commission'),
+                          selected: type == 'COMMISSION',
+                          onSelected: (_) => setD(() => type = 'COMMISSION'),
+                          selectedColor: accent.withAlpha(40),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
