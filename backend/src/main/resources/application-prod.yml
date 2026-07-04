@@ -66,11 +66,19 @@ management:
     mail:
       enabled: false
 
+# ===== Application custom (prod) =====
+application:
+  # Pas de localhost en production — uniquement les domaines officiels
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:https://gwangmeu.com,https://www.gwangmeu.com,https://app.gwangmeu.com}
+
+# Swagger/OpenAPI desactives en production (surface d'attaque / fuite de la
+# documentation d'API). Utiliser l'environnement de dev pour explorer l'API.
 springdoc:
   swagger-ui:
-    enabled: true
+    enabled: false
   api-docs:
-    enabled: true
+    enabled: false
 
 logging:
   level:

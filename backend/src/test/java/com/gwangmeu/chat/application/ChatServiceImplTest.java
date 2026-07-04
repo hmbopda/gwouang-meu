@@ -215,11 +215,13 @@ class ChatServiceImplTest {
         @DisplayName("Doit plafonner la limite a 100")
         void shouldCapLimitAt100() {
             UUID groupId = UUID.randomUUID();
+            UUID requesterId = UUID.randomUUID();
 
+            when(memberRepository.existsByGroupIdAndUserId(groupId, requesterId)).thenReturn(true);
             when(messageRepository.findByGroupIdOrderByCreatedAtDesc(eq(groupId), any(Pageable.class)))
                     .thenReturn(List.of());
 
-            chatService.getMessages(groupId, 500);
+            chatService.getMessages(groupId, 500, requesterId);
 
             @SuppressWarnings("unchecked")
             ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
@@ -231,16 +233,32 @@ class ChatServiceImplTest {
         @DisplayName("Doit utiliser la limite telle quelle quand elle est <= 100")
         void shouldUseLimitAsIs() {
             UUID groupId = UUID.randomUUID();
+            UUID requesterId = UUID.randomUUID();
 
+            when(memberRepository.existsByGroupIdAndUserId(groupId, requesterId)).thenReturn(true);
             when(messageRepository.findByGroupIdOrderByCreatedAtDesc(eq(groupId), any(Pageable.class)))
                     .thenReturn(List.of());
 
-            chatService.getMessages(groupId, 50);
+            chatService.getMessages(groupId, 50, requesterId);
 
             @SuppressWarnings("unchecked")
             ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
             verify(messageRepository).findByGroupIdOrderByCreatedAtDesc(eq(groupId), pageableCaptor.capture());
             assertThat(pageableCaptor.getValue().getPageSize()).isEqualTo(50);
+        }
+
+        @Test
+        @DisplayName("Doit lever IllegalStateException si le demandeur n'est pas membre")
+        void shouldThrowWhenRequesterNotMember() {
+            UUID groupId = UUID.randomUUID();
+            UUID requesterId = UUID.randomUUID();
+
+            when(memberRepository.existsByGroupIdAndUserId(groupId, requesterId)).thenReturn(false);
+
+            assertThatThrownBy(() -> chatService.getMessages(groupId, 50, requesterId))
+                    .isInstanceOf(IllegalStateException.class);
+
+            verify(messageRepository, never()).findByGroupIdOrderByCreatedAtDesc(any(), any());
         }
     }
 
@@ -256,15 +274,32 @@ class ChatServiceImplTest {
         @DisplayName("Doit deleguer au repository avec les bons parametres")
         void shouldDelegateToRepository() {
             UUID groupId = UUID.randomUUID();
+            UUID requesterId = UUID.randomUUID();
             Instant since = Instant.parse("2025-01-15T10:30:00Z");
 
+            when(memberRepository.existsByGroupIdAndUserId(groupId, requesterId)).thenReturn(true);
             when(messageRepository.findByGroupIdAndCreatedAtAfterOrderByCreatedAtAsc(groupId, since))
                     .thenReturn(List.of());
 
-            List<ChatMessage> result = chatService.getMessagesSince(groupId, since);
+            List<ChatMessage> result = chatService.getMessagesSince(groupId, since, requesterId);
 
             assertThat(result).isEmpty();
             verify(messageRepository).findByGroupIdAndCreatedAtAfterOrderByCreatedAtAsc(groupId, since);
+        }
+
+        @Test
+        @DisplayName("Doit lever IllegalStateException si le demandeur n'est pas membre")
+        void shouldThrowWhenRequesterNotMember() {
+            UUID groupId = UUID.randomUUID();
+            UUID requesterId = UUID.randomUUID();
+            Instant since = Instant.parse("2025-01-15T10:30:00Z");
+
+            when(memberRepository.existsByGroupIdAndUserId(groupId, requesterId)).thenReturn(false);
+
+            assertThatThrownBy(() -> chatService.getMessagesSince(groupId, since, requesterId))
+                    .isInstanceOf(IllegalStateException.class);
+
+            verify(messageRepository, never()).findByGroupIdAndCreatedAtAfterOrderByCreatedAtAsc(any(), any());
         }
     }
 
@@ -286,12 +321,36 @@ class ChatServiceImplTest {
         }
 
         @Test
-        @DisplayName("getGroupMembers doit deleguer au memberRepository")
+        @DisplayName("getGroupMembers doit deleguer au memberRepository quand le demandeur est membre")
         void shouldReturnGroupMembers() {
             UUID groupId = UUID.randomUUID();
+            UUID requesterId = UUID.randomUUID();
+            when(memberRepository.existsByGroupIdAndUserId(groupId, requesterId)).thenReturn(true);
             when(memberRepository.findByGroupId(groupId)).thenReturn(List.of());
 
-            assertThat(chatService.getGroupMembers(groupId)).isEmpty();
+            assertThat(chatService.getGroupMembers(groupId, requesterId)).isEmpty();
+        }
+
+        @Test
+        @DisplayName("getGroupMembers doit lever IllegalStateException si le demandeur n'est pas membre")
+        void shouldThrowWhenMemberListRequestedByNonMember() {
+            UUID groupId = UUID.randomUUID();
+            UUID requesterId = UUID.randomUUID();
+            when(memberRepository.existsByGroupIdAndUserId(groupId, requesterId)).thenReturn(false);
+
+            assertThatThrownBy(() -> chatService.getGroupMembers(groupId, requesterId))
+                    .isInstanceOf(IllegalStateException.class);
+
+            verify(memberRepository, never()).findByGroupId(any());
+        }
+
+        @Test
+        @DisplayName("countMembers doit deleguer au memberRepository")
+        void shouldCountMembers() {
+            UUID groupId = UUID.randomUUID();
+            when(memberRepository.countByGroupId(groupId)).thenReturn(3L);
+
+            assertThat(chatService.countMembers(groupId)).isEqualTo(3L);
         }
     }
 }

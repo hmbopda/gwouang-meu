@@ -13,6 +13,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
@@ -166,7 +167,8 @@ public class GenealogyController {
     }
 
     @PostMapping("/admin/neo4j/sync-all")
-    @Operation(summary = "Re-synchronise toutes les donnees PostgreSQL vers Neo4j")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @Operation(summary = "Re-synchronise toutes les donnees PostgreSQL vers Neo4j (admin)")
     public ResponseEntity<ApiResponse<String>> syncAllToNeo4j() {
         String result = neo4jSyncService.fullSyncAll();
         return ResponseEntity.ok(ApiResponse.ok(result));

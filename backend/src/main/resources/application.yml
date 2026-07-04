@@ -89,6 +89,10 @@ server:
 
 # ===== Application custom =====
 application:
+  # Origines CORS/WebSocket autorisees (localhost uniquement hors prod —
+  # surcharge dans application-prod.yml)
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:*,https://gwangmeu.com,https://www.gwangmeu.com,https://app.gwangmeu.com}
   anthropic-api-key: ${ANTHROPIC_API_KEY:}
   r2:
     access-key-id: ${R2_ACCESS_KEY_ID:}

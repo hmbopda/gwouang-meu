@@ -19,11 +19,13 @@ public interface ChatService {
 
     void leaveGroup(UUID groupId, UUID userId);
 
-    List<ChatGroupMember> getGroupMembers(UUID groupId);
+    List<ChatGroupMember> getGroupMembers(UUID groupId, UUID requesterId);
+
+    long countMembers(UUID groupId);
 
     ChatMessage sendMessage(UUID groupId, UUID senderId, String content);
 
-    List<ChatMessage> getMessages(UUID groupId, int limit);
+    List<ChatMessage> getMessages(UUID groupId, int limit, UUID requesterId);
 
-    List<ChatMessage> getMessagesSince(UUID groupId, Instant since);
+    List<ChatMessage> getMessagesSince(UUID groupId, Instant since, UUID requesterId);
 }

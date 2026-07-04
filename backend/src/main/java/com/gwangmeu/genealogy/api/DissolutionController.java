@@ -9,6 +9,7 @@ import com.gwangmeu.shared.security.UserIdResolver;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
@@ -111,11 +112,11 @@ public class DissolutionController {
     // ── ADMIN ───────────────────────────────────────────────
 
     @PostMapping("/unions/{unionId}/death/admin-validate")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('MODERATEUR')")
     @Operation(summary = "Validation admin du deces (jamais auto-valide)")
     public ResponseEntity<ApiResponse<Map<String, String>>> adminValidateDeath(
             @PathVariable UUID unionId,
             @RequestParam boolean approved) {
-        // TODO: verifier que l'utilisateur est admin
         GenealogyUnion union = dissolutionService.adminValidateDeath(unionId, approved);
         return ResponseEntity.ok(ApiResponse.ok(Map.of(
                 "unionId", union.getId().toString(),
@@ -124,11 +125,11 @@ public class DissolutionController {
     }
 
     @PostMapping("/unions/{unionId}/divorce/admin-resolve")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('MODERATEUR')")
     @Operation(summary = "Resolution admin d'un litige divorce")
     public ResponseEntity<ApiResponse<Map<String, String>>> adminResolveDivorceDispute(
             @PathVariable UUID unionId,
             @RequestParam boolean approved) {
-        // TODO: verifier que l'utilisateur est admin
         GenealogyUnion union = dissolutionService.adminResolveDivorceDispute(unionId, approved);
         return ResponseEntity.ok(ApiResponse.ok(Map.of(
                 "unionId", union.getId().toString(),

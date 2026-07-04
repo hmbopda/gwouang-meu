@@ -43,6 +43,9 @@ public class SecurityConfig {
     @Value("${spring.security.oauth2.resourceserver.jwt.jwk-set-uri}")
     private String jwksUri;
 
+    @Value("${application.cors.allowed-origins}")
+    private List<String> corsAllowedOrigins;
+
     /**
      * JwtDecoder explicitement configure pour ES256 (ECC P-256).
      * Spring Boot auto-configure seulement RS256 — Supabase utilise ES256.
@@ -77,7 +80,6 @@ public class SecurityConfig {
                         .requestMatchers("/actuator/health").permitAll()
                         .requestMatchers("/uploads/**").permitAll()
                         .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
-                        .requestMatchers("/ws/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/users/auth/register").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/invitations/token/*/accept").authenticated()
                         .anyRequest().authenticated()
@@ -132,14 +134,15 @@ public class SecurityConfig {
         return List.of(new SimpleGrantedAuthority("ROLE_" + role.toUpperCase()));
     }
 
+    /**
+     * Origines autorisees pilotees par la propriete application.cors.allowed-origins :
+     * localhost inclus uniquement en dev, domaines de prod uniquement en prod
+     * (voir application.yml / application-prod.yml).
+     */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOriginPatterns(List.of(
-                "http://localhost:*",      // Flutter web, Next.js, Vite, Swagger (tout port local)
-                "https://gwangmeu.com",
-                "https://app.gwangmeu.com"
-        ));
+        config.setAllowedOriginPatterns(corsAllowedOrigins);
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);

@@ -85,10 +85,12 @@ public class ChatController {
     }
 
     @GetMapping("/groups/{groupId}/members")
-    @Operation(summary = "Membres d'un groupe")
+    @Operation(summary = "Membres d'un groupe (réservé aux membres)")
     public ResponseEntity<ApiResponse<List<ChatMemberDto>>> getMembers(
-            @PathVariable UUID groupId) {
-        List<ChatGroupMember> members = chatService.getGroupMembers(groupId);
+            @PathVariable UUID groupId,
+            @CurrentUser Jwt jwt) {
+        UUID userId = resolveUserId(jwt);
+        List<ChatGroupMember> members = chatService.getGroupMembers(groupId, userId);
         List<UUID> userIds = members.stream().map(ChatGroupMember::getUserId).toList();
         Map<UUID, User> usersMap = userRepository.findAllById(userIds)
                 .stream().collect(Collectors.toMap(User::getId, u -> u));
@@ -122,27 +124,31 @@ public class ChatController {
     }
 
     @GetMapping("/groups/{groupId}/messages")
-    @Operation(summary = "Historique des messages")
+    @Operation(summary = "Historique des messages (réservé aux membres)")
     public ResponseEntity<ApiResponse<List<ChatMessageDto>>> getMessages(
             @PathVariable UUID groupId,
-            @RequestParam(defaultValue = "50") int limit) {
-        List<ChatMessage> messages = chatService.getMessages(groupId, limit);
+            @RequestParam(defaultValue = "50") int limit,
+            @CurrentUser Jwt jwt) {
+        UUID userId = resolveUserId(jwt);
+        List<ChatMessage> messages = chatService.getMessages(groupId, limit, userId);
         return ResponseEntity.ok(ApiResponse.ok(enrichMessages(messages)));
     }
 
     @GetMapping("/groups/{groupId}/messages/poll")
-    @Operation(summary = "Polling — nouveaux messages depuis un timestamp")
+    @Operation(summary = "Polling — nouveaux messages depuis un timestamp (réservé aux membres)")
     public ResponseEntity<ApiResponse<List<ChatMessageDto>>> poll(
             @PathVariable UUID groupId,
-            @RequestParam Instant since) {
-        List<ChatMessage> messages = chatService.getMessagesSince(groupId, since);
+            @RequestParam Instant since,
+            @CurrentUser Jwt jwt) {
+        UUID userId = resolveUserId(jwt);
+        List<ChatMessage> messages = chatService.getMessagesSince(groupId, since, userId);
         return ResponseEntity.ok(ApiResponse.ok(enrichMessages(messages)));
     }
 
     // ── Mapping helpers ──
 
     private ChatGroupDto toGroupDto(ChatGroup g) {
-        int memberCount = chatService.getGroupMembers(g.getId()).size();
+        int memberCount = (int) chatService.countMembers(g.getId());
         return new ChatGroupDto(
                 g.getId(), g.getVillageId(), g.getName(), g.getDescription(),
                 g.getType(), memberCount, g.getCreatedBy(), g.getCreatedAt());

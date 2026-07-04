@@ -204,7 +204,7 @@ class ChatServiceIntegrationTest extends BaseIntegrationTest {
                 chatService.sendMessage(group.getId(), creatorId, "Message " + i);
             }
 
-            List<ChatMessage> messages = chatService.getMessages(group.getId(), 200);
+            List<ChatMessage> messages = chatService.getMessages(group.getId(), 200, creatorId);
 
             // 1 SYSTEM + 5 TEXT = 6
             assertThat(messages).hasSize(6);
@@ -225,7 +225,7 @@ class ChatServiceIntegrationTest extends BaseIntegrationTest {
 
             chatService.sendMessage(group.getId(), creatorId, "Nouveau message");
 
-            List<ChatMessage> messages = chatService.getMessagesSince(group.getId(), before);
+            List<ChatMessage> messages = chatService.getMessagesSince(group.getId(), before, creatorId);
 
             assertThat(messages).isNotEmpty();
             assertThat(messages).allMatch(m -> m.getCreatedAt().isAfter(before));

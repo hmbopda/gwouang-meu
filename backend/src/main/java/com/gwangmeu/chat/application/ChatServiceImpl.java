@@ -84,15 +84,20 @@ class ChatServiceImpl implements ChatService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<ChatGroupMember> getGroupMembers(UUID groupId) {
+    public List<ChatGroupMember> getGroupMembers(UUID groupId, UUID requesterId) {
+        requireMembership(groupId, requesterId);
         return memberRepository.findByGroupId(groupId);
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public long countMembers(UUID groupId) {
+        return memberRepository.countByGroupId(groupId);
+    }
+
+    @Override
     public ChatMessage sendMessage(UUID groupId, UUID senderId, String content) {
-        if (!memberRepository.existsByGroupIdAndUserId(groupId, senderId)) {
-            throw new IllegalStateException("Utilisateur non membre de ce groupe");
-        }
+        requireMembership(groupId, senderId);
 
         return messageRepository.save(ChatMessage.builder()
                 .groupId(groupId)
@@ -104,14 +109,22 @@ class ChatServiceImpl implements ChatService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<ChatMessage> getMessages(UUID groupId, int limit) {
+    public List<ChatMessage> getMessages(UUID groupId, int limit, UUID requesterId) {
+        requireMembership(groupId, requesterId);
         return messageRepository.findByGroupIdOrderByCreatedAtDesc(
                 groupId, PageRequest.of(0, Math.min(limit, 100)));
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<ChatMessage> getMessagesSince(UUID groupId, Instant since) {
+    public List<ChatMessage> getMessagesSince(UUID groupId, Instant since, UUID requesterId) {
+        requireMembership(groupId, requesterId);
         return messageRepository.findByGroupIdAndCreatedAtAfterOrderByCreatedAtAsc(groupId, since);
+    }
+
+    private void requireMembership(UUID groupId, UUID userId) {
+        if (!memberRepository.existsByGroupIdAndUserId(groupId, userId)) {
+            throw new IllegalStateException("Utilisateur non membre de ce groupe");
+        }
     }
 }
