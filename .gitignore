@@ -80,3 +80,6 @@ Thumbs.db:encryptable
 
 # ----- Secrets production (jamais committer) -----
 backend/prod.md
+
+# Secrets Firebase — ne jamais committer
+backend/src/main/resources/firebase/serviceAccountKey.json
