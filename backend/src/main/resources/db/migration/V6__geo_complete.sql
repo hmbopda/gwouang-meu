@@ -22,7 +22,7 @@ BEGIN
     IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'postgis') THEN
         SET LOCAL search_path TO public, extensions;
         EXECUTE 'CREATE INDEX IF NOT EXISTS idx_villages_geo_location
-                 ON villages USING GIST (ST_MakePoint(longitude, latitude)::geography)';
+                 ON villages USING GIST ((ST_MakePoint(longitude, latitude)::geography))';
     END IF;
 END $$;
 
