@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
 
-import 'package:gwangmeu/core/theme/app_theme.dart';
+import 'package:gwangmeu/core/theme/gw_tokens.dart';
 
 /// Overlay de chargement plein écran.
 class LoadingOverlay extends StatelessWidget {
@@ -11,7 +11,7 @@ class LoadingOverlay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: AppColors.background.withAlpha(200),
+      color: GwTokens.dark.ink.withAlpha(200),
       child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -36,13 +36,13 @@ class ShimmerCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Shimmer.fromColors(
-      baseColor: AppColors.surface,
-      highlightColor: AppColors.surfaceAlt,
+      baseColor: GwTokens.dark.inkCard,
+      highlightColor: GwTokens.dark.inkLift,
       child: Container(
         height: height,
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: GwTokens.dark.inkCard,
           borderRadius: BorderRadius.circular(12),
         ),
       ),

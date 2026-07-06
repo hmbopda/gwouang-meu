@@ -2,7 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import 'package:gwangmeu/core/theme/app_theme.dart';
+import 'package:gwangmeu/core/theme/gw_tokens.dart';
 import 'package:gwangmeu/shared/models/post_model.dart';
 
 class PostCard extends StatefulWidget {
@@ -223,7 +223,7 @@ class _PostCardState extends State<PostCard> {
             child: IconButton(
               onPressed: () {},
               icon: const Icon(Icons.more_horiz, size: 18),
-              color: AppColors.textSecondary,
+              color: GwTokens.dark.stoneMid,
               padding: EdgeInsets.zero,
             ),
           ),
@@ -280,11 +280,11 @@ class _PostCardState extends State<PostCard> {
           CachedNetworkImage(
             imageUrl: post.mediaUrl!,
             fit: BoxFit.cover,
-            placeholder: (_, __) => Container(color: AppColors.surfaceAlt),
+            placeholder: (_, __) => Container(color: GwTokens.dark.inkLift),
             errorWidget: (_, __, ___) => Container(
-              color: AppColors.surfaceAlt,
-              child: const Center(
-                child: Icon(Icons.image_outlined, size: 40, color: AppColors.textHint),
+              color: GwTokens.dark.inkLift,
+              child: Center(
+                child: Icon(Icons.image_outlined, size: 40, color: GwTokens.dark.stoneDim),
               ),
             ),
           ),
@@ -364,10 +364,10 @@ class _PostCardState extends State<PostCard> {
         fit: BoxFit.cover,
         width: double.infinity,
         height: double.infinity,
-        placeholder: (_, __) => Container(color: AppColors.surfaceAlt),
+        placeholder: (_, __) => Container(color: GwTokens.dark.inkLift),
         errorWidget: (_, __, ___) => Container(
-          color: AppColors.surfaceAlt,
-          child: const Icon(Icons.image_outlined, color: AppColors.textHint),
+          color: GwTokens.dark.inkLift,
+          child: Icon(Icons.image_outlined, color: GwTokens.dark.stoneDim),
         ),
       ),
     );
@@ -526,7 +526,7 @@ class _PostCardState extends State<PostCard> {
       ),
       child: Row(
         children: [
-          _actionBtn(icon: Icons.play_arrow, label: 'Rejoindre le live', color: AppColors.error, onTap: widget.onLiveTap),
+          _actionBtn(icon: Icons.play_arrow, label: 'Rejoindre le live', color: GwTokens.ember, onTap: widget.onLiveTap),
           _actionBtn(icon: Icons.notifications_outlined, label: 'Rappel', onTap: () {}),
         ],
       ),
@@ -556,7 +556,7 @@ class _PostCardState extends State<PostCard> {
     bool isActive = false,
     VoidCallback? onTap,
   }) {
-    final c = isActive ? Theme.of(context).colorScheme.primary : (color ?? AppColors.textSecondary);
+    final c = isActive ? Theme.of(context).colorScheme.primary : (color ?? GwTokens.dark.stoneMid);
     return Expanded(
       child: InkWell(
         onTap: onTap,
@@ -603,7 +603,7 @@ class _PostCardState extends State<PostCard> {
   Widget _liveBadge() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(color: AppColors.error, borderRadius: BorderRadius.circular(20)),
+      decoration: BoxDecoration(color: GwTokens.ember, borderRadius: BorderRadius.circular(20)),
       child: const Row(
         mainAxisSize: MainAxisSize.min,
         children: [

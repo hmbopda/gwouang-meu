@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:gwangmeu/core/router/breadcrumb_provider.dart';
 import 'package:gwangmeu/core/router/route_names.dart';
-import 'package:gwangmeu/core/theme/app_theme.dart';
+import 'package:gwangmeu/core/theme/gw_tokens.dart';
 import 'package:gwangmeu/features/notifications/widgets/notification_bell.dart';
 import 'package:gwangmeu/features/home/widgets/accent_color_picker.dart';
 
@@ -111,16 +111,16 @@ class _DynamicBreadcrumb extends ConsumerWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         // GWANG MEU prefix
-        const Text(
+        Text(
           'GWANG MEU',
-          style: TextStyle(fontFamily: 'monospace', fontSize: 9, letterSpacing: 1.2, color: AppColors.textHint),
+          style: TextStyle(fontFamily: 'monospace', fontSize: 9, letterSpacing: 1.2, color: GwTokens.dark.stoneDim),
         ),
 
         // Breadcrumb segments
         for (int i = 0; i < crumbs.length; i++) ...[
-          const Padding(
+          Padding(
             padding: EdgeInsets.symmetric(horizontal: 6),
-            child: Text('—', style: TextStyle(color: AppColors.textHint, fontSize: 9)),
+            child: Text('—', style: TextStyle(color: GwTokens.dark.stoneDim, fontSize: 9)),
           ),
           if (i < crumbs.length - 1)
             // Clickable intermediate segment
@@ -134,11 +134,11 @@ class _DynamicBreadcrumb extends ConsumerWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                 child: Text(
                   crumbs[i].label.toUpperCase(),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: 'monospace',
                     fontSize: 9,
                     letterSpacing: 1,
-                    color: AppColors.textHint,
+                    color: GwTokens.dark.stoneDim,
                   ),
                 ),
               ),
@@ -172,13 +172,13 @@ class _StaticBreadcrumb extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Text(
+        Text(
           'GWANG MEU',
-          style: TextStyle(fontFamily: 'monospace', fontSize: 9, letterSpacing: 1.2, color: AppColors.textHint),
+          style: TextStyle(fontFamily: 'monospace', fontSize: 9, letterSpacing: 1.2, color: GwTokens.dark.stoneDim),
         ),
-        const Padding(
+        Padding(
           padding: EdgeInsets.symmetric(horizontal: 8),
-          child: Text('—', style: TextStyle(color: AppColors.textHint, fontSize: 9)),
+          child: Text('—', style: TextStyle(color: GwTokens.dark.stoneDim, fontSize: 9)),
         ),
         Text(
           sectionName.toUpperCase(),
@@ -213,12 +213,12 @@ class _SearchBar extends StatelessWidget {
         border: Border.all(color: borderColor),
         borderRadius: BorderRadius.circular(99),
       ),
-      child: const Row(
+      child: Row(
         children: [
-          Icon(Icons.search, size: 14, color: AppColors.textHint),
+          Icon(Icons.search, size: 14, color: GwTokens.dark.stoneDim),
           SizedBox(width: 8),
           Expanded(
-            child: Text('Rechercher…', style: TextStyle(fontSize: 12, color: AppColors.textHint)),
+            child: Text('Rechercher…', style: TextStyle(fontSize: 12, color: GwTokens.dark.stoneDim)),
           ),
         ],
       ),
@@ -275,7 +275,7 @@ class _IconCircle extends StatelessWidget {
               shape: BoxShape.circle,
               border: Border.all(color: borderColor),
             ),
-            child: Icon(icon, size: 14, color: AppColors.textSecondary),
+            child: Icon(icon, size: 14, color: GwTokens.dark.stoneMid),
           ),
           if (hasDot)
             Positioned(

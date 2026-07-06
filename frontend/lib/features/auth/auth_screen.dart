@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:gwangmeu/core/router/route_names.dart';
-import 'package:gwangmeu/core/theme/app_theme.dart';
+import 'package:gwangmeu/core/theme/gw_tokens.dart';
 import 'package:gwangmeu/shared/models/country_model.dart';
 import 'package:gwangmeu/shared/models/village_model.dart';
 import 'package:gwangmeu/shared/widgets/country_village_selector.dart';
@@ -67,7 +67,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(_friendlyError(next.error.toString())),
-            backgroundColor: AppColors.error,
+            backgroundColor: GwTokens.ember,
           ),
         );
       }
@@ -110,7 +110,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
             _mode == AuthMode.login
                 ? 'Retrouvez votre communaute'
                 : 'Recevez un lien de reinitialisation',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: GwTokens.dark.stoneMid),
           ),
           const SizedBox(height: 24),
 
@@ -222,8 +222,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                   children: [
                     Text(
                       'Etape ${_regStep + 1} sur 3',
-                      style: const TextStyle(
-                        color: AppColors.textSecondary,
+                      style: TextStyle(
+                        color: GwTokens.dark.stoneMid,
                         fontSize: 12,
                         fontFamily: 'monospace',
                       ),
@@ -286,7 +286,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                   height: 4,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(2),
-                    color: isActive ? accent : AppColors.surfaceAlt,
+                    color: isActive ? accent : GwTokens.dark.inkLift,
                   ),
                 ),
                 const SizedBox(height: 6),
@@ -298,7 +298,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                       height: 20,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: isActive ? accent : AppColors.surfaceAlt,
+                        color: isActive ? accent : GwTokens.dark.inkLift,
                       ),
                       alignment: Alignment.center,
                       child: i < _regStep
@@ -308,7 +308,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                               style: TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w700,
-                                color: isActive ? Colors.black : AppColors.textHint,
+                                color: isActive ? Colors.black : GwTokens.dark.stoneDim,
                               ),
                             ),
                     ),
@@ -318,7 +318,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: isCurrent ? FontWeight.w700 : FontWeight.w400,
-                        color: isActive ? accent : AppColors.textHint,
+                        color: isActive ? accent : GwTokens.dark.stoneDim,
                       ),
                     ),
                   ],
@@ -376,10 +376,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
 
           DropdownButtonFormField<String>(
             initialValue: _regSelectedGender,
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               labelText: 'Genre',
               hintText: 'Selectionnez votre genre',
-              hintStyle: TextStyle(color: AppColors.textHint, fontSize: 13),
+              hintStyle: TextStyle(color: GwTokens.dark.stoneDim, fontSize: 13),
               prefixIcon: Icon(Icons.person_outline),
             ),
             items: const [
@@ -412,7 +412,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
               child: RichText(
                 text: TextSpan(
                   text: 'Deja un compte ? ',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(color: GwTokens.dark.stoneMid),
                   children: [
                     TextSpan(
                       text: 'Se connecter',
@@ -473,7 +473,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
             const SizedBox(height: 4),
             Text(
               'Selectionnez un clan existant ou saisissez le votre',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.textHint),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: GwTokens.dark.stoneDim),
             ),
             const SizedBox(height: 12),
 
@@ -505,10 +505,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                       hintText: clans.isEmpty
                           ? 'Saisissez votre clan'
                           : 'Tapez ou selectionnez un clan',
-                      hintStyle: const TextStyle(color: AppColors.textHint, fontSize: 13),
+                      hintStyle: TextStyle(color: GwTokens.dark.stoneDim, fontSize: 13),
                       prefixIcon: const Icon(Icons.shield_outlined),
                       suffixIcon: clans.isNotEmpty
-                          ? const Icon(Icons.arrow_drop_down, color: AppColors.textHint)
+                          ? Icon(Icons.arrow_drop_down, color: GwTokens.dark.stoneDim)
                           : null,
                     ),
                   );
@@ -533,7 +533,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
           const SizedBox(height: 4),
           Text(
             'Optionnel — Parlez de vous, de votre lien avec votre village',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.textHint),
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(color: GwTokens.dark.stoneDim),
           ),
           const SizedBox(height: 12),
 
@@ -541,14 +541,14 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
             controller: _regBioCtrl,
             maxLines: 3,
             maxLength: 200,
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               hintText: 'Diaspora Paris, passionne de culture Bassa...',
-              hintStyle: TextStyle(color: AppColors.textHint, fontSize: 13),
+              hintStyle: TextStyle(color: GwTokens.dark.stoneDim, fontSize: 13),
               prefixIcon: Padding(
                 padding: EdgeInsets.only(bottom: 48),
                 child: Icon(Icons.short_text_outlined),
               ),
-              counterStyle: TextStyle(color: AppColors.textHint, fontSize: 10),
+              counterStyle: TextStyle(color: GwTokens.dark.stoneDim, fontSize: 10),
             ),
           ),
 
@@ -675,7 +675,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
           child: Text(
             'En creant un compte, vous acceptez les conditions d\'utilisation',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppColors.textHint,
+                  color: GwTokens.dark.stoneDim,
                   fontSize: 11,
                 ),
             textAlign: TextAlign.center,
@@ -699,11 +699,11 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.edit_outlined, size: 14, color: AppColors.textSecondary),
+            Icon(Icons.edit_outlined, size: 14, color: GwTokens.dark.stoneMid),
             const SizedBox(width: 6),
             Text(
               label,
-              style: const TextStyle(fontSize: 11, color: AppColors.textSecondary, fontWeight: FontWeight.w500),
+              style: TextStyle(fontSize: 11, color: GwTokens.dark.stoneMid, fontWeight: FontWeight.w500),
             ),
           ],
         ),
@@ -716,13 +716,13 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         children: [
-          Icon(icon, size: 16, color: AppColors.textSecondary),
+          Icon(icon, size: 16, color: GwTokens.dark.stoneMid),
           const SizedBox(width: 10),
           SizedBox(
             width: 90,
             child: Text(
               label,
-              style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+              style: TextStyle(fontSize: 12, color: GwTokens.dark.stoneMid),
             ),
           ),
           Expanded(
@@ -828,7 +828,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
-        hintStyle: const TextStyle(color: AppColors.textHint, fontSize: 13),
+        hintStyle: TextStyle(color: GwTokens.dark.stoneDim, fontSize: 13),
         prefixIcon: Icon(icon),
         suffixIcon: onToggleObscure != null
             ? IconButton(
@@ -849,7 +849,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Text(
             'ou continuer avec',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(color: GwTokens.dark.stoneMid),
           ),
         ),
         const Expanded(child: Divider()),
@@ -1024,7 +1024,7 @@ class _SocialButton extends StatelessWidget {
             child: Text(
               label,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.textPrimary,
+                    color: GwTokens.dark.stone,
                     fontWeight: FontWeight.w600,
                   ),
               overflow: TextOverflow.ellipsis,

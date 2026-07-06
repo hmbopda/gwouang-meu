@@ -75,8 +75,8 @@ class AccentColor {
 const kAccentColors = [
   AccentColor(
     name: 'Or',
-    color: Color(0xFFC8A020),
-    light: Color(0xFFE8C040),
+    color: Color(0xFFC9A84C),
+    light: Color(0xFFE8C96A),
     dark: Color(0xFF9A7810),
   ),
   AccentColor(

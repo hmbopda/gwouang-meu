@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'package:gwangmeu/core/theme/app_theme.dart';
+import 'package:gwangmeu/core/theme/gw_tokens.dart';
 
 enum GwangButtonVariant { primary, outline, ghost }
 
@@ -79,7 +79,7 @@ class GwangButton extends StatelessWidget {
           child: TextButton(
             onPressed: loading ? null : onPressed,
             style: TextButton.styleFrom(
-              foregroundColor: AppColors.textSecondary,
+              foregroundColor: GwTokens.dark.stoneMid,
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
               minimumSize: const Size(0, 50),
             ),

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:gwangmeu/core/theme/app_theme.dart';
+import 'package:gwangmeu/core/theme/gw_tokens.dart';
 import 'package:gwangmeu/features/villages/villages_notifier.dart';
 
 class CreateVillageScreen extends ConsumerStatefulWidget {
@@ -48,7 +48,7 @@ class _CreateVillageScreenState extends ConsumerState<CreateVillageScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Village "${village.name}" créé !'),
-            backgroundColor: AppColors.success,
+            backgroundColor: GwTokens.sage,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           ),
@@ -60,7 +60,7 @@ class _CreateVillageScreenState extends ConsumerState<CreateVillageScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Erreur : $e'),
-            backgroundColor: AppColors.error,
+            backgroundColor: GwTokens.ember,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           ),
@@ -103,7 +103,7 @@ class _CreateVillageScreenState extends ConsumerState<CreateVillageScreen> {
                       child: Text(
                         'Ajoutez votre village pour rassembler sa communauté',
                         style: theme.textTheme.bodyMedium?.copyWith(
-                          color: AppColors.textSecondary,
+                          color: GwTokens.dark.stoneMid,
                           height: 1.5,
                         ),
                       ),

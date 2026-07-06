@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:gwangmeu/core/router/breadcrumb_provider.dart';
 import 'package:gwangmeu/core/router/route_names.dart';
-import 'package:gwangmeu/core/theme/gw_colors.dart';
+import 'package:gwangmeu/core/theme/gw_tokens.dart';
 import 'package:gwangmeu/shared/models/village_model.dart';
 import 'package:gwangmeu/features/villages/villages_notifier.dart';
 
@@ -19,7 +19,7 @@ class MyVillagesScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     final myVillagesAsync = ref.watch(myVillagesNotifierProvider);
     final allVillagesAsync = ref.watch(villagesNotifierProvider);
 
@@ -27,7 +27,7 @@ class MyVillagesScreen extends ConsumerWidget {
       backgroundColor: c.inkDeep,
       body: myVillagesAsync.when(
         loading: () => Center(
-          child: CircularProgressIndicator(color: c.gold),
+          child: CircularProgressIndicator(color: c.goldText),
         ),
         error: (e, _) => _buildError(context, ref),
         data: (myVillages) {
@@ -46,7 +46,7 @@ class MyVillagesScreen extends ConsumerWidget {
   }
 
   Widget _buildError(BuildContext context, WidgetRef ref) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -61,12 +61,12 @@ class MyVillagesScreen extends ConsumerWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
               decoration: BoxDecoration(
-                color: c.goldFaint,
+                color: c.goldBg,
                 borderRadius: BorderRadius.circular(6),
                 border: Border.all(color: c.goldLine),
               ),
               child: Text('Réessayer',
-                  style: TextStyle(color: c.gold, fontSize: 12, fontWeight: FontWeight.w500)),
+                  style: TextStyle(color: c.goldText, fontSize: 12, fontWeight: FontWeight.w500)),
             ),
           ),
         ],
@@ -86,8 +86,8 @@ class _MyVillagesBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = GwColors.of(context);
-    final gemColors = [c.gold, c.sage, c.azure, c.ember, c.goldLight];
+    final c = GwTokens.of(context);
+    final gemColors = [c.goldText, GwTokens.sage, GwTokens.azure, GwTokens.ember, GwTokens.goldLight];
 
     return CustomScrollView(
       slivers: [
@@ -156,7 +156,7 @@ class _MyVillagesBody extends StatelessWidget {
   }
 
   SliverAppBar _buildHeader(BuildContext context) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     final statusBarH = MediaQuery.of(context).padding.top;
     return SliverAppBar(
       backgroundColor: c.inkDeep,
@@ -191,13 +191,13 @@ class _MyVillagesBody extends StatelessWidget {
                   width: 28,
                   height: 28,
                   decoration: BoxDecoration(
-                    color: c.goldFaint,
+                    color: c.goldBg,
                     borderRadius: BorderRadius.circular(6),
                     border: Border.all(color: c.goldLine),
                   ),
                   child: Center(
                     child: Text('+',
-                        style: TextStyle(color: c.gold, fontSize: 18, fontWeight: FontWeight.w300)),
+                        style: TextStyle(color: c.goldText, fontSize: 18, fontWeight: FontWeight.w300)),
                   ),
                 ),
               ),
@@ -213,7 +213,7 @@ class _MyVillagesBody extends StatelessWidget {
   }
 
   SliverToBoxAdapter _sectionLabel(BuildContext context, String text) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     return SliverToBoxAdapter(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(20, 18, 20, 8),
@@ -253,7 +253,7 @@ class _VillageItem extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     return GestureDetector(
       onTap: isLocked ? null : () {
         ref.read(breadcrumbProvider.notifier).push(BreadcrumbEntry(label: village.name, route: Routes.villageDetail(village.id)));
@@ -262,11 +262,11 @@ class _VillageItem extends ConsumerWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         decoration: BoxDecoration(
-          color: isActive ? c.goldFaint : Colors.transparent,
+          color: isActive ? c.goldBg : Colors.transparent,
           border: Border(
             left: BorderSide(
               width: 2.5,
-              color: isActive ? c.gold : Colors.transparent,
+              color: isActive ? c.goldText : Colors.transparent,
             ),
           ),
         ),
@@ -359,7 +359,7 @@ class _VillageItem extends ConsumerWidget {
 class _UnlockCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
       child: GestureDetector(
@@ -388,7 +388,7 @@ class _UnlockCard extends StatelessWidget {
                 style: TextStyle(
                   fontFamily: 'monospace',
                   fontSize: 9.5,
-                  color: c.goldDim,
+                  color: c.goldLine,
                   letterSpacing: 1,
                 ),
               ),
@@ -407,7 +407,7 @@ class _UnlockCard extends StatelessWidget {
 class _ExploreItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     return GestureDetector(
       onTap: () => context.push(Routes.villages),
       child: Container(
@@ -452,7 +452,7 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     return Padding(
       padding: const EdgeInsets.all(32),
       child: Column(
@@ -463,7 +463,7 @@ class _EmptyState extends StatelessWidget {
             height: 64,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: c.goldFaint,
+              color: c.goldBg,
               border: Border.all(color: c.goldLine),
             ),
             child: const Center(
@@ -497,9 +497,9 @@ class _EmptyState extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 11),
               decoration: BoxDecoration(
-                color: c.gold,
+                color: c.goldText,
                 borderRadius: BorderRadius.circular(6),
-                boxShadow: [BoxShadow(color: c.gold.withAlpha(60), blurRadius: 16)],
+                boxShadow: [BoxShadow(color: c.goldText.withAlpha(60), blurRadius: 16)],
               ),
               child: Text(
                 'Explorer les villages',
@@ -527,7 +527,7 @@ class _Rule extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 8),
       height: 1,

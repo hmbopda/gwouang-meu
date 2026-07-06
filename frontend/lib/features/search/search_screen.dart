@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:gwangmeu/core/network/api_client.dart';
 import 'package:gwangmeu/core/router/breadcrumb_provider.dart';
 import 'package:gwangmeu/core/router/route_names.dart';
-import 'package:gwangmeu/core/theme/app_theme.dart';
+import 'package:gwangmeu/core/theme/gw_tokens.dart';
 import 'package:gwangmeu/shared/widgets/loading_overlay.dart';
 import 'package:gwangmeu/features/home/home_screen.dart';
 
@@ -53,9 +53,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.cloud_off_outlined, size: 48, color: AppColors.textHint),
+                  Icon(Icons.cloud_off_outlined, size: 48, color: GwTokens.dark.stoneDim),
                   const SizedBox(height: 12),
-                  Text('Recherche indisponible', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary)),
+                  Text('Recherche indisponible', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: GwTokens.dark.stoneMid)),
                 ],
               ),
             ),
@@ -64,9 +64,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.search_off, size: 48, color: AppColors.textHint),
+                        Icon(Icons.search_off, size: 48, color: GwTokens.dark.stoneDim),
                         const SizedBox(height: 12),
-                        Text('Aucun résultat pour "$query"', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary)),
+                        Text('Aucun résultat pour "$query"', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: GwTokens.dark.stoneMid)),
                       ],
                     ),
                   )
@@ -87,11 +87,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         title: TextField(
           controller: _ctrl,
           autofocus: false,
-          style: const TextStyle(color: AppColors.textPrimary),
-          decoration: const InputDecoration(
+          style: TextStyle(color: GwTokens.dark.stone),
+          decoration: InputDecoration(
             hintText: 'Rechercher village, pays, continent...',
             border: InputBorder.none,
-            hintStyle: TextStyle(color: AppColors.textHint),
+            hintStyle: TextStyle(color: GwTokens.dark.stoneDim),
           ),
           onChanged: (v) => ref.read(_searchQueryProvider.notifier).state = v,
         ),
@@ -115,12 +115,12 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.travel_explore, size: 72, color: AppColors.textHint),
+          Icon(Icons.travel_explore, size: 72, color: GwTokens.dark.stoneDim),
           const SizedBox(height: 16),
           Text(
             'Explorez l\'Afrique\nVillages · Pays · Continents',
             textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: GwTokens.dark.stoneMid),
           ),
         ],
       ),
@@ -158,8 +158,8 @@ class _ResultTile extends StatelessWidget {
     final accent = Theme.of(context).colorScheme.primary;
     final color = switch (result.type) {
       'VILLAGE' => accent,
-      'COUNTRY' => AppColors.success,
-      _ => AppColors.info,
+      'COUNTRY' => GwTokens.sage,
+      _ => GwTokens.azure,
     };
     final icon = switch (result.type) {
       'VILLAGE' => Icons.location_city_outlined,
@@ -176,12 +176,12 @@ class _ResultTile extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: AppColors.surfaceAlt,
+        color: GwTokens.dark.inkLift,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
         result.type,
-        style: const TextStyle(fontSize: 10, color: AppColors.textSecondary),
+        style: TextStyle(fontSize: 10, color: GwTokens.dark.stoneMid),
       ),
     );
   }

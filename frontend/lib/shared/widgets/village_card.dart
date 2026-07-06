@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:shimmer/shimmer.dart';
 
 import 'package:gwangmeu/core/router/route_names.dart';
-import 'package:gwangmeu/core/theme/app_theme.dart';
+import 'package:gwangmeu/core/theme/gw_tokens.dart';
 import 'package:gwangmeu/shared/models/village_model.dart';
 
 /// Carte village réutilisable — liste, grille, recherche.
@@ -19,9 +19,9 @@ class VillageCard extends StatelessWidget {
       onTap: () => context.push(Routes.villageDetail(village.id)),
       child: Container(
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: GwTokens.dark.inkCard,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.border, width: 0.5),
+          border: Border.all(color: GwTokens.dark.line, width: 0.5),
         ),
         clipBehavior: Clip.hardEdge,
         child: Column(
@@ -83,7 +83,7 @@ class VillageCard extends StatelessWidget {
                   // Membres
                   Row(
                     children: [
-                      const Icon(Icons.group_outlined, size: 13, color: AppColors.textSecondary),
+                      Icon(Icons.group_outlined, size: 13, color: GwTokens.dark.stoneMid),
                       const SizedBox(width: 4),
                       Text(
                         '${village.memberCount} membres',
@@ -101,15 +101,15 @@ class VillageCard extends StatelessWidget {
   }
 
   Widget _placeholder() => Container(
-        color: AppColors.surfaceAlt,
-        child: const Center(
-          child: Icon(Icons.landscape_outlined, size: 32, color: AppColors.textHint),
+        color: GwTokens.dark.inkLift,
+        child: Center(
+          child: Icon(Icons.landscape_outlined, size: 32, color: GwTokens.dark.stoneDim),
         ),
       );
 
   Widget _shimmer() => Shimmer.fromColors(
-        baseColor: AppColors.surface,
-        highlightColor: AppColors.surfaceAlt,
-        child: Container(color: AppColors.surface),
+        baseColor: GwTokens.dark.inkCard,
+        highlightColor: GwTokens.dark.inkLift,
+        child: Container(color: GwTokens.dark.inkCard),
       );
 }

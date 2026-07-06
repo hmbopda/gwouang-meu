@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:gwangmeu/core/router/breadcrumb_provider.dart';
 import 'package:gwangmeu/core/router/route_names.dart';
-import 'package:gwangmeu/core/theme/app_theme.dart';
+import 'package:gwangmeu/core/theme/gw_tokens.dart';
 import 'package:gwangmeu/shared/widgets/loading_overlay.dart';
 import 'package:gwangmeu/shared/models/village_model.dart';
 import 'package:gwangmeu/shared/widgets/village_card.dart';
@@ -57,11 +57,11 @@ class _VillagesScreenState extends ConsumerState<VillagesScreen>
             ? TextField(
                 controller: _searchCtrl,
                 autofocus: true,
-                style: const TextStyle(color: AppColors.textPrimary),
-                decoration: const InputDecoration(
+                style: TextStyle(color: GwTokens.dark.stone),
+                decoration: InputDecoration(
                   hintText: 'Rechercher un village...',
                   border: InputBorder.none,
-                  hintStyle: TextStyle(color: AppColors.textHint),
+                  hintStyle: TextStyle(color: GwTokens.dark.stoneDim),
                 ),
                 onChanged: (q) {
                   if (q.length >= 2 || q.isEmpty) {
@@ -88,7 +88,7 @@ class _VillagesScreenState extends ConsumerState<VillagesScreen>
                 controller: _tabCtrl,
                 indicatorColor: accent,
                 labelColor: accent,
-                unselectedLabelColor: AppColors.textSecondary,
+                unselectedLabelColor: GwTokens.dark.stoneMid,
                 labelStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
                 unselectedLabelStyle: const TextStyle(fontSize: 14),
                 dividerColor: theme.colorScheme.outline.withAlpha(30),
@@ -166,9 +166,9 @@ class _VillagesScreenState extends ConsumerState<VillagesScreen>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.wifi_off, size: 48, color: AppColors.textHint),
+          Icon(Icons.wifi_off, size: 48, color: GwTokens.dark.stoneDim),
           const SizedBox(height: 12),
-          const Text('Impossible de charger', style: TextStyle(color: AppColors.textSecondary)),
+          Text('Impossible de charger', style: TextStyle(color: GwTokens.dark.stoneMid)),
           const SizedBox(height: 12),
           TextButton.icon(
             onPressed: () => ref.read(villagesNotifierProvider.notifier).refresh(),
@@ -185,9 +185,9 @@ class _VillagesScreenState extends ConsumerState<VillagesScreen>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, size: 48, color: AppColors.textHint),
+          Icon(icon, size: 48, color: GwTokens.dark.stoneDim),
           const SizedBox(height: 12),
-          Text(msg, style: const TextStyle(color: AppColors.textSecondary)),
+          Text(msg, style: TextStyle(color: GwTokens.dark.stoneMid)),
         ],
       ),
     );
@@ -220,9 +220,9 @@ class _DiscoverTab extends ConsumerWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.wifi_off, size: 48, color: AppColors.textHint),
+            Icon(Icons.wifi_off, size: 48, color: GwTokens.dark.stoneDim),
             const SizedBox(height: 12),
-            const Text('Impossible de charger', style: TextStyle(color: AppColors.textSecondary)),
+            Text('Impossible de charger', style: TextStyle(color: GwTokens.dark.stoneMid)),
             const SizedBox(height: 12),
             TextButton.icon(
               onPressed: () => ref.read(villagesNotifierProvider.notifier).refresh(),
@@ -234,14 +234,14 @@ class _DiscoverTab extends ConsumerWidget {
       ),
       data: (villages) {
         if (villages.isEmpty) {
-          return const Center(
+          return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.holiday_village_outlined, size: 48, color: AppColors.textHint),
+                Icon(Icons.holiday_village_outlined, size: 48, color: GwTokens.dark.stoneDim),
                 SizedBox(height: 12),
                 Text('Aucun village pour le moment',
-                    style: TextStyle(color: AppColors.textSecondary)),
+                    style: TextStyle(color: GwTokens.dark.stoneMid)),
               ],
             ),
           );
@@ -280,13 +280,13 @@ class _MyVillagesTab extends ConsumerWidget {
 
     return myVillagesState.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => const Center(
+      error: (e, _) => Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.wifi_off, size: 48, color: AppColors.textHint),
+            Icon(Icons.wifi_off, size: 48, color: GwTokens.dark.stoneDim),
             SizedBox(height: 12),
-            Text('Impossible de charger', style: TextStyle(color: AppColors.textSecondary)),
+            Text('Impossible de charger', style: TextStyle(color: GwTokens.dark.stoneMid)),
           ],
         ),
       ),
@@ -309,7 +309,7 @@ class _MyVillagesTab extends ConsumerWidget {
                   Text(
                     'Explorez l\'onglet "Découvrir" et rejoignez\nla communauté de votre village',
                     style: theme.textTheme.bodyMedium?.copyWith(
-                      color: AppColors.textSecondary,
+                      color: GwTokens.dark.stoneMid,
                       height: 1.5,
                     ),
                     textAlign: TextAlign.center,
@@ -416,30 +416,30 @@ class _MyVillageTile extends ConsumerWidget {
                         if (village.region != null) village.region,
                         if (village.primaryDialect != null) village.primaryDialect,
                       ].join(' · '),
-                      style: theme.textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
+                      style: theme.textTheme.bodySmall?.copyWith(color: GwTokens.dark.stoneMid),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 6),
                     Row(
                       children: [
-                        const Icon(Icons.group_outlined, size: 14, color: AppColors.textHint),
+                        Icon(Icons.group_outlined, size: 14, color: GwTokens.dark.stoneDim),
                         const SizedBox(width: 4),
                         Text(
                           '${village.memberCount} membre${village.memberCount > 1 ? 's' : ''}',
-                          style: const TextStyle(color: AppColors.textHint, fontSize: 12),
+                          style: TextStyle(color: GwTokens.dark.stoneDim, fontSize: 12),
                         ),
                         const SizedBox(width: 12),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                           decoration: BoxDecoration(
-                            color: AppColors.success.withAlpha(15),
+                            color: GwTokens.sage.withAlpha(15),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: const Text(
                             'Rejoint',
                             style: TextStyle(
-                              color: AppColors.success,
+                              color: GwTokens.sage,
                               fontSize: 10,
                               fontWeight: FontWeight.w600,
                             ),
@@ -451,9 +451,9 @@ class _MyVillageTile extends ConsumerWidget {
                 ),
               ),
             ),
-            const Padding(
+            Padding(
               padding: EdgeInsets.only(right: 12),
-              child: Icon(Icons.chevron_right, color: AppColors.textHint, size: 20),
+              child: Icon(Icons.chevron_right, color: GwTokens.dark.stoneDim, size: 20),
             ),
           ],
         ),

@@ -1,7 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
-import 'package:gwangmeu/core/theme/app_theme.dart';
+import 'package:gwangmeu/core/theme/gw_tokens.dart';
 
 class ComposeBox extends StatelessWidget {
   const ComposeBox({
@@ -57,7 +57,7 @@ class ComposeBox extends StatelessWidget {
                       child: Text(
                         'Quoi de neuf dans votre village ?',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: AppColors.textHint,
+                              color: GwTokens.dark.stoneDim,
                             ),
                       ),
                     ),
@@ -82,21 +82,21 @@ class ComposeBox extends StatelessWidget {
                   context,
                   icon: Icons.videocam_outlined,
                   label: 'Live video',
-                  color: AppColors.error,
+                  color: GwTokens.ember,
                   onTap: onLiveTap,
                 ),
                 _composeAction(
                   context,
                   icon: Icons.photo_outlined,
                   label: 'Photo',
-                  color: AppColors.success,
+                  color: GwTokens.sage,
                   onTap: onPhotoTap,
                 ),
                 _composeAction(
                   context,
                   icon: Icons.location_city_outlined,
                   label: 'Village',
-                  color: AppColors.info,
+                  color: GwTokens.azure,
                   onTap: onVillageTap,
                 ),
               ],

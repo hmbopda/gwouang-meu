@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:gwangmeu/core/theme/app_theme.dart';
+import 'package:gwangmeu/core/theme/gw_tokens.dart';
 import 'package:gwangmeu/shared/models/village_model.dart';
 import 'package:gwangmeu/features/villages/villages_notifier.dart';
 
@@ -62,7 +62,7 @@ class _EditVillageScreenState extends ConsumerState<EditVillageScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Text('Village mis à jour'),
-            backgroundColor: AppColors.success,
+            backgroundColor: GwTokens.sage,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           ),
@@ -74,7 +74,7 @@ class _EditVillageScreenState extends ConsumerState<EditVillageScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Erreur : $e'),
-            backgroundColor: AppColors.error,
+            backgroundColor: GwTokens.ember,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           ),
@@ -185,11 +185,11 @@ class _EditVillageScreenState extends ConsumerState<EditVillageScreen> {
                   errorBuilder: (_, __, ___) => Container(
                     height: 160,
                     decoration: BoxDecoration(
-                      color: AppColors.error.withAlpha(15),
+                      color: GwTokens.ember.withAlpha(15),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Center(
-                      child: Text('Image invalide', style: TextStyle(color: AppColors.error)),
+                      child: Text('Image invalide', style: TextStyle(color: GwTokens.ember)),
                     ),
                   ),
                 ),
@@ -219,7 +219,7 @@ class _EditVillageScreenState extends ConsumerState<EditVillageScreen> {
       children: [
         Row(
           children: [
-            Icon(icon, size: 16, color: AppColors.textSecondary),
+            Icon(icon, size: 16, color: GwTokens.dark.stoneMid),
             const SizedBox(width: 6),
             Text(label, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
           ],
@@ -234,7 +234,7 @@ class _EditVillageScreenState extends ConsumerState<EditVillageScreen> {
           style: theme.textTheme.bodyMedium,
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: const TextStyle(color: AppColors.textHint),
+            hintStyle: TextStyle(color: GwTokens.dark.stoneDim),
             filled: true,
             fillColor: theme.colorScheme.surface,
             border: OutlineInputBorder(

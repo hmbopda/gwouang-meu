@@ -8,7 +8,7 @@ import 'package:gwangmeu/shared/models/post_model.dart';
 import 'package:gwangmeu/shared/models/village_member_model.dart';
 import 'package:gwangmeu/shared/models/village_model.dart';
 import 'package:gwangmeu/shared/widgets/error_widget.dart';
-import 'package:gwangmeu/core/theme/gw_colors.dart';
+import 'package:gwangmeu/core/theme/gw_tokens.dart';
 import 'package:gwangmeu/shared/models/chat_group_model.dart';
 import 'package:gwangmeu/shared/models/chat_message_model.dart';
 import 'package:gwangmeu/features/chat/chat_notifier.dart';
@@ -25,13 +25,13 @@ class VillageDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     final villageAsync = ref.watch(villageDetailProvider(villageId));
 
     return villageAsync.when(
       loading: () => Scaffold(
         backgroundColor: c.inkDeep,
-        body: Center(child: CircularProgressIndicator(color: c.gold)),
+        body: Center(child: CircularProgressIndicator(color: c.goldText)),
       ),
       error: (e, _) => Scaffold(
         backgroundColor: c.inkDeep,
@@ -53,12 +53,12 @@ class _ResponsiveShell extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     return Scaffold(
       backgroundColor: c.inkDeep,
       body: LayoutBuilder(
         builder: (context, constraints) {
-          final cc = GwColors.of(context);
+          final cc = GwTokens.of(context);
           final isDesktop = constraints.maxWidth >= 1100;
           final isTablet = constraints.maxWidth >= 800 && constraints.maxWidth < 1100;
 
@@ -116,8 +116,8 @@ class _LeftPanel extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final c = GwColors.of(context);
-    final gemColors = [c.gold, c.sage, c.azure, c.ember, c.goldLight];
+    final c = GwTokens.of(context);
+    final gemColors = [c.goldText, GwTokens.sage, GwTokens.azure, GwTokens.ember, GwTokens.goldLight];
     final myVillagesAsync = ref.watch(myVillagesNotifierProvider);
     final allVillagesAsync = ref.watch(villagesNotifierProvider);
 
@@ -141,8 +141,8 @@ class _LeftPanel extends ConsumerWidget {
                   onTap: () => context.push(Routes.villages),
                   child: Container(
                     width: 26, height: 26,
-                    decoration: BoxDecoration(color: c.sageBg, borderRadius: BorderRadius.circular(13), border: Border.all(color: c.sageLine)),
-                    child: Center(child: Text('+', style: TextStyle(color: c.sage, fontSize: 16, fontWeight: FontWeight.w300))),
+                    decoration: BoxDecoration(color: GwTokens.sageBg, borderRadius: BorderRadius.circular(13), border: Border.all(color: GwTokens.sageLine)),
+                    child: Center(child: Text('+', style: TextStyle(color: GwTokens.sage, fontSize: 16, fontWeight: FontWeight.w300))),
                   ),
                 ),
               ],
@@ -152,7 +152,7 @@ class _LeftPanel extends ConsumerWidget {
           // ── Content ──
           Expanded(
             child: myVillagesAsync.when(
-              loading: () => Center(child: CircularProgressIndicator(strokeWidth: 1.5, color: c.gold)),
+              loading: () => Center(child: CircularProgressIndicator(strokeWidth: 1.5, color: c.goldText)),
               error: (_, __) => Center(child: Text('Erreur', style: TextStyle(color: c.stoneDim, fontSize: 12))),
               data: (myVillages) {
                 final allVillages = allVillagesAsync.valueOrNull ?? [];
@@ -209,7 +209,7 @@ class _LeftPanel extends ConsumerWidget {
   }
 
   Widget _sectionLabel(BuildContext context, String text) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 6),
       child: Text(text.toUpperCase(), style: TextStyle(fontFamily: 'monospace', fontSize: 9, fontWeight: FontWeight.w500, letterSpacing: 1.5, color: c.stoneFaint)),
@@ -217,7 +217,7 @@ class _LeftPanel extends ConsumerWidget {
   }
 
   Widget _buildUnlockCard(BuildContext context) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: GestureDetector(
@@ -233,7 +233,7 @@ class _LeftPanel extends ConsumerWidget {
               Text('Complétez votre arbre\npour débloquer G4+', textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 12, fontWeight: FontWeight.w300, color: c.stoneDim, height: 1.6)),
               const SizedBox(height: 8),
-              Text('→ GÉNÉALOGIE', style: TextStyle(fontFamily: 'monospace', fontSize: 9, color: c.goldDim, letterSpacing: 1)),
+              Text('→ GÉNÉALOGIE', style: TextStyle(fontFamily: 'monospace', fontSize: 9, color: c.goldLine, letterSpacing: 1)),
             ],
           ),
         ),
@@ -242,7 +242,7 @@ class _LeftPanel extends ConsumerWidget {
   }
 
   Widget _buildExploreItem(BuildContext context) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     return GestureDetector(
       onTap: () => context.push(Routes.villages),
       child: Padding(
@@ -277,14 +277,14 @@ class _LeftVillageItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     return GestureDetector(
       onTap: isLocked ? null : onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 9),
         decoration: BoxDecoration(
-          color: isSelected ? c.goldFaint : Colors.transparent,
-          border: Border(left: BorderSide(width: 2.5, color: isSelected ? c.gold : Colors.transparent)),
+          color: isSelected ? c.goldBg : Colors.transparent,
+          border: Border(left: BorderSide(width: 2.5, color: isSelected ? c.goldText : Colors.transparent)),
         ),
         child: Row(
           children: [
@@ -326,7 +326,7 @@ class _LeftVillageItem extends StatelessWidget {
 class _PanelRule extends StatelessWidget {
   const _PanelRule();
   @override
-  Widget build(BuildContext context) => Container(margin: const EdgeInsets.symmetric(vertical: 6), height: 1, color: GwColors.of(context).line);
+  Widget build(BuildContext context) => Container(margin: const EdgeInsets.symmetric(vertical: 6), height: 1, color: GwTokens.of(context).line);
 }
 
 // ═══════════════════════════════════════════════════════
@@ -362,7 +362,7 @@ class _CenterPanelState extends ConsumerState<_CenterPanel> with SingleTickerPro
 
   @override
   Widget build(BuildContext context) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     return Column(
       children: [
         // ── Hero ──
@@ -375,7 +375,7 @@ class _CenterPanelState extends ConsumerState<_CenterPanel> with SingleTickerPro
             controller: _tabCtrl,
             isScrollable: true,
             tabAlignment: TabAlignment.start,
-            indicatorColor: c.gold,
+            indicatorColor: c.goldText,
             indicatorSize: TabBarIndicatorSize.label,
             indicatorWeight: 1.5,
             labelColor: c.stone,
@@ -414,7 +414,7 @@ class _CenterPanelState extends ConsumerState<_CenterPanel> with SingleTickerPro
   }
 
   Widget _tabItem(BuildContext context, String label, String? count) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     return Tab(
       height: 44,
       child: Row(
@@ -439,7 +439,7 @@ class _CenterPanelState extends ConsumerState<_CenterPanel> with SingleTickerPro
   // ─────────────────────────────────────────
 
   Widget _buildHero(BuildContext context) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     return Container(
       color: c.inkDeep,
       child: Stack(
@@ -519,7 +519,7 @@ class _CenterPanelState extends ConsumerState<_CenterPanel> with SingleTickerPro
                     const _SubSep(),
                     Text('${v.memberCount} membres', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w300, color: c.stoneMid)),
                     const _SubSep(),
-                    Text('Groupe privé', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w400, color: c.gold)),
+                    Text('Groupe privé', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w400, color: c.goldText)),
                   ],
                 ),
                 const SizedBox(height: 18),
@@ -542,20 +542,20 @@ class _CenterPanelState extends ConsumerState<_CenterPanel> with SingleTickerPro
   }
 
   List<TextSpan> _buildTitleSpans(BuildContext context, String name) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     // Simulate italic second half like mockup "Ndog*bassi*"
     if (name.length > 4) {
       final mid = (name.length * 0.45).round();
       return [
         TextSpan(text: name.substring(0, mid)),
-        TextSpan(text: name.substring(mid), style: TextStyle(fontStyle: FontStyle.italic, color: c.goldLight)),
+        TextSpan(text: name.substring(mid), style: TextStyle(fontStyle: FontStyle.italic, color: GwTokens.goldLight)),
       ];
     }
     return [TextSpan(text: name)];
   }
 
   Widget _heroButton(BuildContext context, String label, {required bool isPrimary, required VoidCallback onTap}) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -563,18 +563,18 @@ class _CenterPanelState extends ConsumerState<_CenterPanel> with SingleTickerPro
         decoration: BoxDecoration(
           color: Colors.transparent,
           borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: isPrimary ? c.gold : c.lineMid),
+          border: Border.all(color: isPrimary ? c.goldText : c.lineMid),
         ),
-        child: Text(label, style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w400, color: isPrimary ? c.gold : c.stoneMid)),
+        child: Text(label, style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w400, color: isPrimary ? c.goldText : c.stoneMid)),
       ),
     );
   }
 
   Widget _livePill(BuildContext context) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
-      decoration: BoxDecoration(color: c.emberBg, borderRadius: BorderRadius.circular(99), border: Border.all(color: c.emberLine)),
+      decoration: BoxDecoration(color: GwTokens.emberBg, borderRadius: BorderRadius.circular(99), border: Border.all(color: GwTokens.emberLine)),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -597,7 +597,7 @@ class _RightPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     return Container(
       color: c.inkDeep,
       child: Column(
@@ -610,9 +610,9 @@ class _RightPanel extends StatelessWidget {
               children: [
                 Text(village.name.toUpperCase(), style: TextStyle(fontFamily: 'monospace', fontSize: 10, letterSpacing: 1.2, color: c.stoneMid)),
                 const Spacer(),
-                Container(width: 6, height: 6, decoration: BoxDecoration(color: c.sage, shape: BoxShape.circle)),
+                Container(width: 6, height: 6, decoration: BoxDecoration(color: GwTokens.sage, shape: BoxShape.circle)),
                 const SizedBox(width: 6),
-                Text('ACTIF', style: TextStyle(fontFamily: 'monospace', fontSize: 9, letterSpacing: 1, color: c.sage)),
+                Text('ACTIF', style: TextStyle(fontFamily: 'monospace', fontSize: 9, letterSpacing: 1, color: GwTokens.sage)),
               ],
             ),
           ),
@@ -644,7 +644,7 @@ class _RightPanel extends StatelessWidget {
   }
 
   Widget _rightSectionLabel(BuildContext context, String text) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
       child: Text(text.toUpperCase(), style: TextStyle(fontFamily: 'monospace', fontSize: 8.5, letterSpacing: 1.2, color: c.stoneFaint)),
@@ -663,7 +663,7 @@ class _ApercuTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     final membersAsync = ref.watch(villageMembersProvider(village.id));
 
     return ListView(
@@ -678,7 +678,7 @@ class _ApercuTab extends ConsumerWidget {
           badge: 'Temps réel',
           trailing: GestureDetector(
             onTap: () {},
-            child: Text('PLEIN ÉCRAN →', style: TextStyle(fontFamily: 'monospace', fontSize: 9, color: c.goldDim, letterSpacing: 0.6)),
+            child: Text('PLEIN ÉCRAN →', style: TextStyle(fontFamily: 'monospace', fontSize: 9, color: c.goldLine, letterSpacing: 0.6)),
           ),
           child: const _MapPlaceholder(),
         ),
@@ -687,16 +687,16 @@ class _ApercuTab extends ConsumerWidget {
         _Section(
           title: 'Ligne dynastique',
           badge: village.foundedYear != null ? '${village.foundedYear} – aujourd\'hui' : null,
-          trailing: Text('Voir tout →', style: TextStyle(fontFamily: 'monospace', fontSize: 9, color: c.goldDim, letterSpacing: 0.6)),
+          trailing: Text('Voir tout →', style: TextStyle(fontFamily: 'monospace', fontSize: 9, color: c.goldLine, letterSpacing: 0.6)),
           child: const _DynastyTimeline(),
         ),
 
         // Votre lignée
         _Section(
           title: 'Votre lignée dans ce village',
-          trailing: Text('Tous les membres →', style: TextStyle(fontFamily: 'monospace', fontSize: 9, color: c.goldDim, letterSpacing: 0.6)),
+          trailing: Text('Tous les membres →', style: TextStyle(fontFamily: 'monospace', fontSize: 9, color: c.goldLine, letterSpacing: 0.6)),
           child: membersAsync.when(
-            loading: () => SizedBox(height: 80, child: Center(child: CircularProgressIndicator(strokeWidth: 1.5, color: c.gold))),
+            loading: () => SizedBox(height: 80, child: Center(child: CircularProgressIndicator(strokeWidth: 1.5, color: c.goldText))),
             error: (_, __) => Text('Impossible de charger', style: TextStyle(color: c.stoneDim, fontSize: 12)),
             data: (members) => _MembersGrid(members: members.take(4).toList()),
           ),
@@ -737,7 +737,7 @@ class _PlanTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     return ListView(
       padding: EdgeInsets.zero,
       children: [
@@ -748,7 +748,7 @@ class _PlanTab extends StatelessWidget {
             children: [
               Text('PLAN INTERACTIF', style: TextStyle(fontFamily: 'monospace', fontSize: 9, letterSpacing: 1.2, color: c.stoneDim)),
               const SizedBox(width: 10),
-              Text('● Synchronisé', style: TextStyle(fontFamily: 'monospace', fontSize: 9, color: c.sage)),
+              Text('● Synchronisé', style: TextStyle(fontFamily: 'monospace', fontSize: 9, color: GwTokens.sage)),
               const Spacer(),
               const _PlanBtn(label: '+ Concession', isPrimary: false),
               const SizedBox(width: 8),
@@ -769,11 +769,11 @@ class _PlanBtn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(color: isPrimary ? c.goldFaint : c.inkLift, borderRadius: BorderRadius.circular(6), border: Border.all(color: isPrimary ? c.goldLine : c.line)),
-      child: Text(label, style: TextStyle(fontSize: 11, color: isPrimary ? c.gold : c.stoneMid)),
+      decoration: BoxDecoration(color: isPrimary ? c.goldBg : c.inkLift, borderRadius: BorderRadius.circular(6), border: Border.all(color: isPrimary ? c.goldLine : c.line)),
+      child: Text(label, style: TextStyle(fontSize: 11, color: isPrimary ? c.goldText : c.stoneMid)),
     );
   }
 }
@@ -788,7 +788,7 @@ class _ChefsTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     return ListView(
       padding: const EdgeInsets.all(24),
       children: [
@@ -831,11 +831,11 @@ class _MembresTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     final membersAsync = ref.watch(villageMembersProvider(village.id));
 
     return membersAsync.when(
-      loading: () => Center(child: CircularProgressIndicator(strokeWidth: 1.5, color: c.gold)),
+      loading: () => Center(child: CircularProgressIndicator(strokeWidth: 1.5, color: c.goldText)),
       error: (e, _) => Center(child: Text('Impossible de charger', style: TextStyle(color: c.stoneDim, fontSize: 13))),
       data: (members) {
         if (members.isEmpty) return Center(child: Text('Aucun membre', style: TextStyle(color: c.stoneDim, fontSize: 13)));
@@ -881,17 +881,17 @@ class _PublicationsTabState extends ConsumerState<_PublicationsTab> {
       await ref.read(villageFeedNotifierProvider(widget.village.id).notifier).createPost(text);
       _composeCtrl.clear();
       if (mounted) {
-        final c = GwColors.of(context);
+        final c = GwTokens.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: const Text('Publication envoyée'), backgroundColor: c.sage,
+          SnackBar(content: const Text('Publication envoyée'), backgroundColor: GwTokens.sage,
               behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
         );
       }
     } catch (_) {
       if (mounted) {
-        final c = GwColors.of(context);
+        final c = GwTokens.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: const Text('Erreur'), backgroundColor: c.ember,
+          SnackBar(content: const Text('Erreur'), backgroundColor: GwTokens.ember,
               behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
         );
       }
@@ -902,7 +902,7 @@ class _PublicationsTabState extends ConsumerState<_PublicationsTab> {
 
   @override
   Widget build(BuildContext context) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     final feedAsync = ref.watch(villageFeedNotifierProvider(widget.village.id));
 
     return Column(
@@ -931,10 +931,10 @@ class _PublicationsTabState extends ConsumerState<_PublicationsTab> {
                 onTap: () => _showComposeSheet(context),
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-                  decoration: BoxDecoration(color: c.goldFaint, borderRadius: BorderRadius.circular(6), border: Border.all(color: c.goldLine)),
+                  decoration: BoxDecoration(color: c.goldBg, borderRadius: BorderRadius.circular(6), border: Border.all(color: c.goldLine)),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
-                    children: [Icon(Icons.add, size: 13, color: c.gold), const SizedBox(width: 5), Text('Publier', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: c.gold))],
+                    children: [Icon(Icons.add, size: 13, color: c.goldText), const SizedBox(width: 5), Text('Publier', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: c.goldText))],
                   ),
                 ),
               ),
@@ -945,17 +945,17 @@ class _PublicationsTabState extends ConsumerState<_PublicationsTab> {
         // Feed
         Expanded(
           child: feedAsync.when(
-            loading: () => Center(child: CircularProgressIndicator(strokeWidth: 1.5, color: c.gold)),
+            loading: () => Center(child: CircularProgressIndicator(strokeWidth: 1.5, color: c.goldText)),
             error: (_, __) => Center(
               child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                 Icon(Icons.wifi_off, size: 36, color: c.stoneFaint),
                 const SizedBox(height: 8),
                 Text('Erreur de chargement', style: TextStyle(color: c.stoneDim, fontSize: 12)),
-                TextButton(onPressed: () => ref.read(villageFeedNotifierProvider(widget.village.id).notifier).refresh(), child: Text('Réessayer', style: TextStyle(color: c.gold))),
+                TextButton(onPressed: () => ref.read(villageFeedNotifierProvider(widget.village.id).notifier).refresh(), child: Text('Réessayer', style: TextStyle(color: c.goldText))),
               ]),
             ),
             data: (posts) => RefreshIndicator(
-              color: c.gold, backgroundColor: c.inkRaise,
+              color: c.goldText, backgroundColor: c.inkHigh,
               onRefresh: () => ref.read(villageFeedNotifierProvider(widget.village.id).notifier).refresh(),
               child: ListView(
                 padding: EdgeInsets.zero,
@@ -982,12 +982,12 @@ class _PublicationsTabState extends ConsumerState<_PublicationsTab> {
   }
 
   void _showComposeSheet(BuildContext context) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     showModalBottomSheet(
       context: context, backgroundColor: c.ink,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
       builder: (sheetContext) {
-        final sc = GwColors.of(sheetContext);
+        final sc = GwTokens.of(sheetContext);
         return Padding(
           padding: EdgeInsets.fromLTRB(20, 20, 20, MediaQuery.of(context).viewInsets.bottom + 20),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -1004,7 +1004,7 @@ class _PublicationsTabState extends ConsumerState<_PublicationsTab> {
                 onTap: _posting ? null : () { _submitPost(); Navigator.pop(context); },
                 child: Container(
                   padding: const EdgeInsets.symmetric(vertical: 12),
-                  decoration: BoxDecoration(color: sc.gold, borderRadius: BorderRadius.circular(6)),
+                  decoration: BoxDecoration(color: sc.goldText, borderRadius: BorderRadius.circular(6)),
                   child: Center(
                     child: _posting
                       ? SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: sc.inkDeep))
@@ -1038,10 +1038,10 @@ class _ChatTabState extends ConsumerState<_ChatTab> {
 
   @override
   Widget build(BuildContext context) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     final groupsAsync = ref.watch(chatGroupsProvider(widget.village.id));
     return groupsAsync.when(
-      loading: () => Center(child: CircularProgressIndicator(color: c.gold)),
+      loading: () => Center(child: CircularProgressIndicator(color: c.goldText)),
       error: (e, _) => Center(
         child: Text('Erreur de chargement du chat', style: TextStyle(color: c.stoneDim)),
       ),
@@ -1085,7 +1085,7 @@ class _ChatTabState extends ConsumerState<_ChatTab> {
     );
   }
 
-  Widget _noGroupSelected(BuildContext context, GwColors c, List<ChatGroupModel> groups) {
+  Widget _noGroupSelected(BuildContext context, GwTokens c, List<ChatGroupModel> groups) {
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -1118,7 +1118,7 @@ class _GroupList extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     final cs = Theme.of(context).colorScheme;
 
     return Column(
@@ -1129,7 +1129,7 @@ class _GroupList extends ConsumerWidget {
           decoration: BoxDecoration(border: Border(bottom: BorderSide(color: c.line))),
           child: Row(
             children: [
-              Icon(Icons.forum_outlined, color: c.gold, size: 16),
+              Icon(Icons.forum_outlined, color: c.goldText, size: 16),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -1139,7 +1139,7 @@ class _GroupList extends ConsumerWidget {
                 ),
               ),
               IconButton(
-                icon: Icon(Icons.add, size: 18, color: c.goldDim),
+                icon: Icon(Icons.add, size: 18, color: c.goldLine),
                 tooltip: 'Créer un groupe',
                 onPressed: () => _showCreateDialog(context, ref),
               ),
@@ -1159,7 +1159,7 @@ class _GroupList extends ConsumerWidget {
                     return GestureDetector(
                       onTap: () => onSelect(g),
                       child: Container(
-                        color: isSelected ? c.goldFaint : Colors.transparent,
+                        color: isSelected ? c.goldBg : Colors.transparent,
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                         child: Row(
                           children: [
@@ -1167,7 +1167,7 @@ class _GroupList extends ConsumerWidget {
                               width: 36,
                               height: 36,
                               decoration: BoxDecoration(
-                                color: (isCommission ? cs.tertiary : c.gold).withAlpha(20),
+                                color: (isCommission ? cs.tertiary : c.goldText).withAlpha(20),
                                 borderRadius: BorderRadius.circular(10),
                                 border: isSelected ? Border.all(color: c.goldLine) : null,
                               ),
@@ -1175,7 +1175,7 @@ class _GroupList extends ConsumerWidget {
                               child: Icon(
                                 isCommission ? Icons.groups_outlined : Icons.chat_bubble_outline,
                                 size: 18,
-                                color: isSelected ? c.gold : (isCommission ? cs.tertiary : c.stoneDim),
+                                color: isSelected ? c.goldText : (isCommission ? cs.tertiary : c.stoneDim),
                               ),
                             ),
                             const SizedBox(width: 10),
@@ -1188,7 +1188,7 @@ class _GroupList extends ConsumerWidget {
                                     style: TextStyle(
                                       fontSize: 13,
                                       fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                                      color: isSelected ? c.gold : c.stone,
+                                      color: isSelected ? c.goldText : c.stone,
                                     ),
                                     overflow: TextOverflow.ellipsis,
                                   ),
@@ -1200,7 +1200,7 @@ class _GroupList extends ConsumerWidget {
                               ),
                             ),
                             if (isSelected)
-                              Icon(Icons.chevron_right, size: 16, color: c.goldDim),
+                              Icon(Icons.chevron_right, size: 16, color: c.goldLine),
                           ],
                         ),
                       ),
@@ -1212,7 +1212,7 @@ class _GroupList extends ConsumerWidget {
     );
   }
 
-  Widget _emptyGroups(BuildContext context, WidgetRef ref, GwColors c) {
+  Widget _emptyGroups(BuildContext context, WidgetRef ref, GwTokens c) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -1228,11 +1228,11 @@ class _GroupList extends ConsumerWidget {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 decoration: BoxDecoration(
-                  color: c.goldFaint,
+                  color: c.goldBg,
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: c.goldLine),
                 ),
-                child: Text('+ Créer un groupe', style: TextStyle(fontSize: 12, color: c.gold)),
+                child: Text('+ Créer un groupe', style: TextStyle(fontSize: 12, color: c.goldText)),
               ),
             ),
           ],
@@ -1371,7 +1371,7 @@ class _InlineMessagesState extends ConsumerState<_InlineMessages> {
 
   @override
   Widget build(BuildContext context) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     final messagesAsync = ref.watch(chatMessagesNotifierProvider(widget.group.id));
     final currentUserId = ref.watch(profileNotifierProvider).valueOrNull?.id;
 
@@ -1384,7 +1384,7 @@ class _InlineMessagesState extends ConsumerState<_InlineMessages> {
             height: 44,
             padding: const EdgeInsets.symmetric(horizontal: 12),
             decoration: BoxDecoration(
-              color: c.inkRaise,
+              color: c.inkHigh,
               border: Border(bottom: BorderSide(color: c.line, width: 0.5)),
             ),
             child: Row(
@@ -1393,15 +1393,15 @@ class _InlineMessagesState extends ConsumerState<_InlineMessages> {
                   Container(
                     width: 28,
                     height: 28,
-                    decoration: BoxDecoration(color: c.goldFaint, shape: BoxShape.circle),
+                    decoration: BoxDecoration(color: c.goldBg, shape: BoxShape.circle),
                     alignment: Alignment.center,
                     child: Text(
                       widget.group.name.isNotEmpty ? widget.group.name[0].toUpperCase() : '?',
-                      style: TextStyle(color: c.gold, fontSize: 12, fontWeight: FontWeight.w700),
+                      style: TextStyle(color: c.goldText, fontSize: 12, fontWeight: FontWeight.w700),
                     ),
                   )
                 else
-                  Icon(Icons.groups_outlined, size: 18, color: c.gold),
+                  Icon(Icons.groups_outlined, size: 18, color: c.goldText),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -1432,7 +1432,7 @@ class _InlineMessagesState extends ConsumerState<_InlineMessages> {
           // ── Messages ──
           Expanded(
             child: messagesAsync.when(
-              loading: () => Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: c.gold, strokeWidth: 2))),
+              loading: () => Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: c.goldText, strokeWidth: 2))),
               error: (e, _) => Center(child: Text('Erreur', style: TextStyle(color: c.stoneDim, fontSize: 12))),
               data: (messages) => messages.isEmpty
                   ? Center(
@@ -1457,7 +1457,7 @@ class _InlineMessagesState extends ConsumerState<_InlineMessages> {
           Container(
             padding: EdgeInsets.fromLTRB(8, 6, 8, MediaQuery.of(context).viewInsets.bottom + 6),
             decoration: BoxDecoration(
-              color: c.inkRaise,
+              color: c.inkHigh,
               border: Border(top: BorderSide(color: c.line, width: 0.5)),
             ),
             child: Row(
@@ -1493,7 +1493,7 @@ class _InlineMessagesState extends ConsumerState<_InlineMessages> {
                     width: 34,
                     height: 34,
                     decoration: BoxDecoration(
-                      color: _sending ? c.goldDim : c.gold,
+                      color: _sending ? c.goldLine : c.goldText,
                       shape: BoxShape.circle,
                     ),
                     alignment: Alignment.center,
@@ -1520,7 +1520,7 @@ class _InlineBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
 
     // Message système centré
     if (message.type == 'SYSTEM') {
@@ -1550,11 +1550,11 @@ class _InlineBubble extends StatelessWidget {
             Container(
               width: 24,
               height: 24,
-              decoration: BoxDecoration(color: c.goldFaint, shape: BoxShape.circle),
+              decoration: BoxDecoration(color: c.goldBg, shape: BoxShape.circle),
               alignment: Alignment.center,
               child: Text(
                 (message.senderName?.isNotEmpty == true) ? message.senderName![0].toUpperCase() : '?',
-                style: TextStyle(color: c.gold, fontSize: 10, fontWeight: FontWeight.w700),
+                style: TextStyle(color: c.goldText, fontSize: 10, fontWeight: FontWeight.w700),
               ),
             ),
             const SizedBox(width: 4),
@@ -1578,7 +1578,7 @@ class _InlineBubble extends StatelessWidget {
                   constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.65),
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
                   decoration: BoxDecoration(
-                    color: isMe ? c.gold : c.inkRaise,
+                    color: isMe ? c.goldText : c.inkHigh,
                     borderRadius: BorderRadius.only(
                       topLeft: const Radius.circular(16),
                       topRight: const Radius.circular(16),
@@ -1623,7 +1623,7 @@ class _StatsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     return Container(
       decoration: BoxDecoration(border: Border(bottom: BorderSide(color: c.line))),
       child: Row(
@@ -1638,7 +1638,7 @@ class _StatsRow extends StatelessWidget {
   }
 
   Widget _stat(BuildContext context, String value, String label, {bool isGold = false}) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     return Expanded(
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 12),
@@ -1651,7 +1651,7 @@ class _StatsRow extends StatelessWidget {
               duration: const Duration(milliseconds: 800),
               curve: Curves.easeOutCubic,
               builder: (_, val, child) => Opacity(opacity: val, child: child),
-              child: Text(value, style: TextStyle(fontSize: 28, fontWeight: FontWeight.w300, letterSpacing: -0.8, height: 1, color: isGold ? c.goldLight : c.stone)),
+              child: Text(value, style: TextStyle(fontSize: 28, fontWeight: FontWeight.w300, letterSpacing: -0.8, height: 1, color: isGold ? GwTokens.goldLight : c.stone)),
             ),
             const SizedBox(height: 4),
             Text(label, style: TextStyle(fontFamily: 'monospace', fontSize: 8, letterSpacing: 1.0, color: c.stoneFaint)),
@@ -1674,7 +1674,7 @@ class _Section extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     return Container(
       decoration: BoxDecoration(border: Border(bottom: BorderSide(color: c.line))),
       child: Column(
@@ -1718,7 +1718,7 @@ class _MapPlaceholder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     return Container(
       height: fullScreen ? double.infinity : 300,
       constraints: fullScreen ? null : const BoxConstraints(maxHeight: 300),
@@ -1735,15 +1735,15 @@ class _MapPlaceholder extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _LegendRow(color: c.gold, label: 'Concession familiale', isGem: true),
+                  _LegendRow(color: c.goldText, label: 'Concession familiale', isGem: true),
                   const SizedBox(height: 6),
-                  _LegendRow(color: c.goldLight, label: 'Votre lignée', isGem: true),
+                  _LegendRow(color: GwTokens.goldLight, label: 'Votre lignée', isGem: true),
                   const SizedBox(height: 6),
-                  _LegendRow(color: c.ember, label: 'Palais du chef'),
+                  _LegendRow(color: GwTokens.ember, label: 'Palais du chef'),
                   const SizedBox(height: 6),
-                  _LegendRow(color: c.sage, label: 'Zone sacrée'),
+                  _LegendRow(color: GwTokens.sage, label: 'Zone sacrée'),
                   const SizedBox(height: 6),
-                  _LegendRow(color: c.azure, label: 'Place publique'),
+                  _LegendRow(color: GwTokens.azure, label: 'Place publique'),
                 ],
               ),
             ),
@@ -1767,7 +1767,7 @@ class _LegendRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -1787,7 +1787,7 @@ class _MapCtrlBtn extends StatelessWidget {
   final String label;
   @override
   Widget build(BuildContext context) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     return Container(
       width: 32, height: 32,
       decoration: BoxDecoration(color: c.inkDeep.withValues(alpha: 0.87), borderRadius: BorderRadius.circular(6), border: Border.all(color: c.lineMid)),
@@ -1814,7 +1814,7 @@ class _DynastyTimeline extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     return SizedBox(
       height: extended ? 140 : 120,
       child: ListView.separated(
@@ -1842,15 +1842,15 @@ class _ChiefNode extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     final isCurrent = chief.type == _ChiefType.current;
     final isAncestor = chief.type == _ChiefType.ancestor;
     final size = isCurrent ? 54.0 : 44.0;
 
     Color bgColor, borderColor, textColor;
-    if (isCurrent) { bgColor = c.gold.withValues(alpha: 0.15); borderColor = c.gold; textColor = c.goldLight; }
-    else if (isAncestor) { bgColor = c.gold.withValues(alpha: 0.08); borderColor = c.goldDim; textColor = c.gold; }
-    else { bgColor = c.inkRaise; borderColor = c.stoneFaint; textColor = c.stoneDim; }
+    if (isCurrent) { bgColor = c.goldText.withValues(alpha: 0.15); borderColor = c.goldText; textColor = GwTokens.goldLight; }
+    else if (isAncestor) { bgColor = c.goldText.withValues(alpha: 0.08); borderColor = c.goldLine; textColor = c.goldText; }
+    else { bgColor = c.inkHigh; borderColor = c.stoneFaint; textColor = c.stoneDim; }
 
     return SizedBox(
       width: 80,
@@ -1865,7 +1865,7 @@ class _ChiefNode extends StatelessWidget {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle, color: bgColor,
                   border: Border.all(color: borderColor, width: isCurrent ? 1.5 : 1),
-                  boxShadow: isCurrent ? [BoxShadow(color: c.gold.withAlpha(30), blurRadius: 16)] : null,
+                  boxShadow: isCurrent ? [BoxShadow(color: c.goldText.withAlpha(30), blurRadius: 16)] : null,
                 ),
                 child: Center(child: Text(chief.initials, style: TextStyle(fontSize: isCurrent ? 17 : 14, fontWeight: FontWeight.w400, color: textColor))),
               ),
@@ -1874,7 +1874,7 @@ class _ChiefNode extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 6),
-          Text(chief.name, style: TextStyle(fontSize: 11, fontWeight: isCurrent ? FontWeight.w500 : FontWeight.w400, color: isCurrent ? c.goldLight : c.stoneDim),
+          Text(chief.name, style: TextStyle(fontSize: 11, fontWeight: isCurrent ? FontWeight.w500 : FontWeight.w400, color: isCurrent ? GwTokens.goldLight : c.stoneDim),
             textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis),
           Text(chief.years, style: TextStyle(fontFamily: 'monospace', fontSize: 9, color: c.stoneFaint), textAlign: TextAlign.center),
         ],
@@ -1894,10 +1894,10 @@ class _MembersGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = GwColors.of(context);
-    final cellColors = [c.azureBg, c.sageBg, c.emberBg, c.goldFaint];
-    final cellBorders = [c.azureLine, c.sageLine, c.emberLine, c.goldLine];
-    final cellTexts = [c.azureLight, c.sageLight, c.emberLight, c.gold];
+    final c = GwTokens.of(context);
+    final cellColors = [GwTokens.azureBg, GwTokens.sageBg, GwTokens.emberBg, c.goldBg];
+    final cellBorders = [GwTokens.azureLine, GwTokens.sageLine, GwTokens.emberLine, c.goldLine];
+    final cellTexts = [c.azureText, c.sageText, c.emberText, c.goldText];
 
     return GridView.builder(
       shrinkWrap: true,
@@ -1946,9 +1946,9 @@ class _MemberCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = GwColors.of(context);
-    final colors = [c.azureBg, c.sageBg, c.goldFaint, c.emberBg];
-    final textColors = [c.azureLight, c.sageLight, c.gold, c.emberLight];
+    final c = GwTokens.of(context);
+    final colors = [GwTokens.azureBg, GwTokens.sageBg, c.goldBg, GwTokens.emberBg];
+    final textColors = [c.azureText, c.sageText, c.goldText, c.emberText];
     final ci = index % colors.length;
     final roleLabel = switch (member.type) { 'AMBASSADOR' => 'Ambassadeur', 'MEMBER' => 'Membre', _ => 'Abonné' };
 
@@ -1981,7 +1981,7 @@ class _ChefCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
       child: Container(
@@ -2004,7 +2004,7 @@ class _ChefCard extends StatelessWidget {
                       width: 54, height: 54,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        gradient: LinearGradient(colors: [c.goldDim, c.gold]),
+                        gradient: LinearGradient(colors: [c.goldLine, c.goldText]),
                         border: Border.all(color: c.goldLine, width: 1.5),
                       ),
                       child: Center(child: Text('ND', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w400, color: c.inkDeep))),
@@ -2019,7 +2019,7 @@ class _ChefCard extends StatelessWidget {
                     children: [
                       Text('Ndoumbe Bassa II', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w400, color: c.stone)),
                       const SizedBox(height: 2),
-                      Text('Chef de village', style: TextStyle(fontSize: 12, color: c.gold, fontWeight: FontWeight.w300)),
+                      Text('Chef de village', style: TextStyle(fontSize: 12, color: c.goldText, fontWeight: FontWeight.w300)),
                       const SizedBox(height: 2),
                       Text('En fonction depuis 2008', style: TextStyle(fontFamily: 'monospace', fontSize: 9, color: c.stoneFaint)),
                     ],
@@ -2030,9 +2030,9 @@ class _ChefCard extends StatelessWidget {
             const SizedBox(height: 12),
             // Online status
             Row(children: [
-              Container(width: 6, height: 6, decoration: BoxDecoration(color: c.sage, shape: BoxShape.circle)),
+              Container(width: 6, height: 6, decoration: BoxDecoration(color: GwTokens.sage, shape: BoxShape.circle)),
               const SizedBox(width: 6),
-              Text('En ligne maintenant', style: TextStyle(fontFamily: 'monospace', fontSize: 9, color: c.sage)),
+              Text('En ligne maintenant', style: TextStyle(fontFamily: 'monospace', fontSize: 9, color: GwTokens.sage)),
             ]),
             const SizedBox(height: 14),
             // Buttons
@@ -2041,7 +2041,7 @@ class _ChefCard extends StatelessWidget {
                 Expanded(
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 10),
-                    decoration: BoxDecoration(color: c.inkRaise, borderRadius: BorderRadius.circular(6), border: Border.all(color: c.lineMid)),
+                    decoration: BoxDecoration(color: c.inkHigh, borderRadius: BorderRadius.circular(6), border: Border.all(color: c.lineMid)),
                     child: Center(child: Text('Message', style: TextStyle(fontSize: 12, color: c.stoneMid))),
                   ),
                 ),
@@ -2049,8 +2049,8 @@ class _ChefCard extends StatelessWidget {
                 Expanded(
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 10),
-                    decoration: BoxDecoration(color: c.goldFaint, borderRadius: BorderRadius.circular(6), border: Border.all(color: c.goldLine)),
-                    child: Center(child: Text('Demander\naccès', textAlign: TextAlign.center, style: TextStyle(fontSize: 11, color: c.gold, height: 1.3))),
+                    decoration: BoxDecoration(color: c.goldBg, borderRadius: BorderRadius.circular(6), border: Border.all(color: c.goldLine)),
+                    child: Center(child: Text('Demander\naccès', textAlign: TextAlign.center, style: TextStyle(fontSize: 11, color: c.goldText, height: 1.3))),
                   ),
                 ),
               ],
@@ -2069,31 +2069,31 @@ class _FiliationTree extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
       child: Column(
         children: [
-          _filNode(context, 'SM', 'Stéphane Mbopda', 'Vous', 'Fondateur', c.goldFaint, c.goldLine, c.gold, isMine: true),
+          _filNode(context, 'SM', 'Stéphane Mbopda', 'Vous', 'Fondateur', c.goldBg, c.goldLine, c.goldText, isMine: true),
           _indentWrap(context, [
-            _filNode(context, 'EM', 'Emmanuel Mbopda', 'Père', 'Résident', c.azureBg, c.azureLine, c.azureLight, isMine: true),
+            _filNode(context, 'EM', 'Emmanuel Mbopda', 'Père', 'Résident', GwTokens.azureBg, GwTokens.azureLine, c.azureText, isMine: true),
             const SizedBox(height: 6),
             Opacity(
               opacity: 0.6,
-              child: _filNode(context, 'MN', 'Marie Njock', 'Mère', '🔒', c.emberBg, c.emberLine, c.emberLight),
+              child: _filNode(context, 'MN', 'Marie Njock', 'Mère', '🔒', GwTokens.emberBg, GwTokens.emberLine, c.emberText),
             ),
             const SizedBox(height: 6),
             _indentWrap(context, [
-              _filNode(context, 'DM', 'Daniel Mbopda', 'Gd-père', 'Fondateur', c.sageBg, c.sageLine, c.sageLight, isMine: true),
+              _filNode(context, 'DM', 'Daniel Mbopda', 'Gd-père', 'Fondateur', GwTokens.sageBg, GwTokens.sageLine, c.sageText, isMine: true),
             ]),
           ]),
           const SizedBox(height: 10),
           Container(
             padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: c.sageBg, borderRadius: BorderRadius.circular(6), border: Border.all(color: c.sageLine)),
+            decoration: BoxDecoration(color: GwTokens.sageBg, borderRadius: BorderRadius.circular(6), border: Border.all(color: GwTokens.sageLine)),
             child: Row(children: [
-              Icon(Icons.check_circle_outline, size: 14, color: c.sage), const SizedBox(width: 8),
-              Text('3 liens confirmés · accès validé', style: TextStyle(fontSize: 11.5, color: c.sage, fontWeight: FontWeight.w300)),
+              Icon(Icons.check_circle_outline, size: 14, color: GwTokens.sage), const SizedBox(width: 8),
+              Text('3 liens confirmés · accès validé', style: TextStyle(fontSize: 11.5, color: GwTokens.sage, fontWeight: FontWeight.w300)),
             ]),
           ),
         ],
@@ -2102,7 +2102,7 @@ class _FiliationTree extends StatelessWidget {
   }
 
   Widget _filNode(BuildContext context, String initials, String name, String rel, String tag, Color bg, Color border, Color text, {bool isMine = false}) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
       decoration: BoxDecoration(
@@ -2128,7 +2128,7 @@ class _FiliationTree extends StatelessWidget {
   }
 
   Widget _indentWrap(BuildContext context, List<Widget> children) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     return Padding(
       padding: const EdgeInsets.only(left: 18, top: 6),
       child: Container(
@@ -2148,13 +2148,13 @@ class _OnlineMembers extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     final membersAsync = ref.watch(villageMembersProvider(village.id));
 
     return membersAsync.when(
       loading: () => Padding(
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-        child: Center(child: CircularProgressIndicator(strokeWidth: 1.5, color: c.gold)),
+        child: Center(child: CircularProgressIndicator(strokeWidth: 1.5, color: c.goldText)),
       ),
       error: (_, __) => const SizedBox.shrink(),
       data: (members) {
@@ -2189,11 +2189,11 @@ class _OnlineMembers extends ConsumerWidget {
                           children: [
                             CircleAvatar(
                               radius: 18,
-                              backgroundColor: Color.alphaBlend(c.sage.withAlpha(40), c.inkLift),
+                              backgroundColor: Color.alphaBlend(GwTokens.sage.withAlpha(40), c.inkLift),
                               backgroundImage: member.avatarUrl != null && member.avatarUrl!.isNotEmpty
                                   ? NetworkImage(member.avatarUrl!) : null,
                               child: member.avatarUrl == null || member.avatarUrl!.isEmpty
-                                  ? Text(initials, style: TextStyle(fontSize: 11, color: c.sageLight))
+                                  ? Text(initials, style: TextStyle(fontSize: 11, color: c.sageText))
                                   : null,
                             ),
                             // Point vert "en ligne"
@@ -2202,7 +2202,7 @@ class _OnlineMembers extends ConsumerWidget {
                               child: Container(
                                 width: 8, height: 8,
                                 decoration: BoxDecoration(
-                                  color: c.sage,
+                                  color: GwTokens.sage,
                                   shape: BoxShape.circle,
                                   border: Border.all(color: c.inkDeep, width: 1.5),
                                 ),
@@ -2224,7 +2224,7 @@ class _OnlineMembers extends ConsumerWidget {
                           ),
                         ),
                         // Icône message indiquant que c'est cliquable
-                        Icon(Icons.chat_bubble_outline, size: 14, color: c.goldDim),
+                        Icon(Icons.chat_bubble_outline, size: 14, color: c.goldLine),
                       ],
                     ),
                   ),
@@ -2238,7 +2238,7 @@ class _OnlineMembers extends ConsumerWidget {
   }
 
   Future<void> _openDirectChat(BuildContext context, WidgetRef ref, VillageMemberModel member) async {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     final name = member.displayName ?? 'Membre';
 
     // Indicateur de chargement
@@ -2250,7 +2250,7 @@ class _OnlineMembers extends ConsumerWidget {
           Text('Ouverture de la discussion avec $name…'),
         ]),
         duration: const Duration(seconds: 3),
-        backgroundColor: c.inkRaise,
+        backgroundColor: c.inkHigh,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
@@ -2281,7 +2281,7 @@ class _OnlineMembers extends ConsumerWidget {
               children: [
                 // Handle de drag
                 Container(
-                  color: c.inkRaise,
+                  color: c.inkHigh,
                   padding: const EdgeInsets.symmetric(vertical: 8),
                   child: Center(
                     child: Container(
@@ -2311,7 +2311,7 @@ class _OnlineMembers extends ConsumerWidget {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text('Impossible d\'ouvrir la discussion'),
-          backgroundColor: c.ember,
+          backgroundColor: GwTokens.ember,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
@@ -2340,14 +2340,14 @@ class _ActivityLog extends StatelessWidget {
   }
 
   Widget _logRow(BuildContext context, String actor, String action, String time, {bool isGold = false}) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 9),
       decoration: BoxDecoration(border: Border(bottom: BorderSide(color: c.line))),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(width: 6, height: 6, margin: const EdgeInsets.only(top: 4), decoration: BoxDecoration(color: isGold ? c.goldDim : c.stoneFaint, shape: BoxShape.circle)),
+          Container(width: 6, height: 6, margin: const EdgeInsets.only(top: 4), decoration: BoxDecoration(color: isGold ? c.goldLine : c.stoneFaint, shape: BoxShape.circle)),
           const SizedBox(width: 10),
           Expanded(
             child: RichText(text: TextSpan(style: TextStyle(fontSize: 11.5, height: 1.6, color: c.stoneDim, fontWeight: FontWeight.w300), children: [
@@ -2370,13 +2370,13 @@ class _LiveBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     return Container(
       margin: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
         gradient: const LinearGradient(colors: [Color(0xFF2A1510), Color(0xFF1A0A08)]),
-        border: Border.all(color: c.emberLine),
+        border: Border.all(color: GwTokens.emberLine),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -2388,7 +2388,7 @@ class _LiveBanner extends StatelessWidget {
                 children: [
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(color: c.emberBg, borderRadius: BorderRadius.circular(99), border: Border.all(color: c.emberLine)),
+                    decoration: BoxDecoration(color: GwTokens.emberBg, borderRadius: BorderRadius.circular(99), border: Border.all(color: GwTokens.emberLine)),
                     child: Row(mainAxisSize: MainAxisSize.min, children: [
                       Container(width: 5, height: 5, decoration: const BoxDecoration(color: Color(0xFFE87858), shape: BoxShape.circle)),
                       const SizedBox(width: 5),
@@ -2408,7 +2408,7 @@ class _LiveBanner extends StatelessWidget {
               onTap: () {},
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-                decoration: BoxDecoration(color: c.ember, borderRadius: BorderRadius.circular(6)),
+                decoration: BoxDecoration(color: GwTokens.ember, borderRadius: BorderRadius.circular(6)),
                 child: const Text('Rejoindre', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Colors.white)),
               ),
             ),
@@ -2428,7 +2428,7 @@ class _PostCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     return Container(
       margin: const EdgeInsets.fromLTRB(12, 8, 12, 0),
       decoration: BoxDecoration(color: c.ink, borderRadius: BorderRadius.circular(10), border: Border.all(color: c.line)),
@@ -2441,9 +2441,9 @@ class _PostCard extends ConsumerWidget {
             child: Row(
               children: [
                 CircleAvatar(
-                  radius: 16, backgroundColor: c.goldFaint,
+                  radius: 16, backgroundColor: c.goldBg,
                   backgroundImage: post.authorAvatarUrl != null ? NetworkImage(post.authorAvatarUrl!) : null,
-                  child: post.authorAvatarUrl == null ? Text((post.authorDisplayName ?? '?')[0].toUpperCase(), style: TextStyle(color: c.gold, fontSize: 12)) : null,
+                  child: post.authorAvatarUrl == null ? Text((post.authorDisplayName ?? '?')[0].toUpperCase(), style: TextStyle(color: c.goldText, fontSize: 12)) : null,
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -2456,8 +2456,8 @@ class _PostCard extends ConsumerWidget {
                           const SizedBox(width: 6),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                            decoration: BoxDecoration(color: c.goldFaint, borderRadius: BorderRadius.circular(3)),
-                            child: Text(post.authorRole!.toUpperCase(), style: TextStyle(fontFamily: 'monospace', fontSize: 7.5, fontWeight: FontWeight.w500, color: c.goldDim)),
+                            decoration: BoxDecoration(color: c.goldBg, borderRadius: BorderRadius.circular(3)),
+                            child: Text(post.authorRole!.toUpperCase(), style: TextStyle(fontFamily: 'monospace', fontSize: 7.5, fontWeight: FontWeight.w500, color: c.goldLine)),
                           ),
                         ],
                       ]),
@@ -2495,7 +2495,7 @@ class _PostCard extends ConsumerWidget {
   }
 
   Widget _actBtn(BuildContext context, IconData icon, String label, VoidCallback onTap) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     return Expanded(
       child: InkWell(
         onTap: onTap,
@@ -2531,16 +2531,16 @@ class _FilterBtn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     return Padding(
       padding: const EdgeInsets.only(right: 4),
       child: GestureDetector(
         onTap: onTap,
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
-          decoration: BoxDecoration(color: active ? c.inkRaise : Colors.transparent, borderRadius: BorderRadius.circular(99), border: Border.all(color: active ? c.lineMid : Colors.transparent)),
+          decoration: BoxDecoration(color: active ? c.inkHigh : Colors.transparent, borderRadius: BorderRadius.circular(99), border: Border.all(color: active ? c.lineMid : Colors.transparent)),
           child: Row(mainAxisSize: MainAxisSize.min, children: [
-            if (hasLiveDot) ...[Container(width: 6, height: 6, decoration: BoxDecoration(color: c.ember, shape: BoxShape.circle)), const SizedBox(width: 6)],
+            if (hasLiveDot) ...[Container(width: 6, height: 6, decoration: BoxDecoration(color: GwTokens.ember, shape: BoxShape.circle)), const SizedBox(width: 6)],
             Text(label, style: TextStyle(fontSize: 12, color: active ? c.stone : c.stoneDim)),
           ]),
         ),
@@ -2554,7 +2554,7 @@ class _FilterBtn extends StatelessWidget {
 class _SubSep extends StatelessWidget {
   const _SubSep();
   @override
-  Widget build(BuildContext context) => Padding(padding: const EdgeInsets.symmetric(horizontal: 8), child: Text('·', style: TextStyle(color: GwColors.of(context).stoneFaint)));
+  Widget build(BuildContext context) => Padding(padding: const EdgeInsets.symmetric(horizontal: 8), child: Text('·', style: TextStyle(color: GwTokens.of(context).stoneFaint)));
 }
 
 // ═══════════════════════════════════════════════════════
@@ -2562,14 +2562,14 @@ class _SubSep extends StatelessWidget {
 // ═══════════════════════════════════════════════════════
 
 class _HeroPatternPainter extends CustomPainter {
-  static const _d = GwColors.dark;
+  static const _d = GwTokens.dark;
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = _d.gold.withAlpha(12)..strokeWidth = 1..style = PaintingStyle.stroke;
+    final paint = Paint()..color = _d.goldText.withAlpha(12)..strokeWidth = 1..style = PaintingStyle.stroke;
     for (double i = -size.height; i < size.width + size.height; i += 32) {
       canvas.drawLine(Offset(i, 0), Offset(i + size.height, size.height), paint);
     }
-    final circlePaint = Paint()..color = _d.gold.withAlpha(8)..style = PaintingStyle.stroke..strokeWidth = 0.5;
+    final circlePaint = Paint()..color = _d.goldText.withAlpha(8)..style = PaintingStyle.stroke..strokeWidth = 0.5;
     canvas.drawCircle(Offset(size.width * 0.7, size.height * 0.4), 120, circlePaint);
     canvas.drawCircle(Offset(size.width * 0.3, size.height * 0.6), 80, circlePaint);
   }
@@ -2579,17 +2579,17 @@ class _HeroPatternPainter extends CustomPainter {
 }
 
 class _MapPatternPainter extends CustomPainter {
-  static const _d = GwColors.dark;
+  static const _d = GwTokens.dark;
   @override
   void paint(Canvas canvas, Size size) {
-    final gridPaint = Paint()..color = _d.gold.withAlpha(8)..strokeWidth = 0.5;
+    final gridPaint = Paint()..color = _d.goldText.withAlpha(8)..strokeWidth = 0.5;
     for (double x = 0; x < size.width; x += 40) { canvas.drawLine(Offset(x, 0), Offset(x, size.height), gridPaint); }
     for (double y = 0; y < size.height; y += 40) { canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint); }
 
     final dotPaint = Paint()..style = PaintingStyle.fill;
     final concessions = [
-      [0.25, 0.3, _d.gold], [0.45, 0.45, _d.goldLight], [0.65, 0.35, _d.gold],
-      [0.3, 0.65, _d.sage], [0.5, 0.55, _d.azure], [0.75, 0.6, _d.gold], [0.4, 0.75, _d.ember],
+      [0.25, 0.3, _d.goldText], [0.45, 0.45, GwTokens.goldLight], [0.65, 0.35, _d.goldText],
+      [0.3, 0.65, GwTokens.sage], [0.5, 0.55, GwTokens.azure], [0.75, 0.6, _d.goldText], [0.4, 0.75, GwTokens.ember],
     ];
     for (final c in concessions) {
       dotPaint.color = (c[2] as Color).withAlpha(180);

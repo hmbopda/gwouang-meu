@@ -1,7 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
-import 'package:gwangmeu/core/theme/app_theme.dart';
+import 'package:gwangmeu/core/theme/gw_tokens.dart';
 
 class StoryData {
   final String id;
@@ -218,7 +218,7 @@ class _StoryCard extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
                   decoration: BoxDecoration(
-                    color: AppColors.error.withAlpha(200),
+                    color: GwTokens.ember.withAlpha(200),
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: const Text(

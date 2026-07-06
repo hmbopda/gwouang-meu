@@ -50,12 +50,26 @@ dependencies:
 
   # Icons
   cupertino_icons: ^1.0.8
+  material_symbols_icons: ^4.2785.1
+
+  # Typographies Tissage (Fraunces, Syne, JetBrains Mono)
+  google_fonts: ^6.2.1
 
   # Social login icons (Google, Facebook, Apple, GitHub...)
   font_awesome_flutter: ^10.7.0
 
   # Ouvrir navigateur pour OAuth (Google, Facebook, etc.)
   url_launcher: ^6.3.0
+
+  # Offline cache
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  connectivity_plus: ^6.0.3
+
+  # Firebase + notifications
+  firebase_core: ^3.6.0
+  firebase_messaging: ^15.1.3
+  flutter_local_notifications: ^17.2.2
 
 dev_dependencies:
   flutter_test:
@@ -68,6 +82,7 @@ dev_dependencies:
   riverpod_generator: ^2.4.0
   custom_lint: ^0.6.0
   riverpod_lint: ^2.3.0
+  hive_generator: ^2.0.1
 
 flutter:
   uses-material-design: true

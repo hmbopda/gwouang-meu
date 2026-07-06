@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:gwangmeu/core/theme/app_theme.dart';
+import 'package:gwangmeu/core/theme/gw_tokens.dart';
 import 'package:gwangmeu/shared/models/chat_group_model.dart';
 import 'package:gwangmeu/shared/models/chat_message_model.dart';
 import 'package:gwangmeu/features/chat/chat_notifier.dart';
@@ -39,7 +39,7 @@ class ChatGroupsSheet extends ConsumerWidget {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: AppColors.textHint,
+                color: GwTokens.dark.stoneDim,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -70,8 +70,8 @@ class ChatGroupsSheet extends ConsumerWidget {
             Expanded(
               child: groupsAsync.when(
                 loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, _) => const Center(
-                  child: Text('Erreur de chargement', style: TextStyle(color: AppColors.textSecondary)),
+                error: (e, _) => Center(
+                  child: Text('Erreur de chargement', style: TextStyle(color: GwTokens.dark.stoneMid)),
                 ),
                 data: (groups) => groups.isEmpty
                     ? _emptyState(context, ref, accent)
@@ -116,14 +116,14 @@ class ChatGroupsSheet extends ConsumerWidget {
             Text(
               'Aucun groupe de discussion',
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: AppColors.textSecondary,
+                    color: GwTokens.dark.stoneMid,
                     fontWeight: FontWeight.w600,
                   ),
             ),
             const SizedBox(height: 8),
             Text(
               'Créez le premier groupe pour votre village',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.textHint),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: GwTokens.dark.stoneDim),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 20),
@@ -242,12 +242,12 @@ class _GroupTile extends StatelessWidget {
         width: 44,
         height: 44,
         decoration: BoxDecoration(
-          color: (isCommission ? AppColors.info : accent).withAlpha(20),
+          color: (isCommission ? GwTokens.azure : accent).withAlpha(20),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Icon(
           isCommission ? Icons.groups_outlined : Icons.chat_bubble_outline,
-          color: isCommission ? AppColors.info : accent,
+          color: isCommission ? GwTokens.azure : accent,
           size: 22,
         ),
       ),
@@ -258,11 +258,11 @@ class _GroupTile extends StatelessWidget {
       subtitle: Text(
         '${group.memberCount} membre${group.memberCount > 1 ? 's' : ''}'
         '${group.description != null ? ' · ${group.description}' : ''}',
-        style: theme.textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
+        style: theme.textTheme.bodySmall?.copyWith(color: GwTokens.dark.stoneMid),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       ),
-      trailing: const Icon(Icons.chevron_right, color: AppColors.textHint, size: 20),
+      trailing: Icon(Icons.chevron_right, color: GwTokens.dark.stoneDim, size: 20),
     );
   }
 }
@@ -306,7 +306,7 @@ class _ChatMessagesScreenState extends ConsumerState<ChatMessagesScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Erreur d\'envoi'),
-            backgroundColor: AppColors.error,
+            backgroundColor: GwTokens.ember,
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -339,8 +339,8 @@ class _ChatMessagesScreenState extends ConsumerState<ChatMessagesScreen> {
           Expanded(
             child: messagesAsync.when(
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => const Center(
-                child: Text('Erreur de chargement', style: TextStyle(color: AppColors.textSecondary)),
+              error: (e, _) => Center(
+                child: Text('Erreur de chargement', style: TextStyle(color: GwTokens.dark.stoneMid)),
               ),
               data: (messages) {
                 if (messages.isEmpty) {
@@ -348,7 +348,7 @@ class _ChatMessagesScreenState extends ConsumerState<ChatMessagesScreen> {
                     child: Text(
                       'Aucun message\nSoyez le premier à écrire !',
                       textAlign: TextAlign.center,
-                      style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.textHint),
+                      style: theme.textTheme.bodyMedium?.copyWith(color: GwTokens.dark.stoneDim),
                     ),
                   );
                 }
@@ -382,7 +382,7 @@ class _ChatMessagesScreenState extends ConsumerState<ChatMessagesScreen> {
                       style: theme.textTheme.bodyMedium,
                       decoration: InputDecoration(
                         hintText: 'Écrire un message...',
-                        hintStyle: const TextStyle(color: AppColors.textHint),
+                        hintStyle: TextStyle(color: GwTokens.dark.stoneDim),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(20),
                           borderSide: BorderSide.none,
@@ -436,13 +436,13 @@ class _MessageBubble extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             decoration: BoxDecoration(
-              color: AppColors.surfaceAlt,
+              color: GwTokens.dark.inkLift,
               borderRadius: BorderRadius.circular(10),
             ),
             child: Text(
               message.content,
               style: theme.textTheme.bodySmall?.copyWith(
-                color: AppColors.textHint,
+                color: GwTokens.dark.stoneDim,
                 fontStyle: FontStyle.italic,
               ),
             ),
@@ -494,7 +494,7 @@ class _MessageBubble extends StatelessWidget {
                       Text(
                         _formatTime(message.createdAt!),
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: AppColors.textHint,
+                          color: GwTokens.dark.stoneDim,
                           fontSize: 10,
                         ),
                       ),

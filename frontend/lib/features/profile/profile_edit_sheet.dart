@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:gwangmeu/core/theme/app_theme.dart';
+import 'package:gwangmeu/core/theme/gw_tokens.dart';
 import 'package:gwangmeu/shared/models/country_model.dart';
 import 'package:gwangmeu/shared/models/language_model.dart';
 import 'package:gwangmeu/shared/models/village_model.dart';
@@ -262,7 +262,7 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
           width: 40,
           height: 4,
           decoration: BoxDecoration(
-            color: AppColors.textHint.withAlpha(80),
+            color: GwTokens.dark.stoneDim.withAlpha(80),
             borderRadius: BorderRadius.circular(2),
           ),
         ),
@@ -323,7 +323,7 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
                 color: active ? accent : Colors.transparent,
                 borderRadius: BorderRadius.circular(22),
                 border: Border.all(
-                  color: active ? accent : AppColors.textHint.withAlpha(60),
+                  color: active ? accent : GwTokens.dark.stoneDim.withAlpha(60),
                 ),
               ),
               child: Text(
@@ -331,7 +331,7 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: active ? FontWeight.w700 : FontWeight.w500,
-                  color: active ? Colors.black : AppColors.textSecondary,
+                  color: active ? Colors.black : GwTokens.dark.stoneMid,
                 ),
               ),
             ),
@@ -414,7 +414,7 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
                   child: CircularProgressIndicator(strokeWidth: 1.5, color: accent),
                 ),
                 const SizedBox(width: 8),
-                const Text('Chargement des parents liés...', style: TextStyle(fontSize: 12, color: AppColors.textHint)),
+                Text('Chargement des parents liés...', style: TextStyle(fontSize: 12, color: GwTokens.dark.stoneDim)),
               ],
             ),
           )
@@ -423,7 +423,7 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
             _selectedFather == null && _selectedMother == null
                 ? 'Sélectionnez un membre existant d\'un de vos clans ou créez une nouvelle fiche.'
                 : 'Parents liés à votre arbre généalogique. Vous pouvez modifier leurs informations.',
-            style: const TextStyle(fontSize: 12, color: AppColors.textHint),
+            style: TextStyle(fontSize: 12, color: GwTokens.dark.stoneDim),
           ),
         const SizedBox(height: 16),
         _parentCard(
@@ -541,7 +541,7 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
                         if (selectedPerson.clan != null)
                           Text(
                             'Clan: ${selectedPerson.clan}',
-                            style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                            style: TextStyle(fontSize: 12, color: GwTokens.dark.stoneMid),
                           ),
                       ],
                     ),
@@ -1007,7 +1007,7 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
                   child: CircularProgressIndicator(strokeWidth: 1.5, color: accent),
                 ),
                 const SizedBox(width: 8),
-                const Text('Chargement des enfants liés...', style: TextStyle(fontSize: 12, color: AppColors.textHint)),
+                Text('Chargement des enfants liés...', style: TextStyle(fontSize: 12, color: GwTokens.dark.stoneDim)),
               ],
             ),
           )
@@ -1016,7 +1016,7 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
             displayed == 0
                 ? 'Aucun enfant déclaré. Ajoutez leurs fiches pour les lier à votre arbre.'
                 : '$displayed enfant${displayed > 1 ? 's' : ''} (${linked > 0 ? '$linked lié${linked > 1 ? 's' : ''} à votre arbre' : 'aucun lié encore'}).',
-            style: const TextStyle(fontSize: 12, color: AppColors.textHint),
+            style: TextStyle(fontSize: 12, color: GwTokens.dark.stoneDim),
           ),
         const SizedBox(height: 16),
         // Liste des enfants deja lies
@@ -1109,7 +1109,7 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
                 ),
                 Text(
                   child.gender == 'MALE' ? 'Fils' : 'Fille',
-                  style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                  style: TextStyle(fontSize: 12, color: GwTokens.dark.stoneMid),
                 ),
               ],
             ),
@@ -1119,10 +1119,10 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: AppColors.error.withAlpha(20),
+                color: GwTokens.ember.withAlpha(20),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(Icons.close, size: 14, color: AppColors.error),
+              child: const Icon(Icons.close, size: 14, color: GwTokens.ember),
             ),
           ),
         ],
@@ -1569,11 +1569,11 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
       error: (_, __) => const Text('Impossible de charger les langues'),
       data: (languages) {
         if (languages.isEmpty) {
-          return const Padding(
+          return Padding(
             padding: EdgeInsets.symmetric(vertical: 8),
             child: Text(
               'Aucune langue enregistree pour ce pays',
-              style: TextStyle(color: AppColors.textHint, fontSize: 13),
+              style: TextStyle(color: GwTokens.dark.stoneDim, fontSize: 13),
             ),
           );
         }
@@ -1771,7 +1771,7 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text('Erreur lors de la mise a jour du profil'),
-          backgroundColor: AppColors.error,
+          backgroundColor: GwTokens.ember,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
@@ -1815,9 +1815,9 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 2),
-              const Text(
+              Text(
                 'Tous les champs sont optionnels',
-                style: TextStyle(fontSize: 12, color: AppColors.textHint),
+                style: TextStyle(fontSize: 12, color: GwTokens.dark.stoneDim),
               ),
             ],
           ),
@@ -2042,17 +2042,17 @@ class _SearchParentDialogState extends ConsumerState<_SearchParentDialog> {
             const SizedBox(height: 8),
             Text(
               'Clan: ${widget.clan}',
-              style: const TextStyle(fontSize: 12, color: AppColors.textHint),
+              style: TextStyle(fontSize: 12, color: GwTokens.dark.stoneDim),
             ),
             const SizedBox(height: 8),
             Expanded(
               child: _loading
                   ? Center(child: CircularProgressIndicator(color: accent))
                   : _results.isEmpty
-                      ? const Center(
+                      ? Center(
                           child: Text(
                             'Aucun membre trouve dans ce clan',
-                            style: TextStyle(color: AppColors.textHint, fontSize: 13),
+                            style: TextStyle(color: GwTokens.dark.stoneDim, fontSize: 13),
                           ),
                         )
                       : ListView.separated(

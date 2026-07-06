@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'package:gwangmeu/core/theme/app_theme.dart';
+import 'package:gwangmeu/core/theme/gw_tokens.dart';
 import 'package:gwangmeu/shared/widgets/gwang_button.dart';
 
 /// Widget d'erreur avec bouton de réessai.
@@ -24,13 +24,13 @@ class GwangErrorWidget extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 48, color: AppColors.textHint),
+            Icon(icon, size: 48, color: GwTokens.dark.stoneDim),
             const SizedBox(height: 16),
             Text(
               message,
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.textSecondary,
+                    color: GwTokens.dark.stoneMid,
                   ),
             ),
             if (onRetry != null) ...[
@@ -72,13 +72,13 @@ class GwangEmptyWidget extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 56, color: AppColors.textHint),
+            Icon(icon, size: 56, color: GwTokens.dark.stoneDim),
             const SizedBox(height: 16),
             Text(
               message,
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.textSecondary,
+                    color: GwTokens.dark.stoneMid,
                   ),
             ),
             if (action != null && actionLabel != null) ...[

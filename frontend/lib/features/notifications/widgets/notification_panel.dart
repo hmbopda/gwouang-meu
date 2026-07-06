@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:gwangmeu/core/theme/app_theme.dart';
+import 'package:gwangmeu/core/theme/gw_tokens.dart';
 import 'package:gwangmeu/features/notifications/models/notification_model.dart';
 import 'package:gwangmeu/features/notifications/notifications_notifier.dart';
 import 'package:gwangmeu/features/notifications/widgets/confirmation_dialogs.dart';
@@ -198,9 +198,9 @@ class _NotificationTile extends ConsumerWidget {
                   const SizedBox(height: 2),
                   Text(
                     notification.body,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
-                      color: AppColors.textSecondary,
+                      color: GwTokens.dark.stoneMid,
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
@@ -209,9 +209,9 @@ class _NotificationTile extends ConsumerWidget {
                     const SizedBox(height: 4),
                     Text(
                       _timeAgo(notification.createdAt!),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11,
-                        color: AppColors.textHint,
+                        color: GwTokens.dark.stoneDim,
                       ),
                     ),
                   ],

@@ -13,7 +13,7 @@ import 'package:gwangmeu/features/villages/villages_notifier.dart';
 import 'package:gwangmeu/features/profile/profile_edit_sheet.dart';
 import 'package:gwangmeu/features/profile/profile_notifier.dart';
 
-import 'package:gwangmeu/core/theme/gw_colors.dart';
+import 'package:gwangmeu/core/theme/gw_tokens.dart';
 
 const _serif = 'Georgia';
 const _mono = 'monospace';
@@ -27,12 +27,12 @@ class ProfileScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     final profileState = ref.watch(profileNotifierProvider);
 
     return profileState.when(
       loading: () => Center(
-        child: CircularProgressIndicator(color: c.gold),
+        child: CircularProgressIndicator(color: c.goldText),
       ),
       error: (e, _) => Center(
         child: Column(
@@ -58,7 +58,7 @@ class ProfileScreen extends ConsumerWidget {
   }
 
   Widget _notLoggedIn(BuildContext context) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -88,7 +88,7 @@ class _ResponsiveShell extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     return LayoutBuilder(
       builder: (context, constraints) {
         final w = constraints.maxWidth;
@@ -132,10 +132,154 @@ class _ResponsiveShell extends ConsumerWidget {
           );
         }
 
-        // Mobile : Center only
-        return _CenterPanel(user: user);
+        // Mobile : Header compact + Center
+        return Column(
+          children: [
+            _MobileProfileHeader(user: user),
+            Expanded(child: _CenterPanel(user: user)),
+          ],
+        );
       },
     );
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// MOBILE PROFILE HEADER — Résumé compact affiché en mobile
+// ═══════════════════════════════════════════════════════
+
+class _MobileProfileHeader extends ConsumerWidget {
+  const _MobileProfileHeader({required this.user});
+  final UserModel user;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final c = GwTokens.of(context);
+    final completion = _calcCompletion(user);
+
+    return Container(
+      color: c.ink,
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Avatar + Nom + Bouton éditer
+          Row(
+            children: [
+              _MiniAvatar(letter: _initial(user), size: 44, color: c.goldText),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      user.displayName ?? 'Membre',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: c.stone,
+                      ),
+                    ),
+                    Text(
+                      '@${(user.displayName ?? user.email).toLowerCase().replaceAll(' ', '')}',
+                      style: TextStyle(
+                        fontFamily: _mono,
+                        fontSize: 10,
+                        color: c.stoneFaint,
+                      ),
+                    ),
+                    if (user.clan != null && user.clan!.isNotEmpty)
+                      Text(
+                        user.clan!,
+                        style: TextStyle(fontSize: 11, color: c.goldLine),
+                      ),
+                  ],
+                ),
+              ),
+              IconButton(
+                icon: Icon(Icons.edit_outlined, size: 20, color: c.goldLine),
+                onPressed: () => showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  backgroundColor: Colors.transparent,
+                  builder: (_) => const ProfileEditSheet(),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          // Barre de complétion
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'PROFIL COMPLÉTÉ',
+                style: TextStyle(
+                  fontFamily: _mono,
+                  fontSize: 8,
+                  letterSpacing: 1,
+                  color: c.stoneFaint,
+                ),
+              ),
+              Text(
+                '$completion %',
+                style: TextStyle(fontFamily: _mono, fontSize: 10, color: c.goldText),
+              ),
+            ],
+          ),
+          const SizedBox(height: 5),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(99),
+            child: LinearProgressIndicator(
+              value: completion / 100,
+              minHeight: 3,
+              backgroundColor: c.inkHigh,
+              valueColor: AlwaysStoppedAnimation<Color>(c.goldText),
+            ),
+          ),
+          // Déconnexion
+          const SizedBox(height: 10),
+          GestureDetector(
+            onTap: () async {
+              await ref.read(profileNotifierProvider.notifier).signOut();
+              if (context.mounted) context.go(Routes.auth);
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                border: Border.all(color: GwTokens.emberLine),
+                borderRadius: BorderRadius.circular(6),
+                color: GwTokens.emberBg,
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.logout, size: 13, color: GwTokens.ember),
+                  const SizedBox(width: 5),
+                  Text('Déconnexion', style: TextStyle(fontSize: 12, color: GwTokens.ember)),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  int _calcCompletion(UserModel u) {
+    int score = 0;
+    const total = 10;
+    if (u.displayName != null && u.displayName!.isNotEmpty) score++;
+    if (u.bio != null && u.bio!.isNotEmpty) score++;
+    if (u.avatarUrl != null && u.avatarUrl!.isNotEmpty) score++;
+    if (u.country != null) score++;
+    if (u.profession != null) score++;
+    if (u.nativeLanguage != null) score++;
+    if (u.clan != null) score++;
+    if (u.tribe != null) score++;
+    if (u.fatherName != null) score++;
+    if (u.motherName != null) score++;
+    return ((score / total) * 100).round();
   }
 }
 
@@ -149,7 +293,7 @@ class _LeftRail extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     final myVillages = ref.watch(myVillagesNotifierProvider);
     final completion = _calcCompletion(user);
 
@@ -194,7 +338,7 @@ class _LeftRail extends ConsumerWidget {
                       Row(
                         children: [
                           _MiniAvatar(
-                              letter: _initial(user), size: 38, color: c.gold),
+                              letter: _initial(user), size: 38, color: c.goldText),
                           const SizedBox(width: 10),
                           Expanded(
                             child: Column(
@@ -239,7 +383,7 @@ class _LeftRail extends ConsumerWidget {
                               style: TextStyle(
                                 fontFamily: _mono,
                                 fontSize: 10,
-                                color: c.gold,
+                                color: c.goldText,
                               )),
                         ],
                       ),
@@ -249,9 +393,9 @@ class _LeftRail extends ConsumerWidget {
                         child: LinearProgressIndicator(
                           value: completion / 100,
                           minHeight: 2,
-                          backgroundColor: c.inkRaise,
+                          backgroundColor: c.inkHigh,
                           valueColor:
-                              AlwaysStoppedAnimation<Color>(c.gold),
+                              AlwaysStoppedAnimation<Color>(c.goldText),
                         ),
                       ),
                     ],
@@ -298,11 +442,11 @@ class _LeftRail extends ConsumerWidget {
                     },
                     child: Row(
                       children: [
-                        Icon(Icons.add_circle_outline, size: 14, color: c.goldDim),
+                        Icon(Icons.add_circle_outline, size: 14, color: c.goldLine),
                         const SizedBox(width: 6),
                         Text(
                           'Gérer mes clans',
-                          style: TextStyle(fontSize: 12, color: c.goldDim),
+                          style: TextStyle(fontSize: 12, color: c.goldLine),
                         ),
                       ],
                     ),
@@ -318,7 +462,7 @@ class _LeftRail extends ConsumerWidget {
                     padding: const EdgeInsets.all(20),
                     child: Center(
                         child:
-                            SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 1.5, color: c.gold))),
+                            SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 1.5, color: c.goldText))),
                   ),
                   error: (_, __) => const SizedBox.shrink(),
                   data: (villages) => Column(
@@ -364,7 +508,7 @@ class _LeftRail extends ConsumerWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Consumer(
                     builder: (context, ref, _) {
-                      final c = GwColors.of(context);
+                      final c = GwTokens.of(context);
                       return GestureDetector(
                       onTap: () async {
                         await ref
@@ -376,18 +520,18 @@ class _LeftRail extends ConsumerWidget {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 12, vertical: 8),
                         decoration: BoxDecoration(
-                          border: Border.all(color: c.emberLine),
+                          border: Border.all(color: GwTokens.emberLine),
                           borderRadius: BorderRadius.circular(6),
-                          color: c.emberBg,
+                          color: GwTokens.emberBg,
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.logout, size: 14, color: c.ember),
+                            Icon(Icons.logout, size: 14, color: GwTokens.ember),
                             const SizedBox(width: 6),
                             Text('Déconnexion',
                                 style:
-                                    TextStyle(fontSize: 12, color: c.ember)),
+                                    TextStyle(fontSize: 12, color: GwTokens.ember)),
                           ],
                         ),
                       ),
@@ -473,7 +617,7 @@ class _CenterPanelState extends ConsumerState<_CenterPanel>
     final genealogyState = ref.watch(genealogyNotifierProvider);
     final hasGenealogy = genealogyState.valueOrNull != null;
 
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     return Container(
       color: c.inkDeep,
       child: NestedScrollView(
@@ -495,7 +639,7 @@ class _CenterPanelState extends ConsumerState<_CenterPanel>
                     fontSize: 12.5, fontWeight: FontWeight.w500),
                 unselectedLabelStyle:
                     const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w400),
-                indicatorColor: c.gold,
+                indicatorColor: c.goldText,
                 indicatorWeight: 1.5,
                 dividerColor: c.line,
                 padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -561,23 +705,23 @@ class _HeroSection extends ConsumerWidget {
         profileField: profileField,
       );
       if (!context.mounted) return;
-      final c = GwColors.of(context);
+      final c = GwTokens.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: const Text('Photo mise a jour'), backgroundColor: c.sage),
+        SnackBar(content: const Text('Photo mise a jour'), backgroundColor: GwTokens.sage),
       );
     } catch (e) {
       debugPrint('[UPLOAD] Error: $e');
       if (!context.mounted) return;
-      final c = GwColors.of(context);
+      final c = GwTokens.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erreur: $e'), backgroundColor: c.ember),
+        SnackBar(content: Text('Erreur: $e'), backgroundColor: GwTokens.ember),
       );
     }
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     final isMobile = MediaQuery.sizeOf(context).width < 800;
     final hPad = isMobile ? 20.0 : 36.0;
     final coverHeight = isMobile ? 180.0 : 220.0;
@@ -677,7 +821,7 @@ class _HeroSection extends ConsumerWidget {
                       child: Container(
                         padding: const EdgeInsets.all(4),
                         decoration: BoxDecoration(
-                          color: c.gold,
+                          color: c.goldText,
                           shape: BoxShape.circle,
                         ),
                         child: Icon(Icons.camera_alt, size: 14, color: c.inkDeep),
@@ -748,13 +892,13 @@ class _HeroSection extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: c.goldFaint,
+                  color: c.goldBg,
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.star, size: 12, color: c.gold),
+                    Icon(Icons.star, size: 12, color: c.goldText),
                     const SizedBox(width: 4),
                     Text(
                       (user.role).toUpperCase(),
@@ -762,7 +906,7 @@ class _HeroSection extends ConsumerWidget {
                         fontSize: 10,
                         fontWeight: FontWeight.w600,
                         letterSpacing: 1,
-                        color: c.gold,
+                        color: c.goldText,
                       ),
                     ),
                   ],
@@ -772,20 +916,20 @@ class _HeroSection extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  border: Border.all(color: c.sageLine),
+                  border: Border.all(color: GwTokens.sageLine),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.circle, size: 7, color: c.sage),
+                    Icon(Icons.circle, size: 7, color: GwTokens.sage),
                     const SizedBox(width: 5),
                     Text('EN LIGNE',
                         style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.w500,
                           letterSpacing: 0.8,
-                          color: c.sage,
+                          color: GwTokens.sage,
                         )),
                   ],
                 ),
@@ -795,21 +939,21 @@ class _HeroSection extends ConsumerWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: c.goldFaint,
+                    color: c.goldBg,
                     border: Border.all(color: c.goldLine),
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.verified, size: 12, color: c.gold),
+                      Icon(Icons.verified, size: 12, color: c.goldText),
                       const SizedBox(width: 4),
                       Text('VERIFIE',
                           style: TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.w600,
                             letterSpacing: 0.8,
-                            color: c.gold,
+                            color: c.goldText,
                           )),
                     ],
                   ),
@@ -858,7 +1002,7 @@ class _HeroSection extends ConsumerWidget {
   }
 
   Widget _buildName(BuildContext context, UserModel user) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     final parts = (user.displayName ?? 'Membre').split(' ');
     final firstName = parts.first;
     final lastName = parts.length > 1 ? parts.sublist(1).join(' ') : '';
@@ -897,7 +1041,7 @@ class _HeroSection extends ConsumerWidget {
   }
 
   Widget _buildSubtitle(BuildContext context, UserModel user) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     final parts = <String>[];
     if (user.residenceCountry != null || user.country != null) {
       parts.add('Diaspora');
@@ -922,14 +1066,14 @@ class _HeroSection extends ConsumerWidget {
   }
 
   Widget _buildMetaRow(BuildContext context, UserModel user) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     final items = <Widget>[];
 
     if (user.residenceCity != null) {
       items.add(_MetaItem(
         icon: Icons.location_on_outlined,
         text: user.residenceCity!,
-        iconColor: c.emberLight,
+        iconColor: c.emberText,
       ));
     }
 
@@ -937,7 +1081,7 @@ class _HeroSection extends ConsumerWidget {
       items.add(_MetaItem(
         icon: Icons.fort_outlined,
         text: 'Clan ${user.clan}',
-        iconColor: c.goldDim,
+        iconColor: c.goldLine,
       ));
     }
 
@@ -975,7 +1119,7 @@ class _MetaItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -998,7 +1142,7 @@ class _HeroActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -1008,7 +1152,7 @@ class _HeroActions extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
             decoration: BoxDecoration(
-              color: c.gold,
+              color: c.goldText,
               borderRadius: BorderRadius.circular(24),
               boxShadow: const [
                 BoxShadow(color: Color(0x4DC9A84C), blurRadius: 20),
@@ -1043,7 +1187,7 @@ class _HeroActions extends StatelessWidget {
             height: 40,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: c.inkRaise,
+              color: c.inkHigh,
               border: Border.all(color: c.lineMid),
             ),
             alignment: Alignment.center,
@@ -1057,7 +1201,7 @@ class _HeroActions extends StatelessWidget {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: const Text('Partage de profil bientôt disponible'),
-                backgroundColor: c.inkRaise,
+                backgroundColor: c.inkHigh,
                 behavior: SnackBarBehavior.floating,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
@@ -1068,7 +1212,7 @@ class _HeroActions extends StatelessWidget {
             height: 40,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: c.inkRaise,
+              color: c.inkHigh,
               border: Border.all(color: c.lineMid),
             ),
             alignment: Alignment.center,
@@ -1127,7 +1271,7 @@ class _StatsBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     return Container(
       decoration: BoxDecoration(
         border: Border(bottom: BorderSide(color: c.line)),
@@ -1159,7 +1303,7 @@ class _StatCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     return Expanded(
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
@@ -1177,7 +1321,7 @@ class _StatCell extends StatelessWidget {
                   fontSize: 30,
                   fontWeight: FontWeight.w300,
                   letterSpacing: -1,
-                  color: highlight ? c.goldLight : c.stone,
+                  color: highlight ? GwTokens.goldLight : c.stone,
                 )),
             const SizedBox(height: 4),
             Text(label,
@@ -1204,7 +1348,7 @@ class _BioSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     return Container(
       decoration: BoxDecoration(
         border: Border(bottom: BorderSide(color: c.line)),
@@ -1233,7 +1377,7 @@ class _BioSection extends StatelessWidget {
                         fontFamily: _mono,
                         fontSize: 9.5,
                         letterSpacing: 0.6,
-                        color: c.goldDim,
+                        color: c.goldLine,
                       )),
                 ),
               ],
@@ -1291,11 +1435,11 @@ class _BioChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: c.inkRaise,
+        color: c.inkHigh,
         border: Border.all(color: c.line),
         borderRadius: BorderRadius.circular(6),
       ),
@@ -1316,7 +1460,7 @@ class _LanguesApercu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     return Container(
       decoration: BoxDecoration(
         border: Border(bottom: BorderSide(color: c.line)),
@@ -1364,7 +1508,7 @@ class _LanguesApercu extends StatelessWidget {
                     name: user.nativeLanguage!,
                     level: 'Langue native',
                     pct: 1.0,
-                    color: c.gold,
+                    color: c.goldText,
                   ),
               ],
             ),
@@ -1389,7 +1533,7 @@ class _LangueRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
@@ -1419,7 +1563,7 @@ class _LangueRow extends StatelessWidget {
                   child: LinearProgressIndicator(
                     value: pct,
                     minHeight: 2,
-                    backgroundColor: c.inkRaise,
+                    backgroundColor: c.inkHigh,
                     valueColor: AlwaysStoppedAnimation(color),
                   ),
                 ),
@@ -1439,7 +1583,7 @@ class _LangueRow extends StatelessWidget {
 class _FormationsApercu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     return Container(
       decoration: BoxDecoration(
         border: Border(bottom: BorderSide(color: c.line)),
@@ -1483,7 +1627,7 @@ class _FormationsApercu extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: c.inkRaise,
+                color: c.inkHigh,
                 border: Border.all(color: c.line),
                 borderRadius: BorderRadius.circular(10),
               ),
@@ -1520,7 +1664,7 @@ class _RightPanel extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     final myVillages = ref.watch(myVillagesNotifierProvider);
 
     return Container(
@@ -1569,7 +1713,7 @@ class _RightPanel extends ConsumerWidget {
                                 width: 16,
                                 height: 16,
                                 child: CircularProgressIndicator(
-                                    strokeWidth: 1.5, color: c.gold)))),
+                                    strokeWidth: 1.5, color: c.goldText)))),
                     error: (_, __) => const SizedBox.shrink(),
                     data: (villages) => Column(
                       children: [
@@ -1613,7 +1757,7 @@ class _FiliationTree extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     return Column(
       children: [
         // Vous
@@ -1621,9 +1765,9 @@ class _FiliationTree extends StatelessWidget {
           initials: _initial(user),
           name: user.displayName ?? 'Vous',
           relation: 'Vous',
-          bgColor: c.goldFaint,
+          bgColor: c.goldBg,
           borderColor: c.goldLine,
-          textColor: c.gold,
+          textColor: c.goldText,
           isMe: true,
         ),
 
@@ -1640,9 +1784,9 @@ class _FiliationTree extends StatelessWidget {
                   .toUpperCase(),
               name: user.fatherName!,
               relation: 'Père',
-              bgColor: c.azureBg,
-              borderColor: c.azureLine,
-              textColor: c.azureLight,
+              bgColor: GwTokens.azureBg,
+              borderColor: GwTokens.azureLine,
+              textColor: c.azureText,
             ),
           ),
 
@@ -1659,9 +1803,9 @@ class _FiliationTree extends StatelessWidget {
                   .toUpperCase(),
               name: user.motherName!,
               relation: 'Mère',
-              bgColor: c.emberBg,
-              borderColor: c.emberLine,
-              textColor: c.emberLight,
+              bgColor: GwTokens.emberBg,
+              borderColor: GwTokens.emberLine,
+              textColor: c.emberText,
             ),
           ),
 
@@ -1671,21 +1815,21 @@ class _FiliationTree extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               decoration: BoxDecoration(
-                color: c.sageBg,
-                border: Border.all(color: c.sageLine),
+                color: GwTokens.sageBg,
+                border: Border.all(color: GwTokens.sageLine),
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Row(
                 children: [
                   Icon(Icons.check_circle_outline,
-                      size: 12, color: c.sage),
+                      size: 12, color: GwTokens.sage),
                   const SizedBox(width: 8),
                   Text(
                     '${(user.fatherName != null ? 1 : 0) + (user.motherName != null ? 1 : 0)} liens directs',
                     style: TextStyle(
                         fontSize: 11.5,
                         fontWeight: FontWeight.w300,
-                        color: c.sage),
+                        color: GwTokens.sage),
                   ),
                 ],
               ),
@@ -1696,7 +1840,7 @@ class _FiliationTree extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: c.inkRaise,
+              color: c.inkHigh,
               border: Border.all(color: c.line),
               borderRadius: BorderRadius.circular(6),
             ),
@@ -1731,7 +1875,7 @@ class _FiliationRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 3),
       child: Row(
@@ -1795,7 +1939,7 @@ class _VillageChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
       child: GestureDetector(
@@ -1803,7 +1947,7 @@ class _VillageChip extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
           decoration: BoxDecoration(
-            color: c.inkRaise,
+            color: c.inkHigh,
             border: Border.all(color: c.line),
             borderRadius: BorderRadius.circular(10),
           ),
@@ -1813,7 +1957,7 @@ class _VillageChip extends StatelessWidget {
                 width: 7,
                 height: 7,
                 decoration: BoxDecoration(
-                  color: c.gold,
+                  color: c.goldText,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -1847,7 +1991,7 @@ class _CompletionChecklist extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     final items = <_CheckItem>[
       _CheckItem('Identité renseignée', user.displayName != null),
       _CheckItem('Biographie ajoutée', user.bio != null && user.bio!.isNotEmpty),
@@ -1865,9 +2009,9 @@ class _CompletionChecklist extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
               decoration: BoxDecoration(
-                color: item.done ? c.sageBg : c.inkRaise,
+                color: item.done ? GwTokens.sageBg : c.inkHigh,
                 border: Border.all(
-                    color: item.done ? c.sageLine : c.line),
+                    color: item.done ? GwTokens.sageLine : c.line),
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Row(
@@ -1877,7 +2021,7 @@ class _CompletionChecklist extends StatelessWidget {
                         ? Icons.check_circle_outline
                         : Icons.radio_button_unchecked,
                     size: 14,
-                    color: item.done ? c.sage : c.stoneDim,
+                    color: item.done ? GwTokens.sage : c.stoneDim,
                   ),
                   const SizedBox(width: 10),
                   Expanded(
@@ -1885,7 +2029,7 @@ class _CompletionChecklist extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w300,
-                          color: item.done ? c.sage : c.stoneDim,
+                          color: item.done ? GwTokens.sage : c.stoneDim,
                         )),
                   ),
                   if (!item.done && item.bonus != null)
@@ -1893,7 +2037,7 @@ class _CompletionChecklist extends StatelessWidget {
                         style: TextStyle(
                           fontFamily: _mono,
                           fontSize: 8.5,
-                          color: c.goldDim,
+                          color: c.goldLine,
                         )),
                 ],
               ),
@@ -1922,7 +2066,7 @@ class _ComingSoonPane extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(60),
@@ -1967,14 +2111,14 @@ class _MiniAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     return Container(
       width: size,
       height: size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         gradient: LinearGradient(
-          colors: [c.goldDim, color, c.goldLight],
+          colors: [c.goldLine, color, GwTokens.goldLight],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -1998,7 +2142,7 @@ class _LargeAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     const size = 92.0;
     return Stack(
       children: [
@@ -2018,9 +2162,9 @@ class _LargeAvatar extends StatelessWidget {
                     imageUrl: user.avatarUrl!,
                     fit: BoxFit.cover,
                     errorWidget: (_, __, ___) =>
-                        _MiniAvatar(letter: _initial(user), size: size, color: c.gold),
+                        _MiniAvatar(letter: _initial(user), size: size, color: c.goldText),
                   )
-                : _MiniAvatar(letter: _initial(user), size: size, color: c.gold),
+                : _MiniAvatar(letter: _initial(user), size: size, color: c.goldText),
           ),
         ),
         // Online status dot
@@ -2031,7 +2175,7 @@ class _LargeAvatar extends StatelessWidget {
             width: 18,
             height: 18,
             decoration: BoxDecoration(
-              color: c.sage,
+              color: GwTokens.sage,
               shape: BoxShape.circle,
               border: Border.all(color: c.inkDeep, width: 2.5),
             ),
@@ -2048,7 +2192,7 @@ class _RailDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 8),
       height: 1,
@@ -2063,7 +2207,7 @@ class _RailSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 6),
       child: Text(label,
@@ -2094,16 +2238,16 @@ class _RailNavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
         decoration: BoxDecoration(
-          color: active ? c.goldFaint : Colors.transparent,
+          color: active ? c.goldBg : Colors.transparent,
           border: Border(
             left: BorderSide(
-              color: active ? c.gold : Colors.transparent,
+              color: active ? c.goldText : Colors.transparent,
               width: 2,
             ),
           ),
@@ -2114,14 +2258,14 @@ class _RailNavItem extends StatelessWidget {
               width: 28,
               height: 28,
               decoration: BoxDecoration(
-                color: active ? c.goldFaint : c.inkRaise,
+                color: active ? c.goldBg : c.inkHigh,
                 border: Border.all(color: active ? c.goldLine : c.line),
                 borderRadius: BorderRadius.circular(6),
               ),
               alignment: Alignment.center,
               child: Icon(icon,
                   size: 13,
-                  color: active ? c.gold : c.stoneDim),
+                  color: active ? c.goldText : c.stoneDim),
             ),
             const SizedBox(width: 10),
             Expanded(
@@ -2137,14 +2281,14 @@ class _RailNavItem extends StatelessWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                 decoration: BoxDecoration(
-                  color: active ? c.goldFaint : c.inkRaise,
+                  color: active ? c.goldBg : c.inkHigh,
                   borderRadius: BorderRadius.circular(3),
                 ),
                 child: Text(count!,
                     style: TextStyle(
                       fontFamily: _mono,
                       fontSize: 9,
-                      color: active ? c.goldDim : c.stoneFaint,
+                      color: active ? c.goldLine : c.stoneFaint,
                     )),
               ),
           ],
@@ -2163,7 +2307,7 @@ class _RailClanItem extends StatelessWidget {
   });
   final String name;
   final bool pending;
-  final GwColors c;
+  final GwTokens c;
 
   @override
   Widget build(BuildContext context) {
@@ -2176,7 +2320,7 @@ class _RailClanItem extends StatelessWidget {
             width: 28,
             height: 28,
             decoration: BoxDecoration(
-              color: pending ? c.inkRaise : c.goldFaint,
+              color: pending ? c.inkHigh : c.goldBg,
               border: Border.all(color: pending ? c.line : c.goldLine),
               borderRadius: BorderRadius.circular(6),
             ),
@@ -2184,7 +2328,7 @@ class _RailClanItem extends StatelessWidget {
             child: Icon(
               pending ? Icons.hourglass_top_outlined : Icons.fort_outlined,
               size: 13,
-              color: pending ? c.stoneFaint : c.goldDim,
+              color: pending ? c.stoneFaint : c.goldLine,
             ),
           ),
           const SizedBox(width: 10),
@@ -2203,7 +2347,7 @@ class _RailClanItem extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
               decoration: BoxDecoration(
-                color: c.inkRaise,
+                color: c.inkHigh,
                 borderRadius: BorderRadius.circular(3),
               ),
               child: Text(
@@ -2229,7 +2373,7 @@ class _RightBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
@@ -2271,7 +2415,7 @@ class _TabBarDelegate extends SliverPersistentHeaderDelegate {
   @override
   Widget build(
       BuildContext context, double shrinkOffset, bool overlapsContent) {
-    final c = GwColors.of(context);
+    final c = GwTokens.of(context);
     return Container(
       color: c.ink,
       child: tabBar,
