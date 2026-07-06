@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,500&family=Syne:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,300..700,0..1,0&display=swap" rel="stylesheet">
+  <style>
+    body { margin:0; background:#141216; }
+    @keyframes gwFadeUp { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes gwPulse { 0%,100% { box-shadow:0 0 0 0 rgba(42,122,92,0.35); } 50% { box-shadow:0 0 0 12px rgba(42,122,92,0); } }
+    @keyframes gwToast { from { opacity:0; transform:translate(-50%, 16px); } to { opacity:1; transform:translate(-50%, 0); } }
+  </style>
+</helmet>
+
+<div style="min-height:100vh; display:flex; flex-direction:column; align-items:center; gap:18px; padding:40px 20px; font-family:Syne,sans-serif;">
+  <div style="max-width:620px; text-align:center; display:flex; flex-direction:column; gap:8px;">
+    <span style="font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:2.5px; color:#7A7268;">PROTOTYPE INTERACTIF — CLIQUEZ DANS L'ÉCRAN</span>
+    <h1 style="margin:0; font-family:Fraunces,serif; font-size:22px; font-weight:700; color:#F0EBE1;">Parcours : vérifier une suggestion IA jusqu'à l'arbre</h1>
+    <p style="margin:0; color:#B8AD9E; font-size:13px; line-height:1.6;">Fil → Explorer le lien → Vérifier les correspondances → Confirmer → la branche rejoint la rivière. Système <a href="Refonte IHM.dc.html#2a" style="color:#C9A84C;">GwTokens</a>, direction Tissage.</p>
+  </div>
+
+  <!-- stepper -->
+  <div style="display:flex; gap:8px; align-items:center;">
+    <sc-for list="{{ stepDots }}" as="d" hint-placeholder-count="3">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <div style="height:30px; padding:0 14px; border-radius:99px; background:{{ d.bg }}; border:1px solid {{ d.border }}; display:flex; align-items:center; gap:6px; cursor:pointer;" onClick="{{ d.go }}">
+          <span style="font-family:'JetBrains Mono',monospace; font-size:10px; color:{{ d.color }};">{{ d.label }}</span>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+
+  <!-- PHONE -->
+  <div data-screen-label="Prototype parcours IA" style="width:390px; height:844px; background:#0C0B0F; border-radius:32px; border:1px solid rgba(255,255,255,0.12); overflow:hidden; display:flex; flex-direction:column; position:relative; box-shadow:0 30px 80px rgba(0,0,0,0.5);">
+    <div style="height:4px; flex:none; background:repeating-linear-gradient(90deg, #C9A84C 0 28px, #2A7A5C 28px 40px, #C9A84C 40px 68px, #C4583A 68px 80px);"></div>
+
+    <!-- ═══ STEP 0 : FEED ═══ -->
+    <sc-if value="{{ isStep0 }}" hint-placeholder-val="{{ true }}">
+      <div style="flex:1; display:flex; flex-direction:column; min-height:0; animation:gwFadeUp 0.3s ease;">
+        <div style="padding:14px 20px 10px; display:flex; align-items:center; flex:none;">
+          <div style="display:flex; flex-direction:column; flex:1;">
+            <span style="font-family:Fraunces,serif; font-size:21px; font-weight:700; color:#F0EBE1;">Gwang Meu</span>
+            <span style="font-family:'JetBrains Mono',monospace; font-size:10px; color:#7A7268; letter-spacing:2px;">MBƐ́Ɛ — BIENVENUE</span>
+          </div>
+          <div style="width:44px; height:44px; border-radius:14px; background:#1C1A22; display:flex; align-items:center; justify-content:center;"><span style="font-family:'Material Symbols Outlined'; font-size:22px; color:#F0EBE1;">notifications</span></div>
+        </div>
+        <div style="margin:8px 20px; padding:14px 16px; background:#1C1A22; border-radius:18px; display:flex; align-items:center; gap:12px; flex:none;">
+          <div style="width:40px; height:40px; border-radius:50%; background:#C9A84C; color:#0C0B0F; display:flex; align-items:center; justify-content:center; font-weight:700; font-family:Fraunces,serif;">S</div>
+          <span style="flex:1; color:#7A7268; font-size:14px; font-family:Fraunces,serif; font-style:italic;">Quelle nouvelle du village ?</span>
+          <span style="font-family:'Material Symbols Outlined'; font-size:22px; color:#C9A84C;">edit</span>
+        </div>
+        <!-- Carte IA (cible du parcours) -->
+        <div style="margin:6px 20px; flex:none; padding:18px 20px; border-radius:20px; background:linear-gradient(135deg, rgba(42,122,92,0.14), rgba(42,122,92,0.04)); border:1px solid rgba(42,122,92,0.35); animation:gwPulse 2.4s ease infinite;">
+          <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+            <span style="font-family:'Material Symbols Outlined'; font-size:20px; color:#70C090;">auto_awesome</span>
+            <span style="font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:1.5px; color:#70C090;">MÉMOIRE FAMILIALE · CONFIANCE 87%</span>
+          </div>
+          <p style="margin:0 0 14px; color:#F0EBE1; font-size:15px; line-height:1.65;"><strong style="font-family:Fraunces,serif;">Kwame Asante</strong> et vous partagez probablement un ancêtre du clan <strong style="color:#C9A84C;">Bakoko</strong> — 3 lignées correspondent.</p>
+          <div style="display:flex; gap:10px;">
+            <div onClick="{{ goVerify }}" style="flex:1; height:46px; background:#2A7A5C; border-radius:14px; display:flex; align-items:center; justify-content:center; gap:8px; color:#F0EBE1; font-size:14px; font-weight:600; cursor:pointer;" style-hover="filter:brightness(1.15)"><span style="font-family:'Material Symbols Outlined'; font-size:18px;">account_tree</span>Explorer le lien</div>
+            <div onClick="{{ dismissToastInfo }}" style="width:46px; height:46px; background:#1C1A22; border-radius:14px; display:flex; align-items:center; justify-content:center; cursor:pointer;"><span style="font-family:'Material Symbols Outlined'; font-size:20px; color:#7A7268;">close</span></div>
+          </div>
+        </div>
+        <!-- post citation en dessous -->
+        <div style="margin:8px 20px; flex:none; position:relative; padding:22px 22px 16px; background:#16141B; border-radius:20px; overflow:hidden; opacity:0.75;">
+          <div style="position:absolute; left:0; top:0; bottom:0; width:5px; background:repeating-linear-gradient(180deg, #C9A84C 0 18px, #2A7A5C 18px 26px, #C9A84C 26px 44px, #C4583A 44px 52px);"></div>
+          <p style="margin:0 0 12px; font-family:Fraunces,serif; font-style:italic; font-size:17px; line-height:1.55; color:#F0EBE1;">« Chaque mot en Bassa porte des siècles de sagesse. »</p>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <div style="width:32px; height:32px; border-radius:50%; background:rgba(201,168,76,0.18); color:#C9A84C; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px;">A</div>
+            <span style="color:#F0EBE1; font-size:13.5px; font-weight:600;">Amara Kouassi</span>
+            <span style="color:#8A8172; font-size:12.5px;">· Bassa-Likoko · 2 h</span>
+          </div>
+        </div>
+        <span style="flex:1;"></span>
+        <div style="flex:none; background:#16141B; border-top:1px solid rgba(255,255,255,0.07); display:flex; padding:10px 8px 24px;">
+          <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:4px;"><div style="width:52px; height:32px; border-radius:99px; background:rgba(201,168,76,0.16); display:flex; align-items:center; justify-content:center;"><span style="font-family:'Material Symbols Outlined'; font-variation-settings:'FILL' 1; font-size:22px; color:#C9A84C;">home</span></div><span style="color:#C9A84C; font-size:12px; font-weight:600;">Fil</span></div>
+          <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:4px;"><div style="height:32px; display:flex; align-items:center;"><span style="font-family:'Material Symbols Outlined'; font-size:22px; color:#B8AD9E;">holiday_village</span></div><span style="color:#B8AD9E; font-size:12px;">Villages</span></div>
+          <div onClick="{{ goTreeDirect }}" style="flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer;"><div style="height:32px; display:flex; align-items:center;"><span style="font-family:'Material Symbols Outlined'; font-size:22px; color:#B8AD9E;">family_history</span></div><span style="color:#B8AD9E; font-size:12px;">Lignées</span></div>
+          <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:4px;"><div style="height:32px; display:flex; align-items:center;"><span style="font-family:'Material Symbols Outlined'; font-size:22px; color:#B8AD9E;">forum</span></div><span style="color:#B8AD9E; font-size:12px;">Messages</span></div>
+          <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:4px;"><div style="height:32px; display:flex; align-items:center;"><span style="font-family:'Material Symbols Outlined'; font-size:22px; color:#B8AD9E;">person</span></div><span style="color:#B8AD9E; font-size:12px;">Profil</span></div>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ═══ STEP 1 : VÉRIFICATION ═══ -->
+    <sc-if value="{{ isStep1 }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1; display:flex; flex-direction:column; min-height:0; animation:gwFadeUp 0.3s ease;">
+        <div style="padding:12px 16px; flex:none; display:flex; align-items:center; gap:10px; border-bottom:1px solid rgba(255,255,255,0.07);">
+          <div onClick="{{ goFeed }}" style="width:44px; height:44px; border-radius:14px; background:#1C1A22; display:flex; align-items:center; justify-content:center; cursor:pointer;"><span style="font-family:'Material Symbols Outlined'; font-size:20px; color:#B8AD9E;">arrow_back</span></div>
+          <div style="display:flex; flex-direction:column; flex:1;">
+            <span style="color:#F0EBE1; font-size:16px; font-weight:700; font-family:Fraunces,serif;">Vérifier le lien</span>
+            <span style="color:#70C090; font-size:12px; font-family:'JetBrains Mono',monospace;">3 CORRESPONDANCES · CONFIANCE 87%</span>
+          </div>
+        </div>
+        <!-- les deux personnes -->
+        <div style="padding:18px 20px 6px; flex:none; display:flex; align-items:center; gap:12px;">
+          <div style="flex:1; padding:14px; background:#16141B; border:1px solid rgba(201,168,76,0.3); border-radius:18px; display:flex; flex-direction:column; align-items:center; gap:8px;">
+            <div style="width:54px; height:54px; border-radius:50%; background:#C9A84C; color:#0C0B0F; display:flex; align-items:center; justify-content:center; font-family:Fraunces,serif; font-size:21px; font-weight:700;">S</div>
+            <div style="text-align:center;"><div style="color:#F0EBE1; font-size:14px; font-weight:600;">Vous</div><div style="color:#7A7268; font-size:12px;">Lignée Mbopda</div></div>
+          </div>
+          <div style="flex:none; display:flex; flex-direction:column; align-items:center; gap:4px;">
+            <span style="font-family:'Material Symbols Outlined'; font-size:22px; color:#70C090;">link</span>
+            <span style="font-family:'JetBrains Mono',monospace; font-size:9px; color:#70C090;">ANCÊTRE ?</span>
+          </div>
+          <div style="flex:1; padding:14px; background:#16141B; border:1.5px dashed rgba(42,122,92,0.5); border-radius:18px; display:flex; flex-direction:column; align-items:center; gap:8px;">
+            <div style="width:54px; height:54px; border-radius:50%; background:#0D1F16; border:2px dashed #2A7A5C; color:#70C090; display:flex; align-items:center; justify-content:center; font-family:Fraunces,serif; font-size:21px; font-weight:700;">K</div>
+            <div style="text-align:center;"><div style="color:#F0EBE1; font-size:14px; font-weight:600;">Kwame Asante</div><div style="color:#7A7268; font-size:12px;">Lignée Asante</div></div>
+          </div>
+        </div>
+        <!-- correspondances à cocher -->
+        <div style="padding:14px 20px 4px; flex:none;"><span style="font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:2px; color:#7A7268;">CORRESPONDANCES — TOUCHEZ POUR VALIDER</span></div>
+        <div style="padding:8px 20px; flex:1; display:flex; flex-direction:column; gap:10px; overflow:hidden;">
+          <sc-for list="{{ matches }}" as="m" hint-placeholder-count="3">
+            <div onClick="{{ m.toggle }}" style="padding:16px; background:{{ m.bg }}; border:1px solid {{ m.border }}; border-radius:18px; display:flex; gap:14px; align-items:center; cursor:pointer; transition:all 0.2s ease;">
+              <div style="width:30px; height:30px; border-radius:50%; background:{{ m.checkBg }}; border:1.5px solid {{ m.checkBorder }}; display:flex; align-items:center; justify-content:center; flex:none;">
+                <sc-if value="{{ m.checked }}" hint-placeholder-val="{{ false }}"><span style="font-family:'Material Symbols Outlined'; font-size:17px; color:#0C0B0F;">check</span></sc-if>
+              </div>
+              <div style="flex:1; display:flex; flex-direction:column; gap:3px;">
+                <span style="color:#F0EBE1; font-size:14.5px; font-weight:600;">{{ m.title }}</span>
+                <span style="color:#8A8172; font-size:13px; line-height:1.5;">{{ m.detail }}</span>
+              </div>
+              <span style="font-family:'JetBrains Mono',monospace; font-size:10px; color:#70C090;">{{ m.pct }}</span>
+            </div>
+          </sc-for>
+          <div style="padding:12px 16px; background:#16141B; border-radius:14px; display:flex; align-items:center; gap:10px;">
+            <span style="font-family:'Material Symbols Outlined'; font-size:18px; color:#C9A84C;">mic</span>
+            <span style="color:#B8AD9E; font-size:12.5px; line-height:1.5; flex:1;">En doute ? Demandez à un aîné — le récit de Grand-père Joseph mentionne « les cousins d'Asante ».</span>
+            <span style="font-family:'JetBrains Mono',monospace; font-size:10px; color:#C9A84C;">4:12</span>
+          </div>
+        </div>
+        <div style="flex:none; padding:12px 20px 30px; display:flex; flex-direction:column; gap:10px;">
+          <div onClick="{{ confirmLink }}" style="height:54px; background:{{ confirmBg }}; border-radius:16px; display:flex; align-items:center; justify-content:center; gap:8px; color:{{ confirmColor }}; font-weight:700; font-size:15px; cursor:pointer; transition:all 0.25s ease;">
+            <span style="font-family:'Material Symbols Outlined'; font-size:19px;">family_history</span>{{ confirmLabel }}
+          </div>
+          <div onClick="{{ goFeed }}" style="text-align:center; color:#7A7268; font-size:13px; cursor:pointer; padding:6px;">Rejeter cette suggestion</div>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ═══ STEP 2 : ARBRE ═══ -->
+    <sc-if value="{{ isStep2 }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1; display:flex; flex-direction:column; min-height:0; animation:gwFadeUp 0.35s ease; position:relative;">
+        <div style="padding:12px 16px; flex:none; display:flex; align-items:center; gap:10px;">
+          <div onClick="{{ goFeed }}" style="width:44px; height:44px; border-radius:14px; background:#1C1A22; display:flex; align-items:center; justify-content:center; cursor:pointer;"><span style="font-family:'Material Symbols Outlined'; font-size:20px; color:#B8AD9E;">arrow_back</span></div>
+          <div style="display:flex; flex-direction:column; flex:1;">
+            <span style="color:#F0EBE1; font-size:17px; font-weight:700; font-family:Fraunces,serif;">Lignée Mbopda</span>
+            <span style="color:#7A7268; font-size:12px;">{{ memberCount }} membres · 4 générations · Clan Bakoko</span>
+          </div>
+          <div style="height:40px; padding:0 14px; border-radius:99px; background:rgba(201,168,76,0.14); display:flex; align-items:center; gap:6px;"><span style="font-family:'Material Symbols Outlined'; font-size:16px; color:#C9A84C;">auto_stories</span><span style="color:#C9A84C; font-size:12.5px; font-weight:600;">Récit</span></div>
+        </div>
+        <!-- rivière -->
+        <div style="flex:1; overflow:hidden; position:relative; padding:0 20px;">
+          <div style="position:absolute; left:50%; top:0; bottom:0; width:3px; background:linear-gradient(180deg, rgba(122,114,104,0.5), #C9A84C 45%, rgba(201,168,76,0.25)); transform:translateX(-50%);"></div>
+          <div style="position:relative; padding:8px 0 4px; text-align:center;"><span style="font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:2px; color:#7A7268; background:#0C0B0F; padding:2px 10px; position:relative; z-index:1;">G1 · LES FONDATEURS</span></div>
+          <div style="display:flex; justify-content:center; gap:12px; padding-bottom:14px;">
+            <div style="width:140px; padding:12px; background:#16141B; border:1px solid rgba(122,114,104,0.35); border-radius:16px; display:flex; flex-direction:column; align-items:center; gap:6px;">
+              <div style="width:46px; height:46px; border-radius:50%; background:#1C1A22; border:2px solid #7A7268; display:flex; align-items:center; justify-content:center; color:#B8AD9E; font-family:Fraunces,serif; font-size:17px;">J</div>
+              <div style="text-align:center;"><div style="color:#F0EBE1; font-size:13.5px; font-weight:600;">Joseph Mbopda</div><div style="color:#7A7268; font-size:11.5px;">1921 – 1998 ✦</div></div>
+            </div>
+            <div style="width:140px; padding:12px; background:#16141B; border:1px solid rgba(122,114,104,0.35); border-radius:16px; display:flex; flex-direction:column; align-items:center; gap:6px;">
+              <div style="width:46px; height:46px; border-radius:50%; background:#1C1A22; border:2px solid #7A7268; display:flex; align-items:center; justify-content:center; color:#B8AD9E; font-family:Fraunces,serif; font-size:17px;">E</div>
+              <div style="text-align:center;"><div style="color:#F0EBE1; font-size:13.5px; font-weight:600;">Esther Ngo Njock</div><div style="color:#7A7268; font-size:11.5px;">1926 – 2011 ✦</div></div>
+            </div>
+          </div>
+          <div style="position:relative; padding:0 0 4px; text-align:center;"><span style="font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:2px; color:#7A7268; background:#0C0B0F; padding:2px 10px; position:relative; z-index:1;">G2</span></div>
+          <div style="display:flex; justify-content:center; gap:12px; padding-bottom:14px;">
+            <div style="width:140px; padding:12px; background:#16141B; border:1px solid rgba(201,168,76,0.25); border-radius:16px; display:flex; flex-direction:column; align-items:center; gap:6px;">
+              <div style="width:46px; height:46px; border-radius:50%; background:#1C1A22; border:2px solid #C9A84C; display:flex; align-items:center; justify-content:center; color:#F0EBE1; font-family:Fraunces,serif; font-size:17px;">P</div>
+              <div style="text-align:center;"><div style="color:#F0EBE1; font-size:13.5px; font-weight:600;">Paul Mbopda</div><div style="color:#7A7268; font-size:11.5px;">né en 1954</div></div>
+            </div>
+            <div style="width:140px; padding:12px; background:#16141B; border:1px solid rgba(200,120,160,0.3); border-radius:16px; display:flex; flex-direction:column; align-items:center; gap:6px;">
+              <div style="width:46px; height:46px; border-radius:50%; background:#1C1A22; border:2px solid #C878A0; display:flex; align-items:center; justify-content:center; color:#F0EBE1; font-family:Fraunces,serif; font-size:17px;">M</div>
+              <div style="text-align:center;"><div style="color:#F0EBE1; font-size:13.5px; font-weight:600;">Marie Ngo Bassa</div><div style="color:#7A7268; font-size:11.5px;">née en 1958</div></div>
+            </div>
+          </div>
+          <div style="position:relative; padding:0 0 4px; text-align:center;"><span style="font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:2px; color:#C9A84C; background:#0C0B0F; padding:2px 10px; position:relative; z-index:1;">G3 · VOUS</span></div>
+          <div style="display:flex; justify-content:center; gap:12px; align-items:center;">
+            <div style="width:160px; padding:14px; background:linear-gradient(160deg, rgba(201,168,76,0.16), rgba(201,168,76,0.04)); border:1.5px solid rgba(201,168,76,0.6); border-radius:18px; display:flex; flex-direction:column; align-items:center; gap:6px; box-shadow:0 0 26px rgba(201,168,76,0.13);">
+              <div style="width:52px; height:52px; border-radius:50%; background:#C9A84C; display:flex; align-items:center; justify-content:center; color:#0C0B0F; font-family:Fraunces,serif; font-size:20px; font-weight:700;">S</div>
+              <div style="text-align:center;"><div style="color:#F0EBE1; font-size:14.5px; font-weight:700;">Stéphane Mbopda</div><div style="color:#B8AD9E; font-size:11.5px;">1989 · Douala → Paris</div></div>
+            </div>
+            <!-- branche Kwame : dépend de l'état confirmé -->
+            <sc-if value="{{ linkConfirmed }}" hint-placeholder-val="{{ false }}">
+              <div style="width:130px; padding:12px; background:rgba(42,122,92,0.1); border:1.5px solid #2A7A5C; border-radius:16px; display:flex; flex-direction:column; align-items:center; gap:6px; animation:gwFadeUp 0.5s ease;">
+                <div style="width:46px; height:46px; border-radius:50%; background:#0D1F16; border:2px solid #2A7A5C; display:flex; align-items:center; justify-content:center; color:#70C090; font-family:Fraunces,serif; font-size:17px; font-weight:700;">K</div>
+                <div style="text-align:center;"><div style="color:#F0EBE1; font-size:13.5px; font-weight:600;">Kwame Asante</div><div style="color:#70C090; font-size:10.5px; font-family:'JetBrains Mono',monospace;">BRANCHE CONFIRMÉE</div></div>
+              </div>
+            </sc-if>
+            <sc-if value="{{ linkNotConfirmed }}" hint-placeholder-val="{{ false }}">
+              <div style="width:130px; padding:12px; background:rgba(13,31,22,0.6); border:1.5px dashed rgba(42,122,92,0.5); border-radius:16px; display:flex; flex-direction:column; align-items:center; gap:6px;">
+                <div style="width:46px; height:46px; border-radius:50%; background:#0D1F16; border:2px dashed #2A7A5C; display:flex; align-items:center; justify-content:center; color:#70C090; font-family:Fraunces,serif; font-size:17px;">K</div>
+                <div style="text-align:center;"><div style="color:#F0EBE1; font-size:13.5px; font-weight:600;">Kwame Asante</div><div style="color:#70C090; font-size:10.5px; font-family:'JetBrains Mono',monospace;">AFFLUENT · 87%</div></div>
+              </div>
+            </sc-if>
+          </div>
+        </div>
+        <!-- action bar -->
+        <div style="flex:none; margin:10px 20px 26px; padding:8px; background:#16141B; border:1px solid rgba(255,255,255,0.08); border-radius:18px; display:flex; gap:6px;">
+          <div style="flex:1; height:48px; border-radius:12px; background:rgba(201,168,76,0.14); display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer;"><span style="font-family:'Material Symbols Outlined'; font-size:20px; color:#C9A84C;">person_add</span><span style="color:#C9A84C; font-size:10.5px; font-weight:600;">Ajouter</span></div>
+          <div style="flex:1; height:48px; border-radius:12px; display:flex; flex-direction:column; align-items:center; justify-content:center;"><span style="font-family:'Material Symbols Outlined'; font-size:20px; color:#B8AD9E;">mic</span><span style="color:#B8AD9E; font-size:10.5px;">Récit</span></div>
+          <div style="flex:1; height:48px; border-radius:12px; display:flex; flex-direction:column; align-items:center; justify-content:center;"><span style="font-family:'Material Symbols Outlined'; font-size:20px; color:#B8AD9E;">share</span><span style="color:#B8AD9E; font-size:10.5px;">Inviter</span></div>
+        </div>
+        <!-- toast -->
+        <sc-if value="{{ showToast }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute; bottom:104px; left:50%; transform:translateX(-50%); background:#2A7A5C; border-radius:99px; padding:12px 22px; display:flex; align-items:center; gap:10px; box-shadow:0 10px 30px rgba(0,0,0,0.45); animation:gwToast 0.35s ease; white-space:nowrap;">
+            <span style="font-family:'Material Symbols Outlined'; font-size:18px; color:#F0EBE1;">check_circle</span>
+            <span style="color:#F0EBE1; font-size:13.5px; font-weight:600;">Kwame a rejoint la rivière — il en sera informé</span>
+          </div>
+        </sc-if>
+      </div>
+    </sc-if>
+  </div>
+
+  <p style="margin:0; max-width:620px; color:#7A7268; font-size:12px; line-height:1.7; text-align:center;">Interactions : cliquez « Explorer le lien » sur la carte IA · validez les 3 correspondances (le bouton s'active) · confirmez → l'arbre s'ouvre, la branche Kwame passe de pointillé « affluent » à confirmée, avec toast. Le stepper en haut permet de naviguer librement.</p>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = {
+    step: 0,
+    checks: [false, false, false],
+    linkConfirmed: false,
+    showToast: false,
+  };
+
+  go(step) {
+    this.setState({ step, showToast: false });
+  }
+
+  renderVals() {
+    const { step, checks, linkConfirmed, showToast } = this.state;
+    const allChecked = checks.every(Boolean);
+    const nChecked = checks.filter(Boolean).length;
+
+    const matchData = [
+      { title: 'Lignée « Bakoko-Ndogbélé »', detail: 'Présente dans vos deux arbres, orthographes proches.', pct: '92%' },
+      { title: 'Ancêtre « Asante Mbog »', detail: 'Cité dans le récit audio de Grand-père Joseph (1994).', pct: '84%' },
+      { title: 'Village d\u2019origine : Edéa', detail: 'Les deux familles y sont établies avant 1930.', pct: '86%' },
+    ];
+
+    const stepNames = ['1 · FIL', '2 · VÉRIFIER', '3 · ARBRE'];
+
+    return {
+      isStep0: step === 0,
+      isStep1: step === 1,
+      isStep2: step === 2,
+      linkConfirmed,
+      linkNotConfirmed: !linkConfirmed,
+      showToast,
+      memberCount: linkConfirmed ? 15 : 14,
+
+      goFeed: () => this.go(0),
+      goVerify: () => this.go(1),
+      goTreeDirect: () => this.go(2),
+      dismissToastInfo: () => this.go(0),
+
+      confirmLabel: allChecked ? 'Confirmer le lien familial' : 'Validez les ' + (3 - nChecked) + ' correspondance' + (3 - nChecked > 1 ? 's' : '') + ' restantes',
+      confirmBg: allChecked ? '#2A7A5C' : '#1C1A22',
+      confirmColor: allChecked ? '#F0EBE1' : '#7A7268',
+      confirmLink: () => {
+        if (!this.state.checks.every(Boolean)) return;
+        this.setState({ linkConfirmed: true, step: 2, showToast: true });
+        clearTimeout(this._toastT);
+        this._toastT = setTimeout(() => this.setState({ showToast: false }), 3200);
+      },
+
+      stepDots: stepNames.map((label, i) => ({
+        label,
+        go: () => this.go(i),
+        bg: step === i ? 'rgba(201,168,76,0.16)' : '#16141B',
+        border: step === i ? 'rgba(201,168,76,0.45)' : 'rgba(255,255,255,0.08)',
+        color: step === i ? '#C9A84C' : '#7A7268',
+      })),
+
+      matches: matchData.map((m, i) => ({
+        ...m,
+        checked: checks[i],
+        toggle: () => {
+          const next = [...this.state.checks];
+          next[i] = !next[i];
+          this.setState({ checks: next });
+        },
+        bg: checks[i] ? 'rgba(42,122,92,0.1)' : '#16141B',
+        border: checks[i] ? 'rgba(42,122,92,0.45)' : 'rgba(255,255,255,0.07)',
+        checkBg: checks[i] ? '#70C090' : 'transparent',
+        checkBorder: checks[i] ? '#70C090' : 'rgba(255,255,255,0.25)',
+      })),
+    };
+  }
+}
+</script>
+</body>
+</html>

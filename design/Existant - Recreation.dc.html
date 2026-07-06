@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <meta name="design_doc_mode" content="canvas">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,300..700,0..1,0&display=swap" rel="stylesheet">
+  <style>
+    body { margin:0; background:#141216; }
+  </style>
+</helmet>
+
+<section style="padding:48px; font-family:Roboto,sans-serif;">
+  <div style="display:flex; flex-direction:column; gap:16px; margin-bottom:32px;">
+    <div style="display:flex; align-items:center; gap:12px;">
+      <span style="display:inline-flex; align-items:center; justify-content:center; min-width:34px; height:34px; border-radius:8px; background:#C8A020; color:#0D0D0D; font-weight:700; font-size:14px;">1</span>
+      <h1 style="margin:0; color:#F5F0E8; font-size:22px; font-weight:700;">GWANG MEU — Recréation de l'existant (Flutter)</h1>
+    </div>
+    <p style="margin:0; color:#999; font-size:13px; max-width:720px;">Copie fidèle des écrans actuels d'après le code source (app_theme.dart, post_card.dart, tree_tokens.dart…). Sert de référence pour l'audit et la refonte. Voir <a href="Audit UX Experts.dc.html" style="color:#C8A020;">l'audit expert</a> et <a href="Refonte IHM.dc.html" style="color:#C8A020;">la refonte</a>.</p>
+  </div>
+
+  <div style="display:flex; flex-wrap:wrap; gap:40px; align-items:flex-start;">
+
+    <!-- ══════════ 1a — FEED MOBILE ══════════ -->
+    <div id="1a" style="display:flex; flex-direction:column; gap:10px;">
+      <div style="display:flex; align-items:center; gap:8px;"><span style="background:#2E2B3C; color:#C8A020; font-family:monospace; font-size:11px; padding:2px 8px; border-radius:4px;">1a</span><span style="color:#999; font-size:12px; font-family:monospace;">Feed — mobile (existant)</span></div>
+      <div data-screen-label="Feed mobile existant" style="width:390px; height:1240px; background:#0D0D0D; border-radius:24px; border:1px solid #333; overflow:hidden; display:flex; flex-direction:column; position:relative;">
+        <!-- AppBar -->
+        <div style="height:56px; display:flex; align-items:center; padding:0 8px 0 16px; background:#0D0D0D; flex:none;">
+          <div style="display:flex; align-items:center; gap:10px; flex:1;">
+            <span style="font-family:'Material Symbols Outlined'; font-size:28px; color:#C8A020;">language</span>
+            <span style="color:#C8A020; font-weight:700; letter-spacing:1.5px; font-size:18px;">GWANG MEU</span>
+          </div>
+          <span style="font-family:'Material Symbols Outlined'; font-size:24px; color:#F5F0E8; padding:12px;">notifications</span>
+        </div>
+        <!-- Scroll content -->
+        <div style="flex:1; overflow:hidden; display:flex; flex-direction:column; gap:0;">
+          <!-- Stories row -->
+          <div style="display:flex; gap:8px; padding:8px 16px 4px; overflow:hidden; flex:none;">
+            <div style="width:110px; height:180px; flex:none; background:#1A1A1A; border:1px solid rgba(255,255,255,0.12); border-radius:14px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px;">
+              <div style="width:42px; height:42px; border-radius:50%; background:rgba(200,160,32,0.08); display:flex; align-items:center; justify-content:center;"><span style="font-family:'Material Symbols Outlined'; font-size:22px; color:#C8A020;">add</span></div>
+              <span style="color:#999; font-size:12px; font-weight:500;">Ajouter</span>
+            </div>
+            <div style="width:110px; height:180px; flex:none; border-radius:14px; position:relative; overflow:hidden; background:linear-gradient(135deg,#1A3300,#4A8800);">
+              <div style="position:absolute; inset:0; background:linear-gradient(to bottom, rgba(0,0,0,0.2), rgba(0,0,0,0.7));"></div>
+              <div style="position:absolute; top:10px; left:0; right:0; display:flex; justify-content:center;"><div style="width:40px; height:40px; border-radius:50%; border:2.5px solid #C8A020; background:#C8A020; display:flex; align-items:center; justify-content:center; color:#0D0D0D; font-weight:700;">A</div></div>
+              <div style="position:absolute; bottom:26px; left:0; right:0; text-align:center; color:rgba(255,255,255,0.7); font-size:10px;">Bassa-Likoko</div>
+              <div style="position:absolute; bottom:10px; left:6px; right:6px; text-align:center; color:#fff; font-size:11.5px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Amara K.</div>
+            </div>
+            <div style="width:110px; height:180px; flex:none; border-radius:14px; position:relative; overflow:hidden; background:linear-gradient(135deg,#3A1A00,#8A5200);">
+              <div style="position:absolute; inset:0; background:linear-gradient(to bottom, rgba(0,0,0,0.2), rgba(0,0,0,0.7));"></div>
+              <div style="position:absolute; top:10px; left:0; right:0; display:flex; justify-content:center;"><div style="width:40px; height:40px; border-radius:50%; border:2.5px solid #C8A020; background:#C8A020; display:flex; align-items:center; justify-content:center; color:#0D0D0D; font-weight:700;">F</div></div>
+              <div style="position:absolute; bottom:26px; left:0; right:0; text-align:center; color:rgba(255,255,255,0.7); font-size:10px;">Foumbot</div>
+              <div style="position:absolute; bottom:10px; left:6px; right:6px; text-align:center; color:#fff; font-size:11.5px; font-weight:600;">Fanta K.</div>
+            </div>
+            <div style="width:110px; height:180px; flex:none; border-radius:14px; position:relative; overflow:hidden; background:linear-gradient(135deg,#1A0A3A,#4A2080);">
+              <div style="position:absolute; inset:0; background:linear-gradient(to bottom, rgba(0,0,0,0.2), rgba(0,0,0,0.7));"></div>
+              <div style="position:absolute; top:8px; right:8px; background:rgba(232,76,10,0.8); color:#fff; font-size:7px; font-weight:700; padding:2px 5px; border-radius:4px;">REPLAY</div>
+              <div style="position:absolute; top:10px; left:0; right:0; display:flex; justify-content:center;"><div style="width:40px; height:40px; border-radius:50%; border:2.5px solid #C8A020; background:#C8A020; display:flex; align-items:center; justify-content:center; color:#0D0D0D; font-weight:700;">C</div></div>
+              <div style="position:absolute; bottom:26px; left:0; right:0; text-align:center; color:rgba(255,255,255,0.7); font-size:10px;">Live replay</div>
+              <div style="position:absolute; bottom:10px; left:6px; right:6px; text-align:center; color:#fff; font-size:11.5px; font-weight:600;">Cours Bassa</div>
+            </div>
+          </div>
+          <!-- Compose box -->
+          <div style="margin:8px 16px; background:#1A1A1A; border:0.5px solid rgba(255,255,255,0.16); border-radius:14px; flex:none;">
+            <div style="display:flex; align-items:center; gap:10px; padding:14px 14px 12px;">
+              <div style="width:40px; height:40px; border-radius:50%; background:rgba(200,160,32,0.16); display:flex; align-items:center; justify-content:center; color:#C8A020; font-weight:600;">S</div>
+              <div style="flex:1; padding:10px 18px; background:rgba(46,43,60,0.35); border:1px solid rgba(255,255,255,0.12); border-radius:25px; color:#666; font-size:12px;">Quoi de neuf dans votre village ?</div>
+            </div>
+            <div style="height:1px; background:rgba(255,255,255,0.12);"></div>
+            <div style="display:flex; padding:4px;">
+              <div style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px; padding:8px 0;"><span style="font-family:'Material Symbols Outlined'; font-size:18px; color:#E84C0A;">videocam</span><span style="color:#F5F0E8; font-size:12px; font-weight:600;">Live video</span></div>
+              <div style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px; padding:8px 0;"><span style="font-family:'Material Symbols Outlined'; font-size:18px; color:#4CAF50;">photo</span><span style="color:#F5F0E8; font-size:12px; font-weight:600;">Photo</span></div>
+              <div style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px; padding:8px 0;"><span style="font-family:'Material Symbols Outlined'; font-size:18px; color:#2196F3;">location_city</span><span style="color:#F5F0E8; font-size:12px; font-weight:600;">Village</span></div>
+            </div>
+          </div>
+          <!-- Village highlight -->
+          <div style="margin:0 16px 8px; padding:16px; border-radius:14px; background:linear-gradient(90deg,#1A1A1A, rgba(200,160,32,0.04)); border:1px solid rgba(200,160,32,0.08); border-left:3px solid #C8A020; display:flex; align-items:center; gap:14px; flex:none;">
+            <div style="width:52px; height:52px; border-radius:10px; background:rgba(200,160,32,0.08); display:flex; align-items:center; justify-content:center;"><span style="font-family:'Material Symbols Outlined'; font-size:24px; color:#C8A020;">location_city</span></div>
+            <div style="flex:1; display:flex; flex-direction:column; gap:4px;">
+              <span style="color:#F5F0E8; font-size:14px; font-weight:600;">Bassa-Likoko</span>
+              <div style="display:flex; gap:8px; color:#999; font-size:11px;"><span>Cameroun</span><span>1247 membres</span><span>Bassa</span></div>
+            </div>
+            <div style="background:#C8A020; color:#000; font-size:12px; font-weight:700; padding:7px 16px; border-radius:20px;">+ Rejoindre</div>
+          </div>
+          <!-- Post 1 : large text -->
+          <div style="margin:6px 16px; background:#1A1A1A; border:0.5px solid rgba(255,255,255,0.16); border-radius:14px; overflow:hidden; flex:none;">
+            <div style="display:flex; gap:10px; padding:14px 14px 10px; align-items:flex-start;">
+              <div style="width:42px; height:42px; border-radius:50%; background:rgba(200,160,32,0.16); display:flex; align-items:center; justify-content:center; color:#C8A020; font-weight:600; font-size:17px;">A</div>
+              <div style="flex:1; display:flex; flex-direction:column; gap:2px;">
+                <span style="color:#F5F0E8; font-size:14px; font-weight:700;">Amara Kouassi</span>
+                <div style="display:flex; gap:4px; align-items:center;"><span style="color:#C8A020; font-size:12px; font-weight:500;">Bassa-Likoko</span><span style="color:#999; font-size:12px;">·</span><span style="color:#999; font-size:11px; font-family:monospace;">2h</span></div>
+              </div>
+              <span style="font-family:'Material Symbols Outlined'; font-size:18px; color:#999;">more_horiz</span>
+            </div>
+            <div style="padding:0 16px 12px;">
+              <p style="margin:0; color:#F5F0E8; font-size:18px; font-weight:600; font-style:italic; line-height:1.5;">Les langues africaines sont les gardiens invisibles de notre âme collective. Chaque mot en Bassa porte des siècles de sagesse.</p>
+              <div style="display:flex; gap:4px; margin-top:8px; flex-wrap:wrap;"><span style="color:#C8A020; font-size:12px; font-weight:500;">#Bassa</span><span style="color:#C8A020; font-size:12px; font-weight:500;">#LanguesAfricaines</span><span style="color:#C8A020; font-size:12px; font-weight:500;">#Heritage</span></div>
+            </div>
+            <div style="display:flex; align-items:center; padding:8px 16px; border-top:1px solid rgba(255,255,255,0.12);">
+              <div style="display:flex; align-items:center;"><span style="width:20px; height:20px; border-radius:50%; background:#1A1A1A; border:1.5px solid #1A1A1A; display:inline-flex; align-items:center; justify-content:center; font-size:10px;">❤️</span><span style="width:20px; height:20px; border-radius:50%; background:#1A1A1A; border:1.5px solid #1A1A1A; display:inline-flex; align-items:center; justify-content:center; font-size:10px; margin-left:-10px;">🔥</span><span style="width:20px; height:20px; border-radius:50%; background:#1A1A1A; border:1.5px solid #1A1A1A; display:inline-flex; align-items:center; justify-content:center; font-size:10px; margin-left:-10px;">👏</span></div>
+              <span style="color:#999; font-size:12px; margin-left:6px;">247 reactions</span>
+              <span style="flex:1;"></span>
+              <span style="color:#999; font-size:12px;">38 commentaires · 12 partages</span>
+            </div>
+            <div style="display:flex; padding:6px 10px; border-top:1px solid rgba(255,255,255,0.12);">
+              <div style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px; padding:8px 0;"><span style="font-family:'Material Symbols Outlined'; font-size:18px; color:#999;">favorite</span><span style="color:#999; font-size:13px; font-weight:600;">J'aime</span></div>
+              <div style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px; padding:8px 0;"><span style="font-family:'Material Symbols Outlined'; font-size:18px; color:#999;">chat_bubble</span><span style="color:#999; font-size:13px; font-weight:600;">Commenter</span></div>
+              <div style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px; padding:8px 0;"><span style="font-family:'Material Symbols Outlined'; font-size:18px; color:#999;">share</span><span style="color:#999; font-size:13px; font-weight:600;">Partager</span></div>
+            </div>
+          </div>
+          <!-- Post 2 : AI suggestion -->
+          <div style="margin:6px 16px; background:#1A1A1A; border:0.5px solid rgba(200,160,32,0.2); border-radius:14px; overflow:hidden; flex:none;">
+            <div style="display:flex; align-items:center; gap:10px; padding:12px 16px; background:linear-gradient(90deg, rgba(200,160,32,0.06), transparent); border-bottom:1px solid rgba(255,255,255,0.12);">
+              <span style="font-family:'Material Symbols Outlined'; font-size:20px; color:#C8A020;">auto_awesome</span>
+              <div style="flex:1; display:flex; flex-direction:column;">
+                <span style="color:#C8A020; font-size:12px; font-weight:700;">Suggestion Claude AI</span>
+                <span style="color:#999; font-size:11px;">Lien familial probable détecté</span>
+              </div>
+              <span style="color:#C8A020; font-size:10px; font-weight:600; font-family:monospace; background:rgba(200,160,32,0.08); border:1px solid rgba(200,160,32,0.2); padding:3px 9px; border-radius:20px;">Confiance 87%</span>
+            </div>
+            <div style="display:flex; gap:10px; padding:14px 14px 10px; align-items:flex-start;">
+              <div style="width:42px; height:42px; border-radius:50%; background:rgba(200,160,32,0.16); display:flex; align-items:center; justify-content:center; color:#C8A020; font-weight:600; font-size:17px;">C</div>
+              <div style="flex:1; display:flex; flex-direction:column; gap:2px;">
+                <span style="color:#F5F0E8; font-size:14px; font-weight:700;">Claude AI</span>
+                <div style="display:flex; gap:4px; align-items:center;"><span style="color:#C8A020; font-size:12px; font-weight:500;">Bassa-Likoko</span><span style="color:#999; font-size:11px; font-family:monospace;">· 1h</span></div>
+              </div>
+              <span style="font-family:'Material Symbols Outlined'; font-size:18px; color:#999;">more_horiz</span>
+            </div>
+            <div style="padding:0 16px 12px;"><p style="margin:0; color:#F5F0E8; font-size:14px; line-height:1.7;">Kwame Asante et vous partagez probablement un ancêtre commun du clan Bakoko. Vos arbres généalogiques présentent 3 correspondances sur les noms de lignées.</p></div>
+            <div style="display:flex; padding:6px 10px; border-top:1px solid rgba(255,255,255,0.12);">
+              <div style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px; padding:8px 0;"><span style="font-family:'Material Symbols Outlined'; font-size:18px; color:#C8A020;">account_tree</span><span style="color:#C8A020; font-size:13px; font-weight:600;">Voir l'arbre</span></div>
+              <div style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px; padding:8px 0;"><span style="font-family:'Material Symbols Outlined'; font-size:18px; color:#999;">check_circle</span><span style="color:#999; font-size:13px; font-weight:600;">Confirmer</span></div>
+              <div style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px; padding:8px 0;"><span style="font-family:'Material Symbols Outlined'; font-size:18px; color:#999;">cancel</span><span style="color:#999; font-size:13px; font-weight:600;">Rejeter</span></div>
+            </div>
+          </div>
+          <!-- Post 3 : live -->
+          <div style="margin:6px 16px; background:#1A1A1A; border:0.5px solid rgba(255,255,255,0.16); border-radius:14px; overflow:hidden; flex:none;">
+            <div style="display:flex; gap:10px; padding:14px 14px 10px; align-items:flex-start;">
+              <div style="width:42px; height:42px; border-radius:50%; background:rgba(200,160,32,0.16); display:flex; align-items:center; justify-content:center; color:#C8A020; font-weight:600; font-size:17px;">P</div>
+              <div style="flex:1; display:flex; flex-direction:column; gap:2px;">
+                <div style="display:flex; align-items:center; gap:6px;"><span style="color:#F5F0E8; font-size:14px; font-weight:700;">Prof. Jean-Baptiste Nkomo</span><span style="background:rgba(200,160,32,0.08); color:#C8A020; font-size:9px; font-weight:700; font-family:monospace; padding:1px 6px; border-radius:20px;">AMBASSADEUR</span></div>
+                <div style="display:flex; gap:6px; align-items:center;"><span style="color:#C8A020; font-size:12px; font-weight:500;">Yaoundé - Centre</span><span style="color:#999; font-size:11px; font-family:monospace;">· En direct</span><span style="background:#E84C0A; color:#fff; font-size:10px; font-weight:700; letter-spacing:0.5px; padding:2px 8px; border-radius:20px; display:inline-flex; align-items:center; gap:4px;"><span style="width:6px; height:6px; border-radius:50%; background:#fff;"></span>LIVE</span></div>
+              </div>
+            </div>
+            <div style="padding:0 16px 12px;"><p style="margin:0; color:#F5F0E8; font-size:14px; line-height:1.7;">Cours de prononciation Bassa - Niveau 2. Rejoignez-nous !</p></div>
+            <div style="aspect-ratio:16/9; background:linear-gradient(135deg, rgba(0,0,0,0.94), #1A1A3A); position:relative; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px;">
+              <span style="font-family:'Material Symbols Outlined'; font-size:52px; color:rgba(255,255,255,0.34);">mic</span>
+              <span style="color:rgba(255,255,255,0.38); font-size:12px;">Cliquez pour rejoindre le live</span>
+              <div style="position:absolute; bottom:10px; left:10px; background:rgba(0,0,0,0.7); border-radius:20px; padding:4px 10px; display:flex; align-items:center; gap:8px;">
+                <span style="background:#E84C0A; color:#fff; font-size:10px; font-weight:700; letter-spacing:0.5px; padding:2px 8px; border-radius:20px; display:inline-flex; align-items:center; gap:4px;"><span style="width:6px; height:6px; border-radius:50%; background:#fff;"></span>LIVE</span>
+                <span style="color:rgba(255,255,255,0.7); font-size:11px;">143 spectateurs</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Bottom nav -->
+        <div style="flex:none; background:#1A1A1A; border-top:0.5px solid #333; display:flex; padding:8px 0 20px; position:relative;">
+          <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:2px;"><span style="font-family:'Material Symbols Outlined'; font-variation-settings:'FILL' 1; font-size:24px; color:#C8A020;">home</span><span style="color:#C8A020; font-size:11px;">Accueil</span></div>
+          <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:2px;"><span style="font-family:'Material Symbols Outlined'; font-size:24px; color:#999;">location_city</span><span style="color:#999; font-size:11px;">Villages</span></div>
+          <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:2px;"><span style="font-family:'Material Symbols Outlined'; font-size:24px; color:#999;">account_tree</span><span style="color:#999; font-size:11px;">Généalogie</span></div>
+          <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:2px;"><span style="font-family:'Material Symbols Outlined'; font-size:24px; color:#999;">search</span><span style="color:#999; font-size:11px;">Recherche</span></div>
+          <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:2px;"><span style="font-family:'Material Symbols Outlined'; font-size:24px; color:#999;">person</span><span style="color:#999; font-size:11px;">Profil</span></div>
+        </div>
+        <!-- FAB -->
+        <div style="position:absolute; right:16px; bottom:96px; width:56px; height:56px; border-radius:16px; background:#C8A020; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 12px rgba(0,0,0,0.4);"><span style="font-family:'Material Symbols Outlined'; font-size:26px; color:#000;">add</span></div>
+      </div>
+    </div>
+
+    <!-- ══════════ 1b — VILLAGES MOBILE ══════════ -->
+    <div id="1b" style="display:flex; flex-direction:column; gap:10px;">
+      <div style="display:flex; align-items:center; gap:8px;"><span style="background:#2E2B3C; color:#C8A020; font-family:monospace; font-size:11px; padding:2px 8px; border-radius:4px;">1b</span><span style="color:#999; font-size:12px; font-family:monospace;">Villages — mobile (existant)</span></div>
+      <div data-screen-label="Villages mobile existant" style="width:390px; height:844px; background:#0D0D0D; border-radius:24px; border:1px solid #333; overflow:hidden; display:flex; flex-direction:column; position:relative;">
+        <div style="height:56px; display:flex; align-items:center; padding:0 8px 0 16px; flex:none;">
+          <span style="color:#F5F0E8; font-size:18px; font-weight:600; flex:1;">Villages</span>
+          <span style="font-family:'Material Symbols Outlined'; font-size:24px; color:#F5F0E8; padding:12px;">search</span>
+        </div>
+        <div style="display:flex; border-bottom:1px solid rgba(255,255,255,0.12); flex:none;">
+          <div style="flex:1; text-align:center; padding:12px 0; color:#C8A020; font-size:14px; font-weight:600; border-bottom:2px solid #C8A020;">Découvrir</div>
+          <div style="flex:1; text-align:center; padding:12px 0; color:#999; font-size:14px;">Mes villages</div>
+        </div>
+        <div style="flex:1; overflow:hidden; padding:16px; display:grid; grid-template-columns:1fr 1fr; gap:12px; align-content:start;">
+          <sc-for list="{{ villages }}" as="v" hint-placeholder-count="6">
+            <div style="background:#1A1A1A; border:0.5px solid #333; border-radius:12px; overflow:hidden; height:224px; display:flex; flex-direction:column;">
+              <div style="aspect-ratio:16/9; background:#242424; display:flex; align-items:center; justify-content:center;"><span style="font-family:'Material Symbols Outlined'; font-size:32px; color:#666;">landscape</span></div>
+              <div style="padding:12px; display:flex; flex-direction:column; gap:4px;">
+                <div style="display:flex; align-items:center; gap:4px;"><span style="color:#F5F0E8; font-size:14px; font-weight:500; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ v.name }}</span><sc-if value="{{ v.verified }}" hint-placeholder-val="{{ false }}"><span style="font-family:'Material Symbols Outlined'; font-variation-settings:'FILL' 1; font-size:14px; color:#C8A020;">verified</span></sc-if></div>
+                <span style="color:#999; font-size:12px;">{{ v.meta }}</span>
+                <div style="display:flex; align-items:center; gap:4px; margin-top:4px;"><span style="font-family:'Material Symbols Outlined'; font-size:13px; color:#999;">group</span><span style="color:#999; font-size:12px;">{{ v.members }} membres</span></div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="flex:none; background:#1A1A1A; border-top:0.5px solid #333; display:flex; padding:8px 0 20px;">
+          <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:2px;"><span style="font-family:'Material Symbols Outlined'; font-size:24px; color:#999;">home</span><span style="color:#999; font-size:11px;">Accueil</span></div>
+          <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:2px;"><span style="font-family:'Material Symbols Outlined'; font-variation-settings:'FILL' 1; font-size:24px; color:#C8A020;">location_city</span><span style="color:#C8A020; font-size:11px;">Villages</span></div>
+          <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:2px;"><span style="font-family:'Material Symbols Outlined'; font-size:24px; color:#999;">account_tree</span><span style="color:#999; font-size:11px;">Généalogie</span></div>
+          <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:2px;"><span style="font-family:'Material Symbols Outlined'; font-size:24px; color:#999;">search</span><span style="color:#999; font-size:11px;">Recherche</span></div>
+          <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:2px;"><span style="font-family:'Material Symbols Outlined'; font-size:24px; color:#999;">person</span><span style="color:#999; font-size:11px;">Profil</span></div>
+        </div>
+        <div style="position:absolute; right:16px; bottom:96px; width:56px; height:56px; border-radius:16px; background:#C8A020; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 12px rgba(0,0,0,0.4);"><span style="font-family:'Material Symbols Outlined'; font-size:26px; color:#000;">add</span></div>
+      </div>
+    </div>
+
+    <!-- ══════════ 1c — AUTH LOGIN ══════════ -->
+    <div id="1c" style="display:flex; flex-direction:column; gap:10px;">
+      <div style="display:flex; align-items:center; gap:8px;"><span style="background:#2E2B3C; color:#C8A020; font-family:monospace; font-size:11px; padding:2px 8px; border-radius:4px;">1c</span><span style="color:#999; font-size:12px; font-family:monospace;">Auth / Connexion (existant)</span></div>
+      <div data-screen-label="Auth existant" style="width:390px; height:844px; background:#0D0D0D; border-radius:24px; border:1px solid #333; overflow:hidden; display:flex; flex-direction:column; align-items:center; padding:56px 28px 24px;">
+        <div style="width:64px; height:64px; border-radius:16px; background:linear-gradient(135deg,#9A7810,#C8A020,#E8C040); display:flex; align-items:center; justify-content:center; color:#000; font-weight:700; font-size:28px; box-shadow:0 4px 20px rgba(200,160,32,0.25);">G</div>
+        <div style="height:40px;"></div>
+        <div style="width:100%; display:flex; flex-direction:column; gap:6px;">
+          <h2 style="margin:0; color:#F5F0E8; font-size:22px; font-weight:600;">Connexion</h2>
+          <span style="color:#999; font-size:14px;">Retrouvez votre communauté</span>
+        </div>
+        <div style="height:24px;"></div>
+        <div style="width:100%; display:flex; flex-direction:column; gap:14px;">
+          <div style="display:flex; align-items:center; gap:10px; background:#242424; border:1px solid #333; border-radius:12px; padding:14px 16px;">
+            <span style="font-family:'Material Symbols Outlined'; font-size:20px; color:#666;">mail</span>
+            <span style="color:#666; font-size:14px;">nom@exemple.com</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:10px; background:#242424; border:1px solid #333; border-radius:12px; padding:14px 16px;">
+            <span style="font-family:'Material Symbols Outlined'; font-size:20px; color:#666;">lock</span>
+            <span style="color:#666; font-size:14px; flex:1;">Minimum 6 caractères</span>
+            <span style="font-family:'Material Symbols Outlined'; font-size:20px; color:#666;">visibility</span>
+          </div>
+        </div>
+        <div style="width:100%; text-align:right; padding:8px 0;"><span style="color:#C8A020; font-size:13px;">Mot de passe oublié ?</span></div>
+        <div style="width:100%; height:50px; background:#C8A020; border-radius:12px; display:flex; align-items:center; justify-content:center; color:#000; font-weight:600; font-size:15px;">Se connecter</div>
+        <div style="height:14px;"></div>
+        <div style="width:100%; height:50px; border:1px solid #C8A020; border-radius:12px; display:flex; align-items:center; justify-content:center; gap:8px; color:#C8A020; font-weight:600; font-size:15px;"><span style="font-family:'Material Symbols Outlined'; font-size:18px;">person_add</span>Créer un compte</div>
+        <div style="width:100%; display:flex; align-items:center; gap:12px; padding:28px 0 20px;"><div style="flex:1; height:1px; background:#333;"></div><span style="color:#666; font-size:12px;">ou continuer avec</span><div style="flex:1; height:1px; background:#333;"></div></div>
+        <div style="width:100%; display:flex; gap:10px;">
+          <div style="flex:1; height:46px; background:#1A1A1A; border:1px solid #333; border-radius:12px; display:flex; align-items:center; justify-content:center; color:#F5F0E8; font-size:13px; font-weight:600;">Google</div>
+          <div style="flex:1; height:46px; background:#1A1A1A; border:1px solid #333; border-radius:12px; display:flex; align-items:center; justify-content:center; color:#F5F0E8; font-size:13px; font-weight:600;">Facebook</div>
+          <div style="flex:1; height:46px; background:#1A1A1A; border:1px solid #333; border-radius:12px; display:flex; align-items:center; justify-content:center; color:#F5F0E8; font-size:13px; font-weight:600;">Apple</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════ 1d — GÉNÉALOGIE DESKTOP ══════════ -->
+    <div id="1d" style="display:flex; flex-direction:column; gap:10px;">
+      <div style="display:flex; align-items:center; gap:8px;"><span style="background:#2E2B3C; color:#C8A020; font-family:monospace; font-size:11px; padding:2px 8px; border-radius:4px;">1d</span><span style="color:#999; font-size:12px; font-family:monospace;">Généalogie — desktop 3 colonnes (existant)</span></div>
+      <div data-screen-label="Genealogie desktop existant" style="width:1440px; height:860px; background:#08080A; border-radius:12px; border:1px solid #333; overflow:hidden; display:flex; flex-direction:column;">
+        <!-- Shell : rail + topbar -->
+        <div style="flex:1; display:flex; min-height:0;">
+          <!-- Icon rail -->
+          <div style="width:64px; flex:none; border-right:1px solid rgba(255,255,255,0.12); display:flex; flex-direction:column; align-items:center;">
+            <div style="height:52px; width:100%; border-bottom:1px solid rgba(255,255,255,0.12); display:flex; align-items:center; justify-content:center;"><div style="width:30px; height:30px; border-radius:7px; background:linear-gradient(135deg,#9A7810,#C8A020,#E8C040); display:flex; align-items:center; justify-content:center; color:#08080A; font-weight:600; font-size:16px; box-shadow:0 2px 12px rgba(200,160,32,0.25);">G</div></div>
+            <div style="padding:12px 0; display:flex; flex-direction:column; align-items:center; gap:2px; flex:1;">
+              <div style="width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:17px;">📰</div>
+              <div style="width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:17px;">👤</div>
+              <div style="width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:17px;">🏘</div>
+              <div style="width:40px; height:40px; border-radius:10px; background:rgba(200,160,32,0.07); display:flex; align-items:center; justify-content:center; font-size:17px; box-shadow:inset 2px 0 0 #C8A020;">🌳</div>
+              <div style="width:28px; height:1px; background:rgba(255,255,255,0.12); margin:6px 0;"></div>
+              <div style="width:40px; height:40px; position:relative; display:flex; align-items:center; justify-content:center; font-size:17px;">🎓<span style="position:absolute; top:2px; right:2px; min-width:15px; height:15px; background:#C8A020; color:#08080A; font-size:7.5px; font-family:monospace; border-radius:99px; border:1.5px solid #08080A; display:flex; align-items:center; justify-content:center;">4</span></div>
+              <div style="width:40px; height:40px; position:relative; display:flex; align-items:center; justify-content:center; font-size:17px;">🔴<span style="position:absolute; top:2px; right:2px; min-width:15px; height:15px; background:#C8A020; color:#08080A; font-size:7.5px; font-family:monospace; border-radius:99px; border:1.5px solid #08080A; display:flex; align-items:center; justify-content:center;">2</span></div>
+              <div style="width:28px; height:1px; background:rgba(255,255,255,0.12); margin:6px 0;"></div>
+              <div style="width:40px; height:40px; display:flex; align-items:center; justify-content:center; font-size:17px;">🗺</div>
+              <div style="width:40px; height:40px; display:flex; align-items:center; justify-content:center; font-size:17px;">💼</div>
+              <div style="width:40px; height:40px; position:relative; display:flex; align-items:center; justify-content:center; font-size:17px;">💬<span style="position:absolute; top:2px; right:2px; min-width:15px; height:15px; background:#C8A020; color:#08080A; font-size:7.5px; font-family:monospace; border-radius:99px; border:1.5px solid #08080A; display:flex; align-items:center; justify-content:center;">3</span></div>
+            </div>
+            <div style="width:32px; height:32px; border-radius:50%; background:linear-gradient(135deg,#9A7810,#C8A020); border:1.5px solid rgba(200,160,32,0.18); display:flex; align-items:center; justify-content:center; color:#08080A; font-size:11px; font-weight:600; margin-bottom:16px;">SM</div>
+          </div>
+          <!-- Main -->
+          <div style="flex:1; display:flex; flex-direction:column; min-width:0;">
+            <!-- TopBar -->
+            <div style="height:52px; flex:none; border-bottom:1px solid rgba(255,255,255,0.12); display:flex; align-items:center; padding:0 28px; gap:16px;">
+              <div style="display:flex; align-items:center; gap:8px; font-family:monospace; font-size:9px; letter-spacing:1.2px;"><span style="color:#666;">GWANG MEU</span><span style="color:#666;">—</span><span style="color:#C8A020;">GÉNÉALOGIE</span></div>
+              <span style="flex:1;"></span>
+              <div style="width:320px; height:32px; border-radius:99px; background:#242424; border:1px solid rgba(255,255,255,0.12); display:flex; align-items:center; padding:0 12px; gap:8px;"><span style="font-family:'Material Symbols Outlined'; font-size:14px; color:#666;">search</span><span style="color:#666; font-size:12px;">Rechercher…</span></div>
+              <div style="width:32px; height:32px; border-radius:50%; background:#242424; border:1px solid rgba(255,255,255,0.12); display:flex; align-items:center; justify-content:center; position:relative;"><span style="font-family:'Material Symbols Outlined'; font-size:14px; color:#999;">notifications</span><span style="position:absolute; top:5px; right:5px; width:7px; height:7px; background:#C8A020; border-radius:50%; border:1.5px solid #08080A;"></span></div>
+              <div style="width:32px; height:32px; border-radius:50%; background:#242424; border:1px solid rgba(255,255,255,0.12); display:flex; align-items:center; justify-content:center;"><span style="font-family:'Material Symbols Outlined'; font-size:14px; color:#999;">group</span></div>
+              <div style="width:32px; height:32px; border-radius:50%; background:#242424; border:1px solid rgba(255,255,255,0.12); display:flex; align-items:center; justify-content:center; position:relative;"><span style="font-family:'Material Symbols Outlined'; font-size:14px; color:#999;">chat_bubble</span><span style="position:absolute; top:5px; right:5px; width:7px; height:7px; background:#C8A020; border-radius:50%; border:1.5px solid #08080A;"></span></div>
+            </div>
+            <!-- 3 columns -->
+            <div style="flex:1; display:flex; min-height:0;">
+              <!-- Left panel -->
+              <div style="width:280px; flex:none; background:#0E0E12; border-right:1px solid rgba(255,255,255,0.06); display:flex; flex-direction:column;">
+                <div style="padding:16px; border-bottom:1px solid rgba(255,255,255,0.06); display:flex; align-items:center; gap:8px;">
+                  <div style="padding:6px; background:rgba(200,160,32,0.08); border-radius:8px; display:flex;"><span style="font-family:'Material Symbols Outlined'; font-size:16px; color:#C8A020;">account_tree</span></div>
+                  <span style="color:#F2EDE4; font-size:13px; font-weight:700;">Arbre Généalogique</span>
+                </div>
+                <div style="padding:12px; display:flex; flex-direction:column; gap:8px; overflow:hidden;">
+                  <span style="color:#605848; font-size:10px; font-weight:700; letter-spacing:1px; text-transform:uppercase;">Statistiques</span>
+                  <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                    <div style="background:#141418; border:1px solid rgba(255,255,255,0.06); border-radius:8px; padding:10px;"><div style="color:#C8A020; font-size:18px; font-weight:700; font-family:monospace;">14</div><div style="color:#A09880; font-size:10px;">Membres</div></div>
+                    <div style="background:#141418; border:1px solid rgba(255,255,255,0.06); border-radius:8px; padding:10px;"><div style="color:#C8A020; font-size:18px; font-weight:700; font-family:monospace;">4</div><div style="color:#A09880; font-size:10px;">Générations</div></div>
+                    <div style="background:#141418; border:1px solid rgba(255,255,255,0.06); border-radius:8px; padding:10px;"><div style="color:#C8A020; font-size:18px; font-weight:700; font-family:monospace;">2</div><div style="color:#A09880; font-size:10px;">Clans</div></div>
+                    <div style="background:#141418; border:1px solid rgba(255,255,255,0.06); border-radius:8px; padding:10px;"><div style="color:#2EAA6E; font-size:18px; font-weight:700; font-family:monospace;">3</div><div style="color:#A09880; font-size:10px;">Suggestions IA</div></div>
+                  </div>
+                  <span style="color:#605848; font-size:10px; font-weight:700; letter-spacing:1px; text-transform:uppercase; margin-top:8px;">Légende</span>
+                  <div style="display:flex; flex-direction:column; gap:6px;">
+                    <div style="display:flex; align-items:center; gap:8px;"><span style="width:12px; height:12px; border-radius:50%; background:#1C3A5A; border:2px solid #4890E8;"></span><span style="color:#A09880; font-size:11px;">Homme</span></div>
+                    <div style="display:flex; align-items:center; gap:8px;"><span style="width:12px; height:12px; border-radius:50%; background:#3A1C3A; border:2px solid #C850A0;"></span><span style="color:#A09880; font-size:11px;">Femme</span></div>
+                    <div style="display:flex; align-items:center; gap:8px;"><span style="width:12px; height:12px; border-radius:50%; background:#1C1C1C; border:2px solid #404040;"></span><span style="color:#A09880; font-size:11px;">Décédé(e)</span></div>
+                    <div style="display:flex; align-items:center; gap:8px;"><span style="width:12px; height:12px; border-radius:50%; background:#0D2A0D; border:2px solid #2EAA6E;"></span><span style="color:#A09880; font-size:11px;">Suggestion IA</span></div>
+                  </div>
+                  <span style="color:#605848; font-size:10px; font-weight:700; letter-spacing:1px; text-transform:uppercase; margin-top:8px;">Générations</span>
+                  <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                    <span style="background:rgba(200,160,32,0.08); border:1px solid rgba(200,160,32,0.15); color:#C8A020; font-size:10px; font-family:monospace; padding:3px 8px; border-radius:6px;">G1</span>
+                    <span style="background:rgba(200,160,32,0.08); border:1px solid rgba(200,160,32,0.15); color:#C8A020; font-size:10px; font-family:monospace; padding:3px 8px; border-radius:6px;">G2</span>
+                    <span style="background:rgba(200,160,32,0.08); border:1px solid rgba(200,160,32,0.15); color:#C8A020; font-size:10px; font-family:monospace; padding:3px 8px; border-radius:6px;">G3</span>
+                    <span style="background:#141418; border:1px solid rgba(255,255,255,0.06); color:#605848; font-size:10px; font-family:monospace; padding:3px 8px; border-radius:6px;">G4</span>
+                  </div>
+                  <span style="color:#605848; font-size:10px; font-weight:700; letter-spacing:1px; text-transform:uppercase; margin-top:8px;">Membres (14)</span>
+                  <div style="display:flex; flex-direction:column; gap:2px;">
+                    <div style="display:flex; align-items:center; gap:8px; padding:6px 8px; border-radius:8px; background:rgba(200,160,32,0.08);"><span style="width:24px; height:24px; border-radius:50%; background:#C8A020; color:#08080A; font-size:9px; font-weight:700; display:flex; align-items:center; justify-content:center;">SM</span><span style="color:#F2EDE4; font-size:12px; font-weight:600;">Stéphane Mbopda</span><span style="margin-left:auto; color:#C8A020; font-size:9px; font-family:monospace;">MOI</span></div>
+                    <div style="display:flex; align-items:center; gap:8px; padding:6px 8px; border-radius:8px;"><span style="width:24px; height:24px; border-radius:50%; background:#1C3A5A; border:1px solid #4890E8; color:#F2EDE4; font-size:9px; display:flex; align-items:center; justify-content:center;">PM</span><span style="color:#A09880; font-size:12px;">Paul Mbopda</span></div>
+                    <div style="display:flex; align-items:center; gap:8px; padding:6px 8px; border-radius:8px;"><span style="width:24px; height:24px; border-radius:50%; background:#3A1C3A; border:1px solid #C850A0; color:#F2EDE4; font-size:9px; display:flex; align-items:center; justify-content:center;">MN</span><span style="color:#A09880; font-size:12px;">Marie Ngo Bassa</span></div>
+                    <div style="display:flex; align-items:center; gap:8px; padding:6px 8px; border-radius:8px;"><span style="width:24px; height:24px; border-radius:50%; background:#1C1C1C; border:1px solid #404040; color:#605848; font-size:9px; display:flex; align-items:center; justify-content:center;">JM</span><span style="color:#A09880; font-size:12px;">Joseph Mbopda ✝</span></div>
+                  </div>
+                </div>
+              </div>
+              <!-- Canvas -->
+              <div style="flex:1; position:relative; background:radial-gradient(ellipse at center, #0E0E12 0%, #08080A 70%); min-width:0;">
+                <!-- toolbar -->
+                <div style="position:absolute; top:12px; left:12px; display:flex; gap:8px; z-index:2;">
+                  <span style="background:#141418; border:1px solid rgba(255,255,255,0.06); color:#A09880; font-size:11px; padding:6px 12px; border-radius:8px; display:inline-flex; align-items:center; gap:6px;"><span style="font-family:'Material Symbols Outlined'; font-size:14px; color:#C8A020;">person_add</span>Parent</span>
+                  <span style="background:#141418; border:1px solid rgba(255,255,255,0.06); color:#A09880; font-size:11px; padding:6px 12px; border-radius:8px; display:inline-flex; align-items:center; gap:6px;"><span style="font-family:'Material Symbols Outlined'; font-size:14px; color:#C8A020;">child_care</span>Enfant</span>
+                  <span style="background:#141418; border:1px solid rgba(255,255,255,0.06); color:#A09880; font-size:11px; padding:6px 12px; border-radius:8px; display:inline-flex; align-items:center; gap:6px;"><span style="font-family:'Material Symbols Outlined'; font-size:14px; color:#E87828;">favorite</span>Union</span>
+                  <span style="background:#141418; border:1px solid rgba(255,255,255,0.06); color:#A09880; font-size:11px; padding:6px 12px; border-radius:8px; display:inline-flex; align-items:center; gap:6px;"><span style="font-family:'Material Symbols Outlined'; font-size:14px; color:#4890E8;">download</span>Export</span>
+                </div>
+                <!-- zoom controls -->
+                <div style="position:absolute; bottom:12px; right:12px; display:flex; flex-direction:column; gap:4px; z-index:2;">
+                  <span style="width:32px; height:32px; background:#141418; border:1px solid rgba(255,255,255,0.06); border-radius:8px; color:#A09880; display:flex; align-items:center; justify-content:center; font-size:16px;">+</span>
+                  <span style="width:32px; height:32px; background:#141418; border:1px solid rgba(255,255,255,0.06); border-radius:8px; color:#A09880; display:flex; align-items:center; justify-content:center; font-size:16px;">−</span>
+                  <span style="width:32px; height:32px; background:#141418; border:1px solid rgba(255,255,255,0.06); border-radius:8px; color:#A09880; display:flex; align-items:center; justify-content:center;"><span style="font-family:'Material Symbols Outlined'; font-size:14px;">center_focus_strong</span></span>
+                </div>
+                <!-- Tree nodes (static recreation) -->
+                <div style="position:absolute; inset:0;">
+                  <!-- links -->
+                  <div style="position:absolute; left:50%; top:190px; width:1px; height:100px; background:rgba(200,160,32,0.3); transform:translateX(-120px);"></div>
+                  <div style="position:absolute; left:50%; top:190px; width:1px; height:100px; background:rgba(200,160,32,0.3); transform:translateX(120px);"></div>
+                  <div style="position:absolute; left:50%; top:190px; width:240px; height:1px; background:rgba(200,160,32,0.3); transform:translateX(-120px);"></div>
+                  <div style="position:absolute; left:50%; top:290px; width:1px; height:110px; background:rgba(200,160,32,0.3);"></div>
+                  <div style="position:absolute; left:50%; top:465px; width:1px; height:80px; background:rgba(200,160,32,0.3);"></div>
+                  <!-- gen 1 -->
+                  <div style="position:absolute; left:50%; top:110px; transform:translateX(-180px); width:120px; display:flex; flex-direction:column; align-items:center; gap:5px;">
+                    <div style="width:52px; height:52px; border-radius:50%; background:#1C1C1C; border:2px solid #404040; display:flex; align-items:center; justify-content:center; color:#605848; font-weight:700; font-size:14px;">JM</div>
+                    <div style="text-align:center;"><div style="color:#F2EDE4; font-size:11px; font-weight:600;">Joseph</div><div style="color:#A09880; font-size:10px;">Mbopda ✝</div></div>
+                  </div>
+                  <div style="position:absolute; left:50%; top:110px; transform:translateX(60px); width:120px; display:flex; flex-direction:column; align-items:center; gap:5px;">
+                    <div style="width:52px; height:52px; border-radius:50%; background:#3A1C3A; border:2px solid #C850A0; display:flex; align-items:center; justify-content:center; color:#F2EDE4; font-weight:700; font-size:14px;">EN</div>
+                    <div style="text-align:center;"><div style="color:#F2EDE4; font-size:11px; font-weight:600;">Esther</div><div style="color:#A09880; font-size:10px;">Ngo Njock</div></div>
+                  </div>
+                  <!-- gen 2 : parents -->
+                  <div style="position:absolute; left:50%; top:300px; transform:translateX(-180px); width:120px; display:flex; flex-direction:column; align-items:center; gap:5px;">
+                    <div style="width:52px; height:52px; border-radius:50%; background:#1C3A5A; border:2px solid #4890E8; display:flex; align-items:center; justify-content:center; color:#F2EDE4; font-weight:700; font-size:14px;">PM</div>
+                    <div style="text-align:center;"><div style="color:#F2EDE4; font-size:11px; font-weight:600;">Paul</div><div style="color:#A09880; font-size:10px;">Mbopda</div><span style="display:inline-block; margin-top:2px; background:rgba(200,160,32,0.08); border:1px solid rgba(200,160,32,0.15); color:#C8A020; font-size:8px; font-family:monospace; padding:1px 6px; border-radius:4px;">BAKOKO</span></div>
+                  </div>
+                  <div style="position:absolute; left:50%; top:300px; transform:translateX(60px); width:120px; display:flex; flex-direction:column; align-items:center; gap:5px;">
+                    <div style="width:52px; height:52px; border-radius:50%; background:#3A1C3A; border:2px solid #C850A0; display:flex; align-items:center; justify-content:center; color:#F2EDE4; font-weight:700; font-size:14px;">MN</div>
+                    <div style="text-align:center;"><div style="color:#F2EDE4; font-size:11px; font-weight:600;">Marie</div><div style="color:#A09880; font-size:10px;">Ngo Bassa</div></div>
+                  </div>
+                  <!-- subject -->
+                  <div style="position:absolute; left:50%; top:480px; transform:translateX(-60px); width:120px; display:flex; flex-direction:column; align-items:center; gap:5px;">
+                    <div style="width:60px; height:60px; border-radius:50%; background:#1C3A5A; border:3px solid #C8A020; box-shadow:0 0 16px 4px rgba(200,160,32,0.3); display:flex; align-items:center; justify-content:center; color:#F2EDE4; font-weight:700; font-size:16px;">SM</div>
+                    <div style="text-align:center;"><div style="color:#C8A020; font-size:11px; font-weight:600;">Stéphane</div><div style="color:#A09880; font-size:10px;">Mbopda</div><span style="display:inline-block; margin-top:2px; background:rgba(200,160,32,0.08); border:1px solid rgba(200,160,32,0.15); color:#C8A020; font-size:8px; font-family:monospace; padding:1px 6px; border-radius:4px;">BAKOKO</span></div>
+                  </div>
+                  <!-- AI suggestion node -->
+                  <div style="position:absolute; left:50%; top:480px; transform:translateX(180px); width:120px; display:flex; flex-direction:column; align-items:center; gap:5px;">
+                    <div style="width:52px; height:52px; border-radius:50%; background:#0D2A0D; border:2px dashed #2EAA6E; display:flex; align-items:center; justify-content:center; color:#2EAA6E; font-weight:700; font-size:14px;">KA</div>
+                    <div style="text-align:center;"><div style="color:#F2EDE4; font-size:11px; font-weight:600;">Kwame</div><div style="color:#A09880; font-size:10px;">Asante</div><span style="display:inline-block; margin-top:2px; background:rgba(46,170,110,0.1); border:1px solid rgba(46,170,110,0.3); color:#2EAA6E; font-size:8px; font-family:monospace; padding:1px 6px; border-radius:4px;">IA 87%</span></div>
+                  </div>
+                  <!-- children -->
+                  <div style="position:absolute; left:50%; top:640px; transform:translateX(-60px); width:120px; display:flex; flex-direction:column; align-items:center; gap:5px;">
+                    <div style="width:52px; height:52px; border-radius:50%; background:#3A1C3A; border:2px solid #C850A0; display:flex; align-items:center; justify-content:center; color:#F2EDE4; font-weight:700; font-size:14px;">LM</div>
+                    <div style="text-align:center;"><div style="color:#F2EDE4; font-size:11px; font-weight:600;">Lisa</div><div style="color:#A09880; font-size:10px;">Mbopda</div></div>
+                  </div>
+                </div>
+              </div>
+              <!-- Right panel -->
+              <div style="width:360px; flex:none; background:#0E0E12; border-left:1px solid rgba(255,255,255,0.06); display:flex; flex-direction:column;">
+                <div style="padding:16px; border-bottom:1px solid rgba(255,255,255,0.06); display:flex; align-items:center; gap:10px;">
+                  <div style="width:44px; height:44px; border-radius:50%; background:#1C3A5A; border:2px solid #C8A020; display:flex; align-items:center; justify-content:center; color:#F2EDE4; font-weight:700;">SM</div>
+                  <div style="display:flex; flex-direction:column;">
+                    <span style="color:#F2EDE4; font-size:14px; font-weight:700;">Stéphane Mbopda</span>
+                    <span style="color:#A09880; font-size:11px;">Sujet de l'arbre · Clan Bakoko</span>
+                  </div>
+                </div>
+                <div style="padding:16px; display:flex; flex-direction:column; gap:12px;">
+                  <span style="color:#605848; font-size:10px; font-weight:700; letter-spacing:1px; text-transform:uppercase;">Détails</span>
+                  <div style="display:flex; flex-direction:column; gap:8px;">
+                    <div style="display:flex; justify-content:space-between;"><span style="color:#A09880; font-size:12px;">Naissance</span><span style="color:#F2EDE4; font-size:12px; font-family:monospace;">1989 · Douala</span></div>
+                    <div style="display:flex; justify-content:space-between;"><span style="color:#A09880; font-size:12px;">Village</span><span style="color:#C8A020; font-size:12px;">Bassa-Likoko</span></div>
+                    <div style="display:flex; justify-content:space-between;"><span style="color:#A09880; font-size:12px;">Génération</span><span style="color:#F2EDE4; font-size:12px; font-family:monospace;">G3</span></div>
+                  </div>
+                  <span style="color:#605848; font-size:10px; font-weight:700; letter-spacing:1px; text-transform:uppercase; margin-top:8px;">Suggestions IA (3)</span>
+                  <div style="background:#141418; border:1px solid rgba(46,170,110,0.3); border-radius:8px; padding:12px; display:flex; flex-direction:column; gap:8px;">
+                    <div style="display:flex; align-items:center; gap:8px;"><span style="font-family:'Material Symbols Outlined'; font-size:16px; color:#2EAA6E;">auto_awesome</span><span style="color:#F2EDE4; font-size:12px; font-weight:600;">Kwame Asante</span><span style="margin-left:auto; color:#2EAA6E; font-size:10px; font-family:monospace;">87%</span></div>
+                    <span style="color:#A09880; font-size:11px; line-height:1.5;">Ancêtre commun probable — clan Bakoko, 3 correspondances de lignées.</span>
+                    <div style="display:flex; gap:8px;">
+                      <span style="flex:1; text-align:center; background:rgba(46,170,110,0.1); color:#2EAA6E; font-size:11px; font-weight:600; padding:6px; border-radius:6px;">Confirmer</span>
+                      <span style="flex:1; text-align:center; background:#1C1C22; color:#A09880; font-size:11px; font-weight:600; padding:6px; border-radius:6px;">Rejeter</span>
+                    </div>
+                  </div>
+                  <span style="color:#605848; font-size:10px; font-weight:700; letter-spacing:1px; text-transform:uppercase; margin-top:8px;">Commentaires</span>
+                  <div style="background:#141418; border:1px solid rgba(255,255,255,0.06); border-radius:8px; padding:12px;">
+                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;"><span style="width:20px; height:20px; border-radius:50%; background:#3A1C3A; border:1px solid #C850A0; font-size:8px; color:#F2EDE4; display:flex; align-items:center; justify-content:center;">MN</span><span style="color:#F2EDE4; font-size:11px; font-weight:600;">Marie Ngo Bassa</span><span style="margin-left:auto; color:#605848; font-size:10px; font-family:monospace;">3j</span></div>
+                    <span style="color:#A09880; font-size:11px; line-height:1.5;">N'oublie pas d'ajouter la branche de tante Régine à Edéa.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      villages: [
+        { name: 'Bassa-Likoko', verified: true, meta: 'Cameroun · Bassa', members: 1247 },
+        { name: 'Foumbot Royal', verified: true, meta: 'Cameroun · Bamoun', members: 892 },
+        { name: 'Diaspora Paris', verified: false, meta: 'France · Multi', members: 3410 },
+        { name: 'Ngaoundéré', verified: false, meta: 'Cameroun · Foulfouldé', members: 655 },
+        { name: 'Yaoundé Centre', verified: true, meta: 'Cameroun · Ewondo', members: 2108 },
+        { name: 'Edéa', verified: false, meta: 'Cameroun · Bassa', members: 431 },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

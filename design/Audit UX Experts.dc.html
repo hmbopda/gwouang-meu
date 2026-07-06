@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Syne:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    body { margin:0; background:#0C0B0F; }
+  </style>
+</helmet>
+
+<div style="max-width:860px; margin:0 auto; padding:64px 40px 96px; font-family:Syne,sans-serif; color:#F0EBE1;">
+
+  <div style="font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:2px; color:#7A7268; margin-bottom:16px;">GWANG MEU — AUDIT DESIGN · JUILLET 2026</div>
+  <h1 style="margin:0 0 12px; font-family:Fraunces,serif; font-size:44px; font-weight:600; line-height:1.1; color:#F0EBE1;">Avis des experts design</h1>
+  <p style="margin:0 0 8px; font-size:15px; line-height:1.7; color:#B8AD9E; max-width:640px;">Audit croisé de l'application GWANG MEU (Flutter mobile + web desktop) par quatre regards : UX, UI, accessibilité et identité de marque. Basé sur la lecture du code source et la <a href="Existant — Recreation.dc.html" style="color:#C9A84C;">recréation de l'existant</a>. La <a href="Refonte IHM.dc.html" style="color:#C9A84C;">refonte proposée</a> répond point par point.</p>
+
+  <!-- Synthèse -->
+  <div style="margin:40px 0; padding:24px 28px; background:#1C1A22; border-radius:14px; display:flex; flex-direction:column; gap:14px;">
+    <div style="font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:2px; color:#C9A84C;">SYNTHÈSE</div>
+    <p style="margin:0; font-size:15px; line-height:1.75; color:#F0EBE1;">Le produit a une <strong>âme rare</strong> — généalogie, villages, transmission — mais l'interface actuelle est un assemblage Material Design générique qui ne la raconte pas. Trois systèmes de tokens coexistent (<span style="font-family:'JetBrains Mono',monospace; font-size:12px; color:#C9A84C;">AppColors</span>, <span style="font-family:'JetBrains Mono',monospace; font-size:12px; color:#C9A84C;">GwColors</span>, <span style="font-family:'JetBrains Mono',monospace; font-size:12px; color:#C9A84C;">T</span>), les icônes mélangent Material et emoji, et la densité de texte (10–12 px) exclut les aînés — pourtant audience clé. La refonte doit unifier le système, incarner l'identité culturelle, et faire de la généalogie l'expérience signature.</p>
+  </div>
+
+  <!-- Les experts -->
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:56px;">
+    <div style="padding:16px 18px; border:1px solid rgba(255,255,255,0.08); border-radius:12px; display:flex; gap:12px; align-items:center;">
+      <div style="width:38px; height:38px; border-radius:50%; background:rgba(58,108,180,0.18); color:#7AA8E0; display:flex; align-items:center; justify-content:center; font-weight:700; flex:none;">UX</div>
+      <div><div style="font-weight:700; font-size:13px;">Experte UX & flux</div><div style="font-size:12px; color:#7A7268;">Navigation, architecture, parcours</div></div>
+    </div>
+    <div style="padding:16px 18px; border:1px solid rgba(255,255,255,0.08); border-radius:12px; display:flex; gap:12px; align-items:center;">
+      <div style="width:38px; height:38px; border-radius:50%; background:rgba(201,168,76,0.15); color:#C9A84C; display:flex; align-items:center; justify-content:center; font-weight:700; flex:none;">UI</div>
+      <div><div style="font-weight:700; font-size:13px;">Expert UI & systèmes</div><div style="font-size:12px; color:#7A7268;">Tokens, composants, cohérence</div></div>
+    </div>
+    <div style="padding:16px 18px; border:1px solid rgba(255,255,255,0.08); border-radius:12px; display:flex; gap:12px; align-items:center;">
+      <div style="width:38px; height:38px; border-radius:50%; background:rgba(42,122,92,0.2); color:#70C090; display:flex; align-items:center; justify-content:center; font-weight:700; flex:none;">A11y</div>
+      <div><div style="font-weight:700; font-size:13px;">Experte accessibilité</div><div style="font-size:12px; color:#7A7268;">Contrastes, tailles, cibles tactiles</div></div>
+    </div>
+    <div style="padding:16px 18px; border:1px solid rgba(255,255,255,0.08); border-radius:12px; display:flex; gap:12px; align-items:center;">
+      <div style="width:38px; height:38px; border-radius:50%; background:rgba(196,88,58,0.18); color:#E09080; display:flex; align-items:center; justify-content:center; font-weight:700; flex:none;">BR</div>
+      <div><div style="font-weight:700; font-size:13px;">Expert marque & culture</div><div style="font-size:12px; color:#7A7268;">Identité africaine, ton, typographie</div></div>
+    </div>
+  </div>
+
+  <!-- ══ TRANSVERSAL ══ -->
+  <h2 style="margin:0 0 20px; font-family:Fraunces,serif; font-size:28px; font-weight:600;">Constats transversaux</h2>
+  <div style="display:flex; flex-direction:column; gap:14px; margin-bottom:56px;">
+    <div style="padding:18px 20px; background:#1C1A22; border-radius:12px;">
+      <div style="display:flex; gap:10px; align-items:baseline; margin-bottom:6px;"><span style="font-family:'JetBrains Mono',monospace; font-size:10px; color:#E09080;">CRITIQUE</span><strong style="font-size:14px;">Trois design systems concurrents</strong><span style="margin-left:auto; font-size:11px; color:#7A7268;">UI</span></div>
+      <p style="margin:0; font-size:13.5px; line-height:1.7; color:#B8AD9E;">`app_theme.dart` (or #C8A020, gris neutres), `gw_colors.dart` (or #C9A84C, ink violacés, sémantiques sage/ember/azure) et `tree_tokens.dart` (fonts Fraunces/Syne, ink bleutés) définissent chacun leur or, leurs fonds et leurs bordures. Résultat : la généalogie ne ressemble pas au feed, qui ne ressemble pas aux réglages. <strong style="color:#F0EBE1;">Reco : un seul système de tokens, GwColors étendu + les fonts de tree_tokens généralisées.</strong></p>
+    </div>
+    <div style="padding:18px 20px; background:#1C1A22; border-radius:12px;">
+      <div style="display:flex; gap:10px; align-items:baseline; margin-bottom:6px;"><span style="font-family:'JetBrains Mono',monospace; font-size:10px; color:#E09080;">CRITIQUE</span><strong style="font-size:14px;">Identité culturelle absente de l'UI</strong><span style="margin-left:auto; font-size:11px; color:#7A7268;">Marque</span></div>
+      <p style="margin:0; font-size:13.5px; line-height:1.7; color:#B8AD9E;">Hors la couleur or, rien ne distingue GWANG MEU d'un réseau social générique : cartes Material, Roboto par défaut, logo « G » en dégradé. Le contenu (Ngondo, clans, dialectes) est africain, le contenant ne l'est pas. <strong style="color:#F0EBE1;">Reco : typographie de caractère (Fraunces déjà présent dans tree_tokens), motifs tissés/géométriques discrets sur les surfaces clés, vocabulaire visuel de la transmission.</strong></p>
+    </div>
+    <div style="padding:18px 20px; background:#1C1A22; border-radius:12px;">
+      <div style="display:flex; gap:10px; align-items:baseline; margin-bottom:6px;"><span style="font-family:'JetBrains Mono',monospace; font-size:10px; color:#E09080;">CRITIQUE</span><strong style="font-size:14px;">Lisibilité insuffisante pour les aînés</strong><span style="margin-left:auto; font-size:11px; color:#7A7268;">A11y</span></div>
+      <p style="margin:0; font-size:13.5px; line-height:1.7; color:#B8AD9E;">Beaucoup de texte en 9–12 px (badges de rôle 9 px, breadcrumb 9 px, méta villages 11 px), hint #666 sur fond #0D0D0D ≈ 3.4:1 (échec WCAG AA), cibles de 32 px dans la topbar (min. 44 px). Pour une audience multi-générationnelle, c'est le chantier n°1. <strong style="color:#F0EBE1;">Reco : corps minimum 14 px, méta 12 px, contraste AA partout, mode « confort de lecture ».</strong></p>
+    </div>
+    <div style="padding:18px 20px; background:#1C1A22; border-radius:12px;">
+      <div style="display:flex; gap:10px; align-items:baseline; margin-bottom:6px;"><span style="font-family:'JetBrains Mono',monospace; font-size:10px; color:#C9A84C;">MAJEUR</span><strong style="font-size:14px;">Icônes emoji dans la navigation desktop</strong><span style="margin-left:auto; font-size:11px; color:#7A7268;">UI</span></div>
+      <p style="margin:0; font-size:13.5px; line-height:1.7; color:#B8AD9E;">L'icon rail utilise 📰 👤 🏘 🌳 : rendu incohérent selon les OS, pas de variantes actives, contraste non maîtrisé — alors que le mobile utilise Material Icons. <strong style="color:#F0EBE1;">Reco : une seule famille d'icônes traits fins, avec état actif rempli.</strong></p>
+    </div>
+    <div style="padding:18px 20px; background:#1C1A22; border-radius:12px;">
+      <div style="display:flex; gap:10px; align-items:baseline; margin-bottom:6px;"><span style="font-family:'JetBrains Mono',monospace; font-size:10px; color:#C9A84C;">MAJEUR</span><strong style="font-size:14px;">Le sélecteur de couleur d'accent dilue la marque</strong><span style="margin-left:auto; font-size:11px; color:#7A7268;">Marque</span></div>
+      <p style="margin:0; font-size:13.5px; line-height:1.7; color:#B8AD9E;">L'AccentColorButton (posé sur la bottom nav !) permet de remplacer l'or par n'importe quelle teinte. L'or EST la marque. <strong style="color:#F0EBE1;">Reco : déplacer dans les réglages, limiter à 3–4 accents secondaires curés qui préservent l'or primaire.</strong></p>
+    </div>
+  </div>
+
+  <!-- ══ ÉCRAN PAR ÉCRAN ══ -->
+  <h2 style="margin:0 0 20px; font-family:Fraunces,serif; font-size:28px; font-weight:600;">Écran par écran</h2>
+
+  <sc-for list="{{ screens }}" as="s" hint-placeholder-count="4">
+    <div style="margin-bottom:28px; border:1px solid rgba(255,255,255,0.08); border-radius:14px; overflow:hidden;">
+      <div style="padding:16px 20px; background:#1C1A22; display:flex; align-items:center; gap:12px;">
+        <span style="font-family:'JetBrains Mono',monospace; font-size:10px; color:#C9A84C; letter-spacing:1px;">{{ s.tag }}</span>
+        <strong style="font-size:16px; font-family:Fraunces,serif;">{{ s.title }}</strong>
+        <a href="{{ s.link }}" style="margin-left:auto; font-size:11px; color:#C9A84C; font-family:'JetBrains Mono',monospace;">{{ s.linkLabel }}</a>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:0;">
+        <div style="padding:18px 20px; border-right:1px solid rgba(255,255,255,0.06);">
+          <div style="font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:1.5px; color:#70C090; margin-bottom:10px;">POINTS FORTS</div>
+          <sc-for list="{{ s.pros }}" as="p" hint-placeholder-count="2">
+            <div style="display:flex; gap:8px; margin-bottom:8px;"><span style="color:#70C090; flex:none;">+</span><span style="font-size:13px; line-height:1.6; color:#B8AD9E;">{{ p }}</span></div>
+          </sc-for>
+        </div>
+        <div style="padding:18px 20px;">
+          <div style="font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:1.5px; color:#E09080; margin-bottom:10px;">POINTS FAIBLES</div>
+          <sc-for list="{{ s.cons }}" as="c" hint-placeholder-count="3">
+            <div style="display:flex; gap:8px; margin-bottom:8px;"><span style="color:#E09080; flex:none;">−</span><span style="font-size:13px; line-height:1.6; color:#B8AD9E;">{{ c }}</span></div>
+          </sc-for>
+        </div>
+      </div>
+      <div style="padding:14px 20px; background:rgba(201,168,76,0.05); border-top:1px solid rgba(201,168,76,0.14);">
+        <span style="font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:1.5px; color:#C9A84C;">RECO</span>
+        <span style="font-size:13px; line-height:1.6; color:#F0EBE1; margin-left:10px;">{{ s.reco }}</span>
+      </div>
+    </div>
+  </sc-for>
+
+  <!-- Priorités -->
+  <h2 style="margin:48px 0 20px; font-family:Fraunces,serif; font-size:28px; font-weight:600;">Priorités de la refonte</h2>
+  <div style="display:flex; flex-direction:column; gap:10px;">
+    <div style="display:flex; gap:14px; align-items:baseline;"><span style="font-family:'JetBrains Mono',monospace; color:#C9A84C; font-size:13px; flex:none;">P0</span><span style="font-size:14px; line-height:1.6; color:#B8AD9E;">Unifier les tokens (un seul or, une seule échelle d'ink, Fraunces/Syne partout) et corriger l'accessibilité (14 px min, AA, cibles 44 px).</span></div>
+    <div style="display:flex; gap:14px; align-items:baseline;"><span style="font-family:'JetBrains Mono',monospace; color:#C9A84C; font-size:13px; flex:none;">P1</span><span style="font-size:14px; line-height:1.6; color:#B8AD9E;">Refondre les composants partagés : PostCard, VillageCard, boutons, navigation, avec l'identité culturelle intégrée.</span></div>
+    <div style="display:flex; gap:14px; align-items:baseline;"><span style="font-family:'JetBrains Mono',monospace; color:#C9A84C; font-size:13px; flex:none;">P2</span><span style="font-size:14px; line-height:1.6; color:#B8AD9E;">Faire de la généalogie l'expérience signature (concept « rivière des générations », suggestions IA intégrées au récit familial).</span></div>
+    <div style="display:flex; gap:14px; align-items:baseline;"><span style="font-family:'JetBrains Mono',monospace; color:#C9A84C; font-size:13px; flex:none;">P3</span><span style="font-size:14px; line-height:1.6; color:#B8AD9E;">Thème clair complet + parité web/mobile des composants.</span></div>
+  </div>
+
+  <p style="margin-top:48px; font-size:13px; color:#7A7268;">→ Voir les trois directions proposées dans <a href="Refonte IHM.dc.html" style="color:#C9A84C;">Refonte IHM</a>.</p>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      screens: [
+        {
+          tag: 'FEED', title: "Fil d'actualité", link: 'Existant — Recreation.dc.html#1a', linkLabel: 'voir 1a',
+          pros: [
+            "Structure de contenu riche et bien pensée : stories, compose, mise en avant village, posts texte/média/live/IA.",
+            "La « Suggestion Claude AI » généalogique dans le feed est une excellente idée produit, unique au marché.",
+            "Post « grand texte » italique : bon instinct éditorial pour les citations et proverbes.",
+          ],
+          cons: [
+            "Tout est au même niveau visuel : 4 cartes gris #1A1A1A empilées, aucune hiérarchie entre un proverbe, une photo du Ngondo et une suggestion IA.",
+            "Stories 110×180 avec texte 10 px blanc sur dégradés saturés : illisible, et les dégradés flashy jurent avec la sobriété or/ink.",
+            "3 actions × 3 posts = mur de boutons gris identiques ; « J'aime » en cœur + compteur « reactions » en anglais mélangé au français.",
+            "L'en-tête empile nom + badge rôle 9 px + village + heure sur 2 lignes denses.",
+          ],
+          reco: "Différencier les types de posts par des gabarits distincts (citation pleine, média immersif, IA en encart narratif), alléger les actions, agrandir stories et textes.",
+        },
+        {
+          tag: 'VILLAGES', title: 'Villages — liste & détail', link: 'Existant — Recreation.dc.html#1b', linkLabel: 'voir 1b',
+          pros: [
+            "Grille 2 colonnes efficace, cover 16:9 + badge vérifié : les bons ingrédients sont là.",
+            "Tabs Découvrir / Mes villages : bonne séparation exploration vs appartenance.",
+          ],
+          cons: [
+            "La carte village est purement administrative (nom, pays, compteur) : rien ne donne envie de « rentrer au village » — pas de dialecte mis en valeur, pas d'activité, pas de chaleur.",
+            "Placeholder d'image = icône « landscape » grise : la majorité des villages sans photo rendent la grille terne.",
+            "Recherche cachée derrière un toggle d'AppBar ; aucun filtre pays/dialecte/région.",
+          ],
+          reco: "Carte village vivante : dialecte en exergue, activité récente (« 3 lives cette semaine »), placeholder à motif tissé coloré par région ; recherche + filtres permanents.",
+        },
+        {
+          tag: 'GÉNÉA', title: 'Généalogie — arbre', link: 'Existant — Recreation.dc.html#1d', linkLabel: 'voir 1d',
+          pros: [
+            "Le layout desktop 3 colonnes (stats/légende, canvas, détails/IA) est solide et professionnel.",
+            "Tokens dédiés soignés (Fraunces/Syne, couleurs par génération) — le meilleur design du produit.",
+            "Nœud sujet pulsant, suggestions IA en vert pointillé : bonne sémantique visuelle.",
+          ],
+          cons: [
+            "Code couleur homme=bleu/femme=rose daté et culturellement pauvre — alors que clans et lignées sont la vraie structure du récit.",
+            "Sur mobile, l'arbre se réduit à un canvas + 2 mini-FABs : l'expérience signature disparaît sur le device principal des utilisateurs.",
+            "Cercles 52 px + nom 11 px : les aînés, premiers détenteurs de la mémoire familiale, ne peuvent pas lire l'arbre.",
+            "L'expérience est un outil (ajouter parent/enfant), jamais un récit : pas de mode « histoire de la famille ».",
+          ],
+          reco: "Colorer par clan/lignée plutôt que par genre, nœuds et textes plus grands, et un mode mobile « rivière des générations » navigable verticalement, génération par génération.",
+        },
+        {
+          tag: 'CHAT', title: 'Chat — groupes de village', link: 'Existant — Recreation.dc.html', linkLabel: 'source',
+          pros: [
+            "Groupes rattachés au village (Général / Commissions) : très juste culturellement — c'est ainsi que s'organisent les communautés.",
+            "Bottom sheet avec création rapide de groupe : flux court.",
+          ],
+          cons: [
+            "Le chat n'existe que comme sheet du détail village : introuvable depuis la nav principale alors que « Messages » (badge 3) est annoncé dans le rail desktop… en « bientôt disponible ».",
+            "ListTiles Material bruts, dialogue AlertDialog standard : zéro personnalité.",
+            "Pas d'aperçu du dernier message ni d'indicateur non-lu dans la liste des groupes.",
+          ],
+          reco: "Promouvoir Messages en destination de premier niveau, liste de conversations avec aperçu/non-lus, et bulles aux couleurs du système unifié.",
+        },
+        {
+          tag: 'AUTH', title: 'Auth & onboarding', link: 'Existant — Recreation.dc.html#1c', linkLabel: 'voir 1c',
+          pros: [
+            "Wizard d'inscription en 3 étapes avec « Origines » (pays, villages, clan) : l'onboarding capture l'essence du produit.",
+            "Formulaires propres, validation, états de chargement, social login complet.",
+          ],
+          cons: [
+            "Premier écran = formulaire nu avec un « G » en dégradé : aucune promesse, aucune émotion — on ne sait pas pourquoi on s'inscrit.",
+            "Accents manquants dans les libellés (« Mot de passe oublie », « Recapitulatif ») : négligé pour un produit sur la langue et la transmission.",
+            "L'étape Origines, moment le plus fort (choisir son village, son clan), a le même traitement visuel qu'un champ email.",
+          ],
+          reco: "Écran d'accueil raconté (mission, imagerie), corriger la typographie française, et célébrer l'étape Origines (sélecteur de village visuel, clan mis en scène).",
+        },
+        {
+          tag: 'NAV', title: 'Navigation & shell (mobile + desktop)', link: 'Existant — Recreation.dc.html#1d', linkLabel: 'voir 1d',
+          pros: [
+            "Shell responsive propre : rail 64 px + topbar desktop, bottom nav 5 onglets mobile, breadcrumb dynamique.",
+            "Badges de notification cohérents dans le rail.",
+          ],
+          cons: [
+            "Deux systèmes de nav désalignés : le rail desktop (Fil/Profil/Villages/Généalogie/Formations/Live/Tourisme/Emploi/Messages) ≠ bottom nav mobile (5 onglets) — Messages et Live n'existent pas sur mobile.",
+            "4 entrées « bientôt disponible » (Formations, Live, Tourisme, Emploi) avec badges factices : promesses vides qui érodent la confiance.",
+            "Le picker d'accent posé en absolu sur la bottom nav chevauche l'onglet Profil.",
+          ],
+          reco: "Une seule architecture : 5 destinations réelles partout, entrées futures masquées derrière un « Plus », breadcrumb conservé sur desktop.",
+        },
+        {
+          tag: 'PROFIL', title: 'Profil & recherche & notifications', link: 'Existant — Recreation.dc.html', linkLabel: 'source',
+          pros: [
+            "Le profil relie identité, villages et arbre : bon carrefour.",
+            "Notification bell avec compteur temps réel.",
+          ],
+          cons: [
+            "Recherche mobile = écran séparé de la recherche topbar desktop, sans historique ni portée claire (villages ? personnes ? posts ?).",
+            "Le profil n'affiche ni clan ni lignée — l'information la plus identitaire du produit.",
+            "Notifications sans regroupement par type (IA / village / social).",
+          ],
+          reco: "Recherche unifiée multi-entités avec portées visibles ; profil « carte d'identité culturelle » (village, clan, dialectes parlés, place dans l'arbre).",
+        },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>
