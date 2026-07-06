@@ -1,5 +1,8 @@
+import 'dart:ui' as ui;
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:material_symbols_icons/symbols.dart';
 
 import 'package:gwangmeu/core/theme/gw_tokens.dart';
 
@@ -25,6 +28,8 @@ class StoryData {
   });
 }
 
+/// Stories « Tissage » — tuiles 72 px carrées arrondies (24 px) avec anneau
+/// dégradé or/ember/sage, initiale Fraunces, tuile « Raconter » en pointillé or.
 class StoriesRow extends StatelessWidget {
   const StoriesRow({
     super.key,
@@ -40,15 +45,15 @@ class StoriesRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 180,
+      height: 102,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 20),
         itemCount: stories.length + 1,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        separatorBuilder: (_, __) => const SizedBox(width: 10),
         itemBuilder: (context, index) {
-          if (index == 0) return _AddStoryCard(onTap: onAddStory);
-          return _StoryCard(
+          if (index == 0) return _AddStoryTile(onTap: onAddStory);
+          return _StoryTile(
             story: stories[index - 1],
             onTap: () => onStoryTap?.call(stories[index - 1]),
           );
@@ -58,47 +63,42 @@ class StoriesRow extends StatelessWidget {
   }
 }
 
-class _AddStoryCard extends StatelessWidget {
-  const _AddStoryCard({this.onTap});
+class _AddStoryTile extends StatelessWidget {
+  const _AddStoryTile({this.onTap});
+
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
+    final t = GwTokens.of(context);
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        width: 110,
-        height: 180,
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: Theme.of(context).colorScheme.outline.withAlpha(30),
-            width: 1,
-            strokeAlign: BorderSide.strokeAlignInside,
-          ),
-        ),
+      child: SizedBox(
+        width: 84,
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Builder(builder: (ctx) {
-              final accent = Theme.of(ctx).colorScheme.primary;
-              return Container(
-              width: 42,
-              height: 42,
-              decoration: BoxDecoration(
-                color: accent.withAlpha(20),
-                shape: BoxShape.circle,
+            CustomPaint(
+              foregroundPainter: _DashedRRectPainter(
+                color: GwTokens.gold.withValues(alpha: 0.5),
+                radius: 24,
+                strokeWidth: 1.5,
               ),
-              child: Icon(Icons.add, color: accent, size: 22),
-            );
-            }),
+              child: Container(
+                width: 72,
+                height: 72,
+                decoration: BoxDecoration(
+                  color: t.inkLift,
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                child: Icon(Symbols.add, size: 26, color: t.goldText),
+              ),
+            ),
             const SizedBox(height: 8),
             Text(
-              'Ajouter',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    fontWeight: FontWeight.w500,
-                  ),
+              'Raconter',
+              style: GwType.ui(fontSize: 12, color: t.stoneMid),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),
@@ -107,155 +107,125 @@ class _AddStoryCard extends StatelessWidget {
   }
 }
 
-class _StoryCard extends StatelessWidget {
-  const _StoryCard({required this.story, this.onTap});
+class _StoryTile extends StatelessWidget {
+  const _StoryTile({required this.story, this.onTap});
+
   final StoryData story;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
+    final t = GwTokens.of(context);
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        width: 110,
-        height: 180,
-        clipBehavior: Clip.antiAlias,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: Stack(
-          fit: StackFit.expand,
+      child: SizedBox(
+        width: 84,
+        child: Column(
           children: [
-            // Background
-            if (story.backgroundUrl != null)
-              CachedNetworkImage(
-                imageUrl: story.backgroundUrl!,
-                fit: BoxFit.cover,
-                errorWidget: (_, __, ___) => _gradientBg(),
-              )
-            else
-              _gradientBg(),
-
-            // Gradient overlay
+            // Anneau dégradé tissé or → ember → sage
             Container(
+              width: 72,
+              height: 72,
+              padding: const EdgeInsets.all(3),
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.black.withAlpha(50),
-                    Colors.black.withAlpha(180),
-                  ],
+                borderRadius: BorderRadius.circular(24),
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [GwTokens.gold, GwTokens.ember, GwTokens.sage],
                 ),
+              ),
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(21),
+                  border: Border.all(color: t.ink, width: 2),
+                  gradient: story.backgroundUrl == null
+                      ? LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            story.backgroundGradientStart ?? t.inkLift,
+                            story.backgroundGradientEnd ?? t.inkHigh,
+                          ],
+                        )
+                      : null,
+                ),
+                clipBehavior: Clip.antiAlias,
+                alignment: Alignment.center,
+                child: story.backgroundUrl != null
+                    ? CachedNetworkImage(
+                        imageUrl: story.backgroundUrl!,
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                        height: double.infinity,
+                      )
+                    : Text(
+                        story.name.substring(0, 1).toUpperCase(),
+                        style: GwType.display(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFFF0EBE1),
+                        ),
+                      ),
               ),
             ),
-
-            // Avatar
-            Positioned(
-              top: 10,
-              left: 0,
-              right: 0,
-              child: Center(
-                child: Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Theme.of(context).colorScheme.primary, width: 2.5),
-                  ),
-                  child: ClipOval(
-                    child: story.avatarUrl != null
-                        ? CachedNetworkImage(
-                            imageUrl: story.avatarUrl!,
-                            fit: BoxFit.cover,
-                            errorWidget: (_, __, ___) => _avatarFallback(context),
-                          )
-                        : _avatarFallback(context),
-                  ),
-                ),
-              ),
+            const SizedBox(height: 8),
+            Text(
+              story.name,
+              style: GwType.ui(
+                  fontSize: 12, fontWeight: FontWeight.w500, color: t.stone),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-
-            // Village name
-            if (story.villageName != null)
-              Positioned(
-                bottom: 26,
-                left: 0,
-                right: 0,
-                child: Text(
-                  story.villageName!,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 10,
-                  ),
-                ),
-              ),
-
-            // Name
-            Positioned(
-              bottom: 10,
-              left: 6,
-              right: 6,
-              child: Text(
-                story.name,
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-
-            // Live replay badge
-            if (story.isLiveReplay)
-              Positioned(
-                top: 8,
-                right: 8,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: GwTokens.ember.withAlpha(200),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: const Text(
-                    'REPLAY',
-                    style: TextStyle(color: Colors.white, fontSize: 7, fontWeight: FontWeight.w700),
-                  ),
-                ),
-              ),
           ],
         ),
       ),
     );
   }
+}
 
-  Widget _gradientBg() {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            story.backgroundGradientStart ?? const Color(0xFF1A3300),
-            story.backgroundGradientEnd ?? const Color(0xFF4A8800),
-          ],
-        ),
-      ),
+/// Bordure pointillée arrondie (tuile « Raconter »).
+class _DashedRRectPainter extends CustomPainter {
+  const _DashedRRectPainter({
+    required this.color,
+    required this.radius,
+    this.strokeWidth = 1.5,
+    this.dash = 5,
+    this.gap = 4,
+  });
+
+  final Color color;
+  final double radius;
+  final double strokeWidth;
+  final double dash;
+  final double gap;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth;
+
+    final rrect = RRect.fromRectAndRadius(
+      Offset.zero & size,
+      Radius.circular(radius),
     );
+    final path = Path()..addRRect(rrect);
+
+    for (final ui.PathMetric metric in path.computeMetrics()) {
+      double distance = 0;
+      while (distance < metric.length) {
+        canvas.drawPath(
+          metric.extractPath(distance, distance + dash),
+          paint,
+        );
+        distance += dash + gap;
+      }
+    }
   }
 
-  Widget _avatarFallback(BuildContext context) {
-    return Container(
-      color: Theme.of(context).colorScheme.primary,
-      alignment: Alignment.center,
-      child: Text(
-        story.name.isNotEmpty ? story.name[0].toUpperCase() : '?',
-        style: TextStyle(color: Theme.of(context).colorScheme.onPrimary, fontWeight: FontWeight.w700, fontSize: 16),
-      ),
-    );
-  }
+  @override
+  bool shouldRepaint(covariant _DashedRRectPainter old) =>
+      old.color != color || old.radius != radius;
 }

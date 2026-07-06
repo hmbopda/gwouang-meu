@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:material_symbols_icons/symbols.dart';
 
 import 'package:gwangmeu/core/router/breadcrumb_provider.dart';
 import 'package:gwangmeu/core/router/route_names.dart';
-import 'package:gwangmeu/features/home/widgets/accent_color_picker.dart';
+import 'package:gwangmeu/core/theme/gw_tokens.dart';
 import 'package:gwangmeu/features/home/widgets/icon_rail.dart';
 import 'package:gwangmeu/features/home/widgets/top_bar.dart';
+import 'package:gwangmeu/features/messages/messages_providers.dart';
 
 /// Shell de navigation responsive :
 /// - Desktop (>= 1024px) : Icon Rail + TopBar + Content
@@ -69,37 +71,24 @@ class _MobileShell extends ConsumerWidget {
   const _MobileShell({required this.child});
   final Widget child;
 
+  /// Les 5 vraies destinations « Tissage » (#1a) :
+  /// Fil · Villages · Lignées · Messages (badge) · Profil.
   static const _tabs = [
+    _TabItem(icon: Symbols.home, label: 'Fil', route: Routes.feed),
     _TabItem(
-      icon: Icons.home_outlined,
-      activeIcon: Icons.home,
-      label: 'Accueil',
-      route: Routes.feed,
-    ),
+        icon: Symbols.holiday_village,
+        label: 'Villages',
+        route: Routes.villages),
     _TabItem(
-      icon: Icons.location_city_outlined,
-      activeIcon: Icons.location_city,
-      label: 'Villages',
-      route: Routes.villages,
-    ),
+        icon: Symbols.family_history,
+        label: 'Lignées',
+        route: Routes.genealogy),
     _TabItem(
-      icon: Icons.account_tree_outlined,
-      activeIcon: Icons.account_tree,
-      label: 'Généalogie',
-      route: Routes.genealogy,
-    ),
-    _TabItem(
-      icon: Icons.search_outlined,
-      activeIcon: Icons.search,
-      label: 'Recherche',
-      route: Routes.search,
-    ),
-    _TabItem(
-      icon: Icons.person_outline,
-      activeIcon: Icons.person,
-      label: 'Profil',
-      route: Routes.profile,
-    ),
+        icon: Symbols.forum,
+        label: 'Messages',
+        route: Routes.messages,
+        hasBadge: true),
+    _TabItem(icon: Symbols.person, label: 'Profil', route: Routes.profile),
   ];
 
   @override
@@ -107,48 +96,45 @@ class _MobileShell extends ConsumerWidget {
     final location = GoRouterState.of(context).matchedLocation;
     var currentIndex = _tabs.indexWhere((t) => location.startsWith(t.route));
     // Routes internes villages/my-villages → surligner l'onglet Villages
-    if (currentIndex < 0 && (location.startsWith('/villages') || location.startsWith('/my-villages'))) {
+    if (currentIndex < 0 &&
+        (location.startsWith('/villages') ||
+            location.startsWith('/my-villages'))) {
       currentIndex = _tabs.indexWhere((t) => t.route == Routes.villages);
     }
 
+    final t = GwTokens.of(context);
+    final unread = ref.watch(unreadMessagesCountProvider);
+
     return Scaffold(
-      // ── Drawer mobile (équivalent de l'Icon Rail) ──
+      // ── Drawer mobile (destinations secondaires : recherche, réglages…) ──
       drawer: _MobileDrawer(currentLocation: location),
       body: child,
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          border: Border(
-            top: BorderSide(
-              color: Theme.of(context).dividerColor,
-              width: 0.5,
+          color: t.inkCard,
+          border: Border(top: BorderSide(color: t.line)),
+        ),
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(8, 10, 8, 10),
+            child: Row(
+              children: [
+                for (int i = 0; i < _tabs.length; i++)
+                  Expanded(
+                    child: _NavDestination(
+                      item: _tabs[i],
+                      isActive: i == currentIndex,
+                      badgeCount: _tabs[i].hasBadge ? unread : 0,
+                      onTap: () {
+                        ref.read(breadcrumbProvider.notifier).clear();
+                        context.go(_tabs[i].route);
+                      },
+                    ),
+                  ),
+              ],
             ),
           ),
-        ),
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            BottomNavigationBar(
-              currentIndex: currentIndex < 0 ? 0 : currentIndex,
-              onTap: (i) {
-                ref.read(breadcrumbProvider.notifier).clear();
-                context.go(_tabs[i].route);
-              },
-              items: _tabs.map((t) {
-                return BottomNavigationBarItem(
-                  icon: Icon(t.icon),
-                  activeIcon: Icon(t.activeIcon),
-                  label: t.label,
-                  tooltip: t.label,
-                );
-              }).toList(),
-            ),
-            // Accent color picker (en haut à droite de la bottom nav)
-            const Positioned(
-              right: 8,
-              top: 4,
-              child: AccentColorButton(),
-            ),
-          ],
         ),
       ),
     );
@@ -158,15 +144,106 @@ class _MobileShell extends ConsumerWidget {
 class _TabItem {
   const _TabItem({
     required this.icon,
-    required this.activeIcon,
     required this.label,
     required this.route,
+    this.hasBadge = false,
   });
 
   final IconData icon;
-  final IconData activeIcon;
   final String label;
   final String route;
+  final bool hasBadge;
+}
+
+/// Destination bottom nav — actif : pilule 52×32 or 16 % + icône remplie
+/// + label 12 px w600 ; inactif : icône + label stoneMid.
+class _NavDestination extends StatelessWidget {
+  const _NavDestination({
+    required this.item,
+    required this.isActive,
+    required this.onTap,
+    this.badgeCount = 0,
+  });
+
+  final _TabItem item;
+  final bool isActive;
+  final VoidCallback onTap;
+  final int badgeCount;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = GwTokens.of(context);
+    final color = isActive ? t.goldText : t.stoneMid;
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(GwTokens.rBtn),
+      child: Semantics(
+        selected: isActive,
+        button: true,
+        label: item.label,
+        child: Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.topCenter,
+          children: [
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 52,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: isActive ? t.goldBg : Colors.transparent,
+                    borderRadius: BorderRadius.circular(GwTokens.rPill),
+                  ),
+                  alignment: Alignment.center,
+                  child: Icon(
+                    item.icon,
+                    size: 22,
+                    color: color,
+                    fill: isActive ? 1 : 0,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  item.label,
+                  style: GwType.ui(
+                    fontSize: 12,
+                    fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+                    color: color,
+                  ),
+                ),
+              ],
+            ),
+            if (badgeCount > 0)
+              Positioned(
+                top: -2,
+                right: 12,
+                child: Container(
+                  constraints:
+                      const BoxConstraints(minWidth: 18, minHeight: 18),
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  decoration: BoxDecoration(
+                    color: GwTokens.ember,
+                    borderRadius: BorderRadius.circular(GwTokens.rPill),
+                    border: Border.all(color: t.inkCard, width: 2),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    '$badgeCount',
+                    style: GwType.ui(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 // =============================================================================

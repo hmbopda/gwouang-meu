@@ -14,6 +14,8 @@ import 'package:gwangmeu/shared/widgets/deferred_widget.dart';
 
 // ── Deferred imports (chargés à la demande — réduit ~30-40% bundle web) ──
 import 'package:gwangmeu/features/genealogy/genealogy_screen.dart' deferred as genealogy;
+import 'package:gwangmeu/features/messages/messages_screen.dart'
+    deferred as messages;
 import 'package:gwangmeu/features/genealogy/invitation_screen.dart'
     deferred as invitation;
 import 'package:gwangmeu/features/profile/profile_screen.dart' deferred as profile;
@@ -123,6 +125,15 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => DeferredWidget(
               loader: genealogy.loadLibrary,
               builder: () => genealogy.GenealogyScreen(),
+            ),
+          ),
+
+          // Messages — destination de premier niveau (deferred)
+          GoRoute(
+            path: Routes.messages,
+            builder: (context, state) => DeferredWidget(
+              loader: messages.loadLibrary,
+              builder: () => messages.MessagesScreen(),
             ),
           ),
 

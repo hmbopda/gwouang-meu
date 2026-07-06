@@ -1,10 +1,20 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:material_symbols_icons/symbols.dart';
 
 import 'package:gwangmeu/core/theme/gw_tokens.dart';
 import 'package:gwangmeu/shared/models/post_model.dart';
 
+/// PostCard « Tissage » — gabarits différenciés par type de post :
+/// - **citation** (`isLargeText`) : barre tissée verticale 5 px + Fraunces
+///   italique 19 px + grand guillemet or
+/// - **média** : image full-bleed avec auteur en overlay
+/// - **encart IA** : fond sage 8-14 %, bordure sage 35 %, label mono
+///   « MÉMOIRE FAMILIALE · CONFIANCE X% », CTA sage + bouton fermer
+/// - **live** : zone immersive + badge ember
+/// - **texte** : gabarit simple
+/// Actions en pilules (inkLift, 8×14, cœur ember).
 class PostCard extends StatefulWidget {
   const PostCard({
     super.key,
@@ -15,6 +25,8 @@ class PostCard extends StatefulWidget {
     this.onVillageTap,
     this.onAuthorTap,
     this.onLiveTap,
+    this.onAiExplore,
+    this.onAiDismiss,
   });
 
   final PostModel post;
@@ -24,6 +36,12 @@ class PostCard extends StatefulWidget {
   final VoidCallback? onVillageTap;
   final VoidCallback? onAuthorTap;
   final VoidCallback? onLiveTap;
+
+  /// Encart IA : « Explorer le lien ».
+  final VoidCallback? onAiExplore;
+
+  /// Encart IA : rejeter la suggestion.
+  final VoidCallback? onAiDismiss;
 
   @override
   State<PostCard> createState() => _PostCardState();
@@ -36,242 +54,181 @@ class _PostCardState extends State<PostCard> {
 
   @override
   Widget build(BuildContext context) {
-    final isAi = post.isAiSuggestion;
+    switch (post.postType) {
+      case PostType.aiSuggestion:
+        return _AiMemoryCard(
+          post: post,
+          onExplore: widget.onAiExplore,
+          onDismiss: widget.onAiDismiss,
+        );
+      case PostType.media:
+        return _buildMediaPost(context);
+      case PostType.live:
+        return _buildLivePost(context);
+      case PostType.text:
+        return post.isLargeText
+            ? _buildQuotePost(context)
+            : _buildTextPost(context);
+    }
+  }
 
+  // ───────────────────────────────────────────────────────────────
+  //  Gabarit CITATION — barre tissée + Fraunces italique
+  // ───────────────────────────────────────────────────────────────
+
+  Widget _buildQuotePost(BuildContext context) {
+    final t = GwTokens.of(context);
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 7),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: isAi
-              ? Theme.of(context).colorScheme.primary.withAlpha(50)
-              : Theme.of(context).colorScheme.outline.withAlpha(40),
-          width: 0.5,
+        color: t.inkCard,
+        borderRadius: BorderRadius.circular(GwTokens.rCardLg),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const GwWeaveBarVertical(width: 5),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(19, 20, 24, 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '“',
+                      style: GwType.display(
+                        fontSize: 40,
+                        fontWeight: FontWeight.w600,
+                        color: GwTokens.gold.withValues(alpha: 0.35),
+                        height: 0.6,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      post.content,
+                      style: GwType.quote(fontSize: 19, color: t.stone, height: 1.55),
+                    ),
+                    const SizedBox(height: 16),
+                    _authorRow(context, withActions: true),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
+      ),
+    );
+  }
+
+  // ───────────────────────────────────────────────────────────────
+  //  Gabarit MÉDIA — image full-bleed, auteur en overlay
+  // ───────────────────────────────────────────────────────────────
+
+  Widget _buildMediaPost(BuildContext context) {
+    final t = GwTokens.of(context);
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 7),
+      decoration: BoxDecoration(
+        color: t.inkCard,
+        borderRadius: BorderRadius.circular(GwTokens.rCardLg),
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (isAi) _buildAiBanner(context),
-          _buildHeader(context),
-          _buildBody(context),
-          if (post.postType == PostType.media) _buildMedia(context),
-          if (post.postType == PostType.live) _buildLiveMedia(context),
-          _buildStats(context),
-          _buildActions(context),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAiBanner(BuildContext context) {
-    final accent = Theme.of(context).colorScheme.primary;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            accent.withAlpha(15),
-            Colors.transparent,
-          ],
-        ),
-        border: Border(
-          bottom: BorderSide(
-            color: Theme.of(context).colorScheme.outline.withAlpha(30),
+          Stack(
+            children: [
+              _media(context),
+              Positioned(
+                left: 16,
+                bottom: 14,
+                child: Row(
+                  children: [
+                    _initialAvatar(
+                      post.authorDisplayName,
+                      size: 32,
+                      bg: GwTokens.emberBg,
+                      fg: t.emberText,
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      [
+                        post.authorDisplayName ?? 'Membre',
+                        if (post.villageName != null) post.villageName!,
+                      ].join(' · '),
+                      style: GwType.ui(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ).copyWith(shadows: [
+                        const Shadow(
+                            blurRadius: 6,
+                            color: Color(0xB3000000),
+                            offset: Offset(0, 1)),
+                      ]),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.auto_awesome, size: 20, color: accent),
-          const SizedBox(width: 10),
-          Expanded(
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Suggestion Claude AI',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: accent,
-                        fontWeight: FontWeight.w700,
-                      ),
+                  post.content,
+                  style: GwType.ui(fontSize: 15, color: t.stone, height: 1.65),
                 ),
-                if (post.aiDescription != null)
-                  Text(
-                    post.aiDescription!,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 11),
-                  ),
-              ],
-            ),
-          ),
-          if (post.aiConfidence != null)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
-              decoration: BoxDecoration(
-                color: accent.withAlpha(20),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: accent.withAlpha(50)),
-              ),
-              child: Text(
-                'Confiance ${post.aiConfidence}',
-                style: TextStyle(
-                  color: accent,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w600,
-                  fontFamily: 'monospace',
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHeader(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          GestureDetector(
-            onTap: widget.onAuthorTap,
-            child: _buildAvatar(42),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+                const SizedBox(height: 12),
                 Row(
                   children: [
-                    Flexible(
-                      child: GestureDetector(
-                        onTap: widget.onAuthorTap,
-                        child: Text(
-                          post.authorDisplayName ?? 'Membre GWANG MEU',
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w700,
-                              ),
-                        ),
-                      ),
+                    _pillAction(
+                      context,
+                      icon: Symbols.favorite,
+                      fill: _liked ? 1 : 0,
+                      iconColor: t.emberText,
+                      label: '${post.reactionCount}',
+                      onTap: _toggleLike,
                     ),
-                    if (post.authorRole != null && post.authorRole != 'MEMBRE') ...[
-                      const SizedBox(width: 6),
-                      Builder(builder: (ctx) {
-                        final accent = Theme.of(ctx).colorScheme.primary;
-                        return Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                        decoration: BoxDecoration(
-                          color: accent.withAlpha(20),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          post.authorRole!,
-                          style: TextStyle(
-                            color: accent,
-                            fontSize: 9,
-                            fontWeight: FontWeight.w700,
-                            fontFamily: 'monospace',
-                          ),
-                        ),
-                      );
-                      }),
-                    ],
-                  ],
-                ),
-                const SizedBox(height: 2),
-                Row(
-                  children: [
-                    if (post.villageName != null)
-                      GestureDetector(
-                        onTap: widget.onVillageTap,
-                        child: Text(
-                          post.villageName!,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: Theme.of(context).colorScheme.primary,
-                                fontWeight: FontWeight.w500,
-                              ),
-                        ),
-                      ),
-                    if (post.createdAt != null) ...[
+                    const SizedBox(width: 10),
+                    _pillAction(
+                      context,
+                      icon: Symbols.chat_bubble,
+                      iconColor: t.stoneMid,
+                      label: '${post.commentCount}',
+                      onTap: widget.onComment,
+                    ),
+                    const Spacer(),
+                    if (post.tags.isNotEmpty)
                       Text(
-                        post.villageName != null ? ' · ' : '',
-                        style: Theme.of(context).textTheme.bodySmall,
+                        '#${post.tags.first}',
+                        style: GwType.mono(
+                            fontSize: 11, color: t.goldText, letterSpacing: 0.5),
                       ),
-                      Text(
-                        post.isLive ? 'En direct' : _formatDate(post.createdAt!),
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              fontFamily: 'monospace',
-                              fontSize: 11,
-                            ),
-                      ),
-                    ],
-                    if (post.isLive) ...[
-                      const SizedBox(width: 6),
-                      _liveBadge(),
-                    ],
                   ],
                 ),
               ],
             ),
           ),
-          SizedBox(
-            width: 32,
-            height: 32,
-            child: IconButton(
-              onPressed: () {},
-              icon: const Icon(Icons.more_horiz, size: 18),
-              color: GwTokens.dark.stoneMid,
-              padding: EdgeInsets.zero,
-            ),
-          ),
         ],
       ),
     );
   }
 
-  Widget _buildBody(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            post.content,
-            style: post.isLargeText
-                ? Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      fontStyle: FontStyle.italic,
-                      height: 1.5,
-                    )
-                : Theme.of(context).textTheme.bodyMedium?.copyWith(height: 1.7),
-          ),
-          if (post.tags.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 4,
-              children: post.tags
-                  .map((tag) => Text(
-                        '#$tag',
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.primary,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ))
-                  .toList(),
-            ),
-          ],
-        ],
-      ),
+  Widget _media(BuildContext context) {
+    final t = GwTokens.of(context);
+    final placeholder = Container(
+      height: 200,
+      width: double.infinity,
+      color: t.inkLift,
+      alignment: Alignment.center,
+      child: Icon(Symbols.image, size: 40, color: t.stoneDim),
     );
-  }
-
-  Widget _buildMedia(BuildContext context) {
-    if (post.hasMediaGrid) return _buildMediaGrid();
-    if (post.mediaUrl == null) return const SizedBox.shrink();
-
+    if (post.mediaUrl == null) return placeholder;
     return AspectRatio(
       aspectRatio: 16 / 9,
       child: Stack(
@@ -280,23 +237,19 @@ class _PostCardState extends State<PostCard> {
           CachedNetworkImage(
             imageUrl: post.mediaUrl!,
             fit: BoxFit.cover,
-            placeholder: (_, __) => Container(color: GwTokens.dark.inkLift),
-            errorWidget: (_, __, ___) => Container(
-              color: GwTokens.dark.inkLift,
-              child: Center(
-                child: Icon(Icons.image_outlined, size: 40, color: GwTokens.dark.stoneDim),
-              ),
-            ),
+            placeholder: (_, __) => Container(color: t.inkLift),
+            errorWidget: (_, __, ___) => placeholder,
           ),
           if (post.mediaType == 'VIDEO')
             Center(
               child: Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.black.withAlpha(150),
+                  color: Colors.black.withValues(alpha: 0.6),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.play_arrow, color: Colors.white, size: 32),
+                child:
+                    const Icon(Symbols.play_arrow, color: Colors.white, size: 32),
               ),
             ),
         ],
@@ -304,48 +257,67 @@ class _PostCardState extends State<PostCard> {
     );
   }
 
-  Widget _buildMediaGrid() {
-    final urls = post.mediaUrls;
-    if (urls.length == 2) {
-      return Row(
+  // ───────────────────────────────────────────────────────────────
+  //  Gabarit LIVE
+  // ───────────────────────────────────────────────────────────────
+
+  Widget _buildLivePost(BuildContext context) {
+    final t = GwTokens.of(context);
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 7),
+      decoration: BoxDecoration(
+        color: t.inkCard,
+        borderRadius: BorderRadius.circular(GwTokens.rCardLg),
+        border: Border.all(color: GwTokens.emberLine),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(child: _gridCell(urls[0])),
-          const SizedBox(width: 2),
-          Expanded(child: _gridCell(urls[1])),
-        ],
-      );
-    }
-    return SizedBox(
-      height: 240,
-      child: Row(
-        children: [
-          Expanded(flex: 2, child: _gridCell(urls[0], height: 240)),
-          const SizedBox(width: 2),
-          Expanded(
-            child: Column(
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 14, 18, 0),
+            child: Row(
               children: [
-                Expanded(child: _gridCell(urls[1])),
-                const SizedBox(height: 2),
-                Expanded(
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      _gridCell(urls.length > 2 ? urls[2] : urls[1]),
-                      if (urls.length > 3)
-                        Container(
-                          color: Colors.black.withAlpha(140),
-                          child: Center(
-                            child: Text(
-                              '+${urls.length - 3}',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 20,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                        ),
-                    ],
+                _liveBadge(),
+                const SizedBox(width: 10),
+                if (post.liveViewerCount != null)
+                  Text(
+                    '${post.liveViewerCount} À L\'ÉCOUTE',
+                    style: GwType.mono(fontSize: 10, color: t.stoneFaint),
+                  ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 12, 18, 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  post.content,
+                  style: GwType.ui(fontSize: 15, color: t.stone, height: 1.6),
+                ),
+                const SizedBox(height: 14),
+                _authorRow(context),
+                const SizedBox(height: 14),
+                SizedBox(
+                  height: 46,
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: widget.onLiveTap,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: GwTokens.ember,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(GwTokens.rBtn),
+                      ),
+                    ),
+                    icon: const Icon(Symbols.play_arrow, size: 18),
+                    label: Text(
+                      'Rejoindre le live',
+                      style:
+                          GwType.ui(fontSize: 14, fontWeight: FontWeight.w600),
+                    ),
                   ),
                 ),
               ],
@@ -356,224 +328,155 @@ class _PostCardState extends State<PostCard> {
     );
   }
 
-  Widget _gridCell(String url, {double? height}) {
-    return SizedBox(
-      height: height,
-      child: CachedNetworkImage(
-        imageUrl: url,
-        fit: BoxFit.cover,
-        width: double.infinity,
-        height: double.infinity,
-        placeholder: (_, __) => Container(color: GwTokens.dark.inkLift),
-        errorWidget: (_, __, ___) => Container(
-          color: GwTokens.dark.inkLift,
-          child: Icon(Icons.image_outlined, color: GwTokens.dark.stoneDim),
-        ),
+  // ───────────────────────────────────────────────────────────────
+  //  Gabarit TEXTE simple
+  // ───────────────────────────────────────────────────────────────
+
+  Widget _buildTextPost(BuildContext context) {
+    final t = GwTokens.of(context);
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 7),
+      padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
+      decoration: BoxDecoration(
+        color: t.inkCard,
+        borderRadius: BorderRadius.circular(GwTokens.rCardLg),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _authorRow(context),
+          const SizedBox(height: 12),
+          Text(
+            post.content,
+            style: GwType.ui(fontSize: 15, color: t.stone, height: 1.65),
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              _pillAction(
+                context,
+                icon: Symbols.favorite,
+                fill: _liked ? 1 : 0,
+                iconColor: t.emberText,
+                label: '${post.reactionCount}',
+                onTap: _toggleLike,
+              ),
+              const SizedBox(width: 10),
+              _pillAction(
+                context,
+                icon: Symbols.chat_bubble,
+                iconColor: t.stoneMid,
+                label: '${post.commentCount}',
+                onTap: widget.onComment,
+              ),
+              const Spacer(),
+              if (post.tags.isNotEmpty)
+                Text(
+                  '#${post.tags.first}',
+                  style: GwType.mono(
+                      fontSize: 11, color: t.goldText, letterSpacing: 0.5),
+                ),
+            ],
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildLiveMedia(BuildContext context) {
-    return GestureDetector(
-      onTap: widget.onLiveTap,
-      child: AspectRatio(
-        aspectRatio: 16 / 9,
-        child: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Colors.black.withAlpha(240), const Color(0xFF1A1A3A)],
-            ),
+  // ───────────────────────────────────────────────────────────────
+  //  Éléments partagés
+  // ───────────────────────────────────────────────────────────────
+
+  void _toggleLike() {
+    setState(() => _liked = !_liked);
+    widget.onLike?.call();
+  }
+
+  Widget _authorRow(BuildContext context, {bool withActions = false}) {
+    final t = GwTokens.of(context);
+    return Row(
+      children: [
+        GestureDetector(
+          onTap: widget.onAuthorTap,
+          child: _initialAvatar(
+            post.authorDisplayName,
+            size: 36,
+            bg: t.goldBg,
+            fg: t.goldText,
           ),
-          child: Stack(
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.mic, size: 52, color: Colors.white54),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Cliquez pour rejoindre le live',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white60),
-                    ),
-                  ],
-                ),
+              Text(
+                post.authorDisplayName ?? 'Membre GWANG MEU',
+                style: GwType.ui(
+                    fontSize: 14, fontWeight: FontWeight.w600, color: t.stone),
+                overflow: TextOverflow.ellipsis,
               ),
-              Positioned(
-                bottom: 10,
-                left: 10,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withAlpha(180),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      _liveBadge(),
-                      if (post.liveViewerCount != null) ...[
-                        const SizedBox(width: 8),
-                        Text(
-                          '${post.liveViewerCount} spectateurs',
-                          style: const TextStyle(color: Colors.white70, fontSize: 11),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
+              const SizedBox(height: 1),
+              Text(
+                [
+                  if (post.villageName != null) post.villageName!,
+                  if (post.createdAt != null) _formatDate(post.createdAt!),
+                ].join(' · '),
+                style: GwType.ui(fontSize: 12, color: t.stoneFaint),
+                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildStats(BuildContext context) {
-    if (post.reactionCount == 0 && post.commentCount == 0 && post.shareCount == 0) {
-      return const SizedBox.shrink();
-    }
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        border: Border(
-          top: BorderSide(color: Theme.of(context).colorScheme.outline.withAlpha(30)),
-        ),
-      ),
-      child: Row(
-        children: [
-          if (post.reactionCount > 0) ...[
-            if (post.reactions.isNotEmpty) _reactionStack() else Icon(Icons.favorite, size: 14, color: Theme.of(context).colorScheme.primary),
-            const SizedBox(width: 6),
-            Text(
-              '${post.reactionCount} reactions',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 12),
-            ),
-          ],
-          const Spacer(),
-          if (post.commentCount > 0)
-            Text('${post.commentCount} commentaires', style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 12)),
-          if (post.shareCount > 0)
-            Text(' · ${post.shareCount} partages', style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 12)),
-        ],
-      ),
-    );
-  }
-
-  Widget _reactionStack() {
-    final emojis = post.reactions.take(3).toList();
-    return SizedBox(
-      width: 14.0 * emojis.length + 6,
-      height: 20,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          for (int i = 0; i < emojis.length; i++)
-            Positioned(
-              left: i * 10.0,
-              child: Container(
-                width: 20,
-                height: 20,
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surface,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Theme.of(context).colorScheme.surface, width: 1.5),
-                ),
-                alignment: Alignment.center,
-                child: Text(emojis[i], style: const TextStyle(fontSize: 10)),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActions(BuildContext context) {
-    if (post.isAiSuggestion) return _buildAiActions(context);
-    if (post.isLive) return _buildLiveActions(context);
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        border: Border(top: BorderSide(color: Theme.of(context).colorScheme.outline.withAlpha(30))),
-      ),
-      child: Row(
-        children: [
-          _actionBtn(
-            icon: _liked ? Icons.favorite : Icons.favorite_border,
-            label: "J'aime",
-            isActive: _liked,
-            onTap: () {
-              setState(() => _liked = !_liked);
-              widget.onLike?.call();
-            },
+        if (withActions) ...[
+          _pillAction(
+            context,
+            icon: Symbols.favorite,
+            fill: _liked ? 1 : 0,
+            iconColor: t.emberText,
+            label: '${post.reactionCount}',
+            onTap: _toggleLike,
           ),
-          _actionBtn(icon: Icons.chat_bubble_outline, label: 'Commenter', onTap: widget.onComment),
-          _actionBtn(icon: Icons.share_outlined, label: 'Partager', onTap: widget.onShare),
+          const SizedBox(width: 8),
+          _pillAction(
+            context,
+            icon: Symbols.chat_bubble,
+            iconColor: t.stoneMid,
+            label: '${post.commentCount}',
+            onTap: widget.onComment,
+          ),
         ],
-      ),
+      ],
     );
   }
 
-  Widget _buildLiveActions(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        border: Border(top: BorderSide(color: Theme.of(context).colorScheme.outline.withAlpha(30))),
-      ),
-      child: Row(
-        children: [
-          _actionBtn(icon: Icons.play_arrow, label: 'Rejoindre le live', color: GwTokens.ember, onTap: widget.onLiveTap),
-          _actionBtn(icon: Icons.notifications_outlined, label: 'Rappel', onTap: () {}),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAiActions(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        border: Border(top: BorderSide(color: Theme.of(context).colorScheme.outline.withAlpha(30))),
-      ),
-      child: Row(
-        children: [
-          _actionBtn(icon: Icons.account_tree_outlined, label: "Voir l'arbre", color: Theme.of(context).colorScheme.primary, onTap: () {}),
-          _actionBtn(icon: Icons.check_circle_outline, label: 'Confirmer', onTap: () {}),
-          _actionBtn(icon: Icons.cancel_outlined, label: 'Rejeter', onTap: () {}),
-        ],
-      ),
-    );
-  }
-
-  Widget _actionBtn({
+  /// Pilule d'action (inkLift, rayon 99, padding 8×14).
+  Widget _pillAction(
+    BuildContext context, {
     required IconData icon,
+    required Color iconColor,
     required String label,
-    Color? color,
-    bool isActive = false,
+    double fill = 0,
     VoidCallback? onTap,
   }) {
-    final c = isActive ? Theme.of(context).colorScheme.primary : (color ?? GwTokens.dark.stoneMid);
-    return Expanded(
+    final t = GwTokens.of(context);
+    return Material(
+      color: t.inkLift,
+      borderRadius: BorderRadius.circular(GwTokens.rPill),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(GwTokens.rPill),
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: 18, color: c),
+              Icon(icon, size: 18, color: iconColor, fill: fill),
               const SizedBox(width: 6),
-              Flexible(
-                child: Text(
-                  label,
-                  style: TextStyle(color: c, fontSize: 13, fontWeight: FontWeight.w600),
-                  overflow: TextOverflow.ellipsis,
-                ),
+              Text(
+                label,
+                style: GwType.ui(
+                    fontSize: 13, fontWeight: FontWeight.w600, color: t.stone),
               ),
             ],
           ),
@@ -582,45 +485,181 @@ class _PostCardState extends State<PostCard> {
     );
   }
 
-  Widget _buildAvatar(double size) {
-    if (post.authorAvatarUrl != null) {
-      return CircleAvatar(
-        radius: size / 2,
-        backgroundImage: CachedNetworkImageProvider(post.authorAvatarUrl!),
-      );
-    }
-    final accent = Theme.of(context).colorScheme.primary;
-    return CircleAvatar(
-      radius: size / 2,
-      backgroundColor: accent.withAlpha(40),
+  Widget _initialAvatar(String? name,
+      {required double size, required Color bg, required Color fg}) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(color: bg, shape: BoxShape.circle),
+      alignment: Alignment.center,
       child: Text(
-        (post.authorDisplayName ?? 'M').substring(0, 1).toUpperCase(),
-        style: TextStyle(color: accent, fontWeight: FontWeight.w600, fontSize: size * 0.4),
+        (name ?? 'M').substring(0, 1).toUpperCase(),
+        style: GwType.display(
+            fontSize: size * 0.4, fontWeight: FontWeight.w700, color: fg),
       ),
     );
   }
 
   Widget _liveBadge() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(color: GwTokens.ember, borderRadius: BorderRadius.circular(20)),
-      child: const Row(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+      decoration: BoxDecoration(
+        color: GwTokens.emberBg,
+        border: Border.all(color: GwTokens.emberLine),
+        borderRadius: BorderRadius.circular(GwTokens.rPill),
+      ),
+      child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _PulsingDot(),
-          SizedBox(width: 4),
-          Text('LIVE', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
+          const _PulsingDot(),
+          const SizedBox(width: 6),
+          Text(
+            'EN DIRECT',
+            style: GwType.mono(
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              color: GwTokens.dark.emberText,
+            ),
+          ),
         ],
       ),
     );
   }
 
   String _formatDate(DateTime dt) {
-    final now = DateTime.now();
-    final diff = now.difference(dt);
-    if (diff.inMinutes < 60) return '${diff.inMinutes}min';
-    if (diff.inHours < 24) return '${diff.inHours}h';
+    final diff = DateTime.now().difference(dt);
+    if (diff.inMinutes < 60) return 'il y a ${diff.inMinutes} min';
+    if (diff.inHours < 24) return 'il y a ${diff.inHours} h';
     return DateFormat('d MMM', 'fr').format(dt);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────
+//  Encart IA « Mémoire familiale » — narratif, pulse doux 2,4 s
+// ─────────────────────────────────────────────────────────────────
+
+class _AiMemoryCard extends StatefulWidget {
+  const _AiMemoryCard({required this.post, this.onExplore, this.onDismiss});
+
+  final PostModel post;
+  final VoidCallback? onExplore;
+  final VoidCallback? onDismiss;
+
+  @override
+  State<_AiMemoryCard> createState() => _AiMemoryCardState();
+}
+
+class _AiMemoryCardState extends State<_AiMemoryCard>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pulse = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 2400),
+  )..repeat(reverse: true);
+
+  @override
+  void dispose() {
+    _pulse.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = GwTokens.of(context);
+    final confidence = widget.post.aiConfidence ?? '—';
+
+    return AnimatedBuilder(
+      animation: _pulse,
+      builder: (context, child) {
+        final glow = 0.10 + 0.10 * _pulse.value;
+        return Container(
+          margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 7),
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                GwTokens.sage.withValues(alpha: 0.14),
+                GwTokens.sage.withValues(alpha: 0.04),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(GwTokens.rCardLg),
+            border: Border.all(color: GwTokens.sage.withValues(alpha: 0.35)),
+            boxShadow: [
+              BoxShadow(
+                color: GwTokens.sage.withValues(alpha: glow),
+                blurRadius: 18,
+                spreadRadius: 1,
+              ),
+            ],
+          ),
+          child: child,
+        );
+      },
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Symbols.auto_awesome, size: 20, color: t.sageText),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'MÉMOIRE FAMILIALE · CONFIANCE ${confidence.toUpperCase()}',
+                  style: GwType.mono(
+                      fontSize: 10, color: t.sageText, letterSpacing: 1.5),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            widget.post.content,
+            style: GwType.ui(fontSize: 15, color: t.stone, height: 1.65),
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: SizedBox(
+                  height: 46,
+                  child: FilledButton.icon(
+                    onPressed: widget.onExplore,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: GwTokens.sage,
+                      foregroundColor: const Color(0xFFF0EBE1),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(GwTokens.rBtn),
+                      ),
+                    ),
+                    icon: const Icon(Symbols.account_tree, size: 18),
+                    label: Text(
+                      'Explorer le lien',
+                      style:
+                          GwType.ui(fontSize: 14, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Material(
+                color: t.inkLift,
+                borderRadius: BorderRadius.circular(GwTokens.rBtn),
+                child: InkWell(
+                  onTap: widget.onDismiss,
+                  borderRadius: BorderRadius.circular(GwTokens.rBtn),
+                  child: SizedBox(
+                    width: 46,
+                    height: 46,
+                    child: Icon(Symbols.close, size: 20, color: t.stoneFaint),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -631,14 +670,11 @@ class _PulsingDot extends StatefulWidget {
   State<_PulsingDot> createState() => _PulsingDotState();
 }
 
-class _PulsingDotState extends State<_PulsingDot> with SingleTickerProviderStateMixin {
-  late final AnimationController _ctrl;
-
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 1200))..repeat(reverse: true);
-  }
+class _PulsingDotState extends State<_PulsingDot>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl = AnimationController(
+      vsync: this, duration: const Duration(milliseconds: 1200))
+    ..repeat(reverse: true);
 
   @override
   void dispose() {
@@ -651,9 +687,10 @@ class _PulsingDotState extends State<_PulsingDot> with SingleTickerProviderState
     return FadeTransition(
       opacity: Tween(begin: 0.4, end: 1.0).animate(_ctrl),
       child: Container(
-        width: 6,
-        height: 6,
-        decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+        width: 7,
+        height: 7,
+        decoration: BoxDecoration(
+            color: GwTokens.dark.emberText, shape: BoxShape.circle),
       ),
     );
   }

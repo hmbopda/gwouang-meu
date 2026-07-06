@@ -1,15 +1,19 @@
-/// Constantes de routes — GoRouter Phase 1
+/// Constantes de routes — GoRouter
 abstract class Routes {
   static const splash = '/';
   static const auth = '/auth';
 
-  // Shell (bottom nav)
+  // Shell (bottom nav — 5 destinations : Fil, Villages, Lignées, Messages, Profil)
   static const home = '/home';
   static const feed = '/home/feed';
   static const villages = '/home/villages';
   static const search = '/home/search';
   static const profile = '/home/profile';
   static const genealogy = '/home/genealogy';
+
+  /// Messages — destination de premier niveau.
+  static const messages = '/messages';
+  static const messagesConversation = '/messages/:groupId';
 
   // Routes détail (hors shell)
   static const village = '/villages/:id';
@@ -20,4 +24,5 @@ abstract class Routes {
 
   static String villageDetail(String id) => '/villages/$id';
   static String villageEdit(String id) => '/villages/$id/edit';
+  static String conversation(String groupId) => '/messages/$groupId';
 }
