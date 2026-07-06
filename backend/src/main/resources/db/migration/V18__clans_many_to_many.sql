@@ -73,7 +73,13 @@ ALTER TABLE clans ENABLE ROW LEVEL SECURITY;
 ALTER TABLE person_clans ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "clans_read_all" ON clans FOR SELECT USING (true);
-CREATE POLICY "clans_insert_auth" ON clans FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
-
 CREATE POLICY "person_clans_read_all" ON person_clans FOR SELECT USING (true);
-CREATE POLICY "person_clans_insert_auth" ON person_clans FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
+
+-- auth.uid() n'existe que sur Supabase ; en CI (Postgres nu) ces politiques sont sans objet
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'auth') THEN
+        EXECUTE 'CREATE POLICY "clans_insert_auth" ON clans FOR INSERT WITH CHECK (auth.uid() IS NOT NULL)';
+        EXECUTE 'CREATE POLICY "person_clans_insert_auth" ON person_clans FOR INSERT WITH CHECK (auth.uid() IS NOT NULL)';
+    END IF;
+END $$;

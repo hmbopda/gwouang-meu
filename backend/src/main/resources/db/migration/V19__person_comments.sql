@@ -24,8 +24,13 @@ CREATE POLICY "person_comments_select" ON person_comments
 CREATE POLICY "person_comments_insert" ON person_comments
     FOR INSERT WITH CHECK (true);
 
-CREATE POLICY "person_comments_update" ON person_comments
-    FOR UPDATE USING (author_id = auth.uid());
-
-CREATE POLICY "person_comments_delete" ON person_comments
-    FOR DELETE USING (author_id = auth.uid());
+-- auth.uid() n'existe que sur Supabase ; en CI (Postgres nu) ces politiques sont sans objet
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'auth') THEN
+        EXECUTE 'CREATE POLICY "person_comments_update" ON person_comments
+            FOR UPDATE USING (author_id = auth.uid())';
+        EXECUTE 'CREATE POLICY "person_comments_delete" ON person_comments
+            FOR DELETE USING (author_id = auth.uid())';
+    END IF;
+END $$;
