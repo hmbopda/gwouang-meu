@@ -3,74 +3,80 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:material_symbols_icons/symbols.dart';
 
 import 'package:gwangmeu/core/router/breadcrumb_provider.dart';
 import 'package:gwangmeu/core/router/route_names.dart';
-import 'package:gwangmeu/shared/models/user_model.dart';
-import 'package:gwangmeu/shared/widgets/gwang_button.dart';
+import 'package:gwangmeu/core/theme/gw_tokens.dart';
 import 'package:gwangmeu/features/genealogy/genealogy_notifier.dart';
-import 'package:gwangmeu/features/villages/villages_notifier.dart';
+import 'package:gwangmeu/features/genealogy/models/family_tree.dart';
+import 'package:gwangmeu/features/genealogy/services/genealogy_api_service.dart';
+import 'package:gwangmeu/features/home/home_screen.dart';
 import 'package:gwangmeu/features/profile/profile_edit_sheet.dart';
 import 'package:gwangmeu/features/profile/profile_notifier.dart';
+import 'package:gwangmeu/features/villages/villages_notifier.dart';
+import 'package:gwangmeu/shared/models/user_model.dart';
+import 'package:gwangmeu/shared/models/village_model.dart';
 
-import 'package:gwangmeu/core/theme/gw_tokens.dart';
-
-const _serif = 'Georgia';
-const _mono = 'monospace';
-
-// ═══════════════════════════════════════════════════════
-// PROFILE SCREEN
-// ═══════════════════════════════════════════════════════
-
+/// Profil « Tissage » (#3c) — carte d'identité culturelle.
+///
+/// Bande tissée, avatar 96 px à anneau dégradé or→ember→sage, chips
+/// identité (clan or / diaspora azure / langues sage), carte lignée,
+/// grille « Mes villages », stats « contribution à la mémoire » et
+/// CTA « Enregistrer mon récit ». Toute la logique existante est
+/// conservée (profileNotifierProvider, édition, uploads, déconnexion).
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final c = GwTokens.of(context);
+    final t = GwTokens.of(context);
     final profileState = ref.watch(profileNotifierProvider);
 
     return profileState.when(
       loading: () => Center(
-        child: CircularProgressIndicator(color: c.goldText),
+        child: CircularProgressIndicator(color: t.goldText),
       ),
       error: (e, _) => Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.error_outline, size: 48, color: c.stoneDim),
+            Icon(Symbols.error, size: 48, color: t.stoneDim),
             const SizedBox(height: 12),
-            Text('Impossible de charger le profil',
-                style: TextStyle(color: c.stoneMid)),
+            Text(
+              'Impossible de charger le profil',
+              style: GwType.ui(fontSize: 15, color: t.stoneMid),
+            ),
             const SizedBox(height: 16),
-            GwangButton(
+            _GoldPillButton(
               label: 'Réessayer',
-              onPressed: () => ref.invalidate(profileNotifierProvider),
-              fullWidth: false,
+              onTap: () => ref.invalidate(profileNotifierProvider),
             ),
           ],
         ),
       ),
       data: (user) => user == null
           ? _notLoggedIn(context)
-          : _ResponsiveShell(user: user),
+          : _ProfileView(user: user),
     );
   }
 
   Widget _notLoggedIn(BuildContext context) {
-    final c = GwTokens.of(context);
+    final t = GwTokens.of(context);
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.person_off_outlined, size: 64, color: c.stoneDim),
+          Icon(Symbols.person_off, size: 64, color: t.stoneDim),
           const SizedBox(height: 16),
-          Text('Non connecté', style: TextStyle(color: c.stoneMid)),
+          Text(
+            'Non connecté',
+            style: GwType.ui(fontSize: 15, color: t.stoneMid),
+          ),
           const SizedBox(height: 24),
-          GwangButton(
+          _GoldPillButton(
             label: 'Se connecter',
-            onPressed: () => context.go(Routes.auth),
-            fullWidth: false,
+            onTap: () => context.go(Routes.auth),
           ),
         ],
       ),
@@ -78,1212 +84,647 @@ class ProfileScreen extends ConsumerWidget {
   }
 }
 
-// ═══════════════════════════════════════════════════════
-// RESPONSIVE SHELL — 3 colonnes desktop, 1 colonne mobile
-// ═══════════════════════════════════════════════════════
+// ─────────────────────────────────────────────────────────────────
+//  Vue principale — colonne unique scrollable (mobile & desktop)
+// ─────────────────────────────────────────────────────────────────
 
-class _ResponsiveShell extends ConsumerWidget {
-  const _ResponsiveShell({required this.user});
+class _ProfileView extends ConsumerWidget {
+  const _ProfileView({required this.user});
   final UserModel user;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final c = GwTokens.of(context);
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final w = constraints.maxWidth;
+    final t = GwTokens.of(context);
+    final desktop = isDesktopLayout(context);
+    final completion = _calcCompletion(user);
 
-        // Desktop (>= 1100) : Left Rail + Center + Right Panel
-        if (w >= 1100) {
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(
-                width: 240,
-                child: _LeftRail(user: user),
-              ),
-              Container(width: 1, color: c.line),
-              Expanded(
-                child: _CenterPanel(user: user),
-              ),
-              Container(width: 1, color: c.line),
-              SizedBox(
-                width: 272,
-                child: _RightPanel(user: user),
-              ),
-            ],
-          );
-        }
+    final content = RefreshIndicator(
+      color: t.goldText,
+      onRefresh: () => ref.read(profileNotifierProvider.notifier).refresh(),
+      child: ListView(
+        padding: const EdgeInsets.only(bottom: 32),
+        children: [
+          _IdentityHeader(user: user),
+          const SizedBox(height: 10),
+          _LineageCard(user: user),
+          const SizedBox(height: 16),
+          const _SectionLabel('MES VILLAGES'),
+          const SizedBox(height: 8),
+          const _VillagesGrid(),
+          const SizedBox(height: 18),
+          const _SectionLabel('MA CONTRIBUTION À LA MÉMOIRE'),
+          const SizedBox(height: 8),
+          const _ContributionCard(),
+          const SizedBox(height: 12),
+          const _RecordCta(),
+          const SizedBox(height: 24),
+          _SectionLabel('PROFIL COMPLÉTÉ · $completion %'),
+          const SizedBox(height: 8),
+          _CompletionCard(user: user, completion: completion),
+          const SizedBox(height: 24),
+          const _SectionLabel('RÉGLAGES'),
+          const SizedBox(height: 8),
+          const _SettingsCard(),
+          const SizedBox(height: 12),
+          const _SignOutButton(),
+        ],
+      ),
+    );
 
-        // Tablet (>= 800) : Left Rail + Center
-        if (w >= 800) {
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(
-                width: 240,
-                child: _LeftRail(user: user),
-              ),
-              Container(width: 1, color: c.line),
-              Expanded(
-                child: _CenterPanel(user: user),
-              ),
-            ],
-          );
-        }
+    // Desktop : colonne centrée dans le shell (rail + topbar déjà fournis).
+    if (desktop) {
+      return Container(
+        color: t.ink,
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 560),
+          child: content,
+        ),
+      );
+    }
 
-        // Mobile : Header compact + Center
-        return Column(
+    // Mobile : bande tissée signature en haut de l'écran.
+    return Scaffold(
+      backgroundColor: t.ink,
+      body: SafeArea(
+        child: Column(
           children: [
-            _MobileProfileHeader(user: user),
-            Expanded(child: _CenterPanel(user: user)),
+            const GwWeaveBand(),
+            Expanded(child: content),
           ],
-        );
-      },
+        ),
+      ),
     );
   }
 }
 
-// ═══════════════════════════════════════════════════════
-// MOBILE PROFILE HEADER — Résumé compact affiché en mobile
-// ═══════════════════════════════════════════════════════
+// ─────────────────────────────────────────────────────────────────
+//  Bandeau identité — avatar 96 px anneau tissé, nom Fraunces,
+//  chip rôle mono, chips identité (clan / diaspora / langues)
+// ─────────────────────────────────────────────────────────────────
 
-class _MobileProfileHeader extends ConsumerWidget {
-  const _MobileProfileHeader({required this.user});
+class _IdentityHeader extends ConsumerWidget {
+  const _IdentityHeader({required this.user});
   final UserModel user;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final c = GwTokens.of(context);
-    final completion = _calcCompletion(user);
+    final t = GwTokens.of(context);
+    final subline = _subline(user);
 
     return Container(
-      color: c.ink,
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 18),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            GwTokens.gold.withValues(alpha: 0.09),
+            GwTokens.gold.withValues(alpha: 0.0),
+          ],
+        ),
+      ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Avatar + Nom + Bouton éditer
-          Row(
+          // Action réglages (cible 44 px) — ouvre la feuille d'édition
+          // (profil, mode d'affichage, accent…).
+          Align(
+            alignment: Alignment.centerRight,
+            child: _HeaderAction(
+              icon: Symbols.settings,
+              onTap: () => showProfileEditSheet(context),
+            ),
+          ),
+          const SizedBox(height: 2),
+          _WovenAvatar(
+            user: user,
+            onTap: () => _pickAndUpload(
+              context,
+              ref,
+              folder: 'avatars',
+              profileField: 'avatarUrl',
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            user.displayName ?? 'Membre',
+            textAlign: TextAlign.center,
+            style: GwType.display(fontSize: 23, color: t.stone),
+          ),
+          if (subline != null) ...[
+            const SizedBox(height: 3),
+            Text(
+              subline,
+              textAlign: TextAlign.center,
+              style: GwType.ui(fontSize: 13.5, color: t.stoneDim),
+            ),
+          ],
+          const SizedBox(height: 10),
+          // Chip rôle (mono) + vérifié
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            alignment: WrapAlignment.center,
             children: [
-              _MiniAvatar(letter: _initial(user), size: 44, color: c.goldText),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      user.displayName ?? 'Membre',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: c.stone,
-                      ),
-                    ),
-                    Text(
-                      '@${(user.displayName ?? user.email).toLowerCase().replaceAll(' ', '')}',
-                      style: TextStyle(
-                        fontFamily: _mono,
-                        fontSize: 10,
-                        color: c.stoneFaint,
-                      ),
-                    ),
-                    if (user.clan != null && user.clan!.isNotEmpty)
-                      Text(
-                        user.clan!,
-                        style: TextStyle(fontSize: 11, color: c.goldLine),
-                      ),
-                  ],
-                ),
-              ),
-              IconButton(
-                icon: Icon(Icons.edit_outlined, size: 20, color: c.goldLine),
-                onPressed: () => showModalBottomSheet(
-                  context: context,
-                  isScrollControlled: true,
-                  backgroundColor: Colors.transparent,
-                  builder: (_) => const ProfileEditSheet(),
-                ),
-              ),
+              _MonoChip(label: user.role.toUpperCase(), color: t.goldText),
+              if (user.verified)
+                _MonoChip(label: 'VÉRIFIÉ', color: t.sageText),
             ],
           ),
           const SizedBox(height: 10),
-          // Barre de complétion
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          // Chips identité culturelle
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            alignment: WrapAlignment.center,
             children: [
-              Text(
-                'PROFIL COMPLÉTÉ',
-                style: TextStyle(
-                  fontFamily: _mono,
-                  fontSize: 8,
-                  letterSpacing: 1,
-                  color: c.stoneFaint,
+              for (final clan in _clanNames(user))
+                _IdentityChip(
+                  label: 'Clan $clan',
+                  bg: t.goldBg,
+                  line: t.goldLine,
+                  text: t.goldText,
                 ),
-              ),
-              Text(
-                '$completion %',
-                style: TextStyle(fontFamily: _mono, fontSize: 10, color: c.goldText),
-              ),
+              if (user.residenceCountry != null || user.country != null)
+                _IdentityChip(
+                  label: user.residenceCountry != null
+                      ? 'Diaspora · ${user.residenceCountry}'
+                      : 'Diaspora',
+                  bg: GwTokens.azureBg,
+                  line: GwTokens.azureLine,
+                  text: t.azureText,
+                ),
+              if (user.nativeLanguage != null)
+                _IdentityChip(
+                  label: 'Parle ${user.nativeLanguage}',
+                  bg: GwTokens.sageBg,
+                  line: GwTokens.sageLine,
+                  text: t.sageText,
+                ),
             ],
-          ),
-          const SizedBox(height: 5),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(99),
-            child: LinearProgressIndicator(
-              value: completion / 100,
-              minHeight: 3,
-              backgroundColor: c.inkHigh,
-              valueColor: AlwaysStoppedAnimation<Color>(c.goldText),
-            ),
-          ),
-          // Déconnexion
-          const SizedBox(height: 10),
-          GestureDetector(
-            onTap: () async {
-              await ref.read(profileNotifierProvider.notifier).signOut();
-              if (context.mounted) context.go(Routes.auth);
-            },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                border: Border.all(color: GwTokens.emberLine),
-                borderRadius: BorderRadius.circular(6),
-                color: GwTokens.emberBg,
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.logout, size: 13, color: GwTokens.ember),
-                  const SizedBox(width: 5),
-                  Text('Déconnexion', style: TextStyle(fontSize: 12, color: GwTokens.ember)),
-                ],
-              ),
-            ),
           ),
         ],
       ),
     );
   }
 
-  int _calcCompletion(UserModel u) {
-    int score = 0;
-    const total = 10;
-    if (u.displayName != null && u.displayName!.isNotEmpty) score++;
-    if (u.bio != null && u.bio!.isNotEmpty) score++;
-    if (u.avatarUrl != null && u.avatarUrl!.isNotEmpty) score++;
-    if (u.country != null) score++;
-    if (u.profession != null) score++;
-    if (u.nativeLanguage != null) score++;
-    if (u.clan != null) score++;
-    if (u.tribe != null) score++;
-    if (u.fatherName != null) score++;
-    if (u.motherName != null) score++;
-    return ((score / total) * 100).round();
+  String? _subline(UserModel u) {
+    final places = <String>[];
+    if (u.country != null) places.add(u.country!);
+    final residence = u.residenceCity ?? u.residenceCountry;
+    if (residence != null && residence != u.country) places.add(residence);
+
+    final parts = <String>[];
+    if (places.isNotEmpty) parts.add(places.join(' → '));
+    if (u.createdAt != null) parts.add('membre depuis ${u.createdAt!.year}');
+    if (parts.isEmpty) return null;
+    return parts.join(' · ');
   }
 }
 
-// ═══════════════════════════════════════════════════════
-// LEFT RAIL — Identité + Complétion + Nav + Villages
-// ═══════════════════════════════════════════════════════
+/// Avatar 96 px — anneau dégradé tissé or→ember→sage (padding 3 px),
+/// initiale Fraunces si pas de photo, badge photo pour changer l'image.
+class _WovenAvatar extends StatelessWidget {
+  const _WovenAvatar({required this.user, required this.onTap});
+  final UserModel user;
+  final VoidCallback onTap;
 
-class _LeftRail extends ConsumerWidget {
-  const _LeftRail({required this.user});
+  @override
+  Widget build(BuildContext context) {
+    final t = GwTokens.of(context);
+    return Semantics(
+      button: true,
+      label: 'Changer la photo de profil',
+      child: GestureDetector(
+        onTap: onTap,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Container(
+              width: 96,
+              height: 96,
+              padding: const EdgeInsets.all(3),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(32),
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [GwTokens.gold, GwTokens.ember, GwTokens.sage],
+                ),
+              ),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: t.inkLift,
+                  borderRadius: BorderRadius.circular(29),
+                  border: Border.all(color: t.ink, width: 3),
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: user.avatarUrl != null
+                    ? CachedNetworkImage(
+                        imageUrl: user.avatarUrl!,
+                        fit: BoxFit.cover,
+                        errorWidget: (_, __, ___) => _initialBox(t),
+                      )
+                    : _initialBox(t),
+              ),
+            ),
+            // Badge appareil photo (affordance upload)
+            Positioned(
+              bottom: -2,
+              right: -2,
+              child: Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: t.goldText,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: t.ink, width: 2),
+                ),
+                alignment: Alignment.center,
+                child: Icon(Symbols.photo_camera, size: 14, color: t.inkCard),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _initialBox(GwTokens t) => Center(
+        child: Text(
+          _initial(user),
+          style: GwType.display(fontSize: 36, color: t.goldText),
+        ),
+      );
+}
+
+/// Action d'en-tête 44×44 (a11y) — surface inkLift, rayon 14.
+class _HeaderAction extends StatelessWidget {
+  const _HeaderAction({required this.icon, this.onTap});
+  final IconData icon;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = GwTokens.of(context);
+    return Material(
+      color: t.inkLift,
+      borderRadius: BorderRadius.circular(GwTokens.rBtn),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(GwTokens.rBtn),
+        child: SizedBox(
+          width: GwTokens.tapTarget,
+          height: GwTokens.tapTarget,
+          child: Icon(icon, size: 20, color: t.stoneMid),
+        ),
+      ),
+    );
+  }
+}
+
+/// Chip mono (rôle, badges) — pilule or/sage translucide, MAJUSCULES.
+class _MonoChip extends StatelessWidget {
+  const _MonoChip({required this.label, required this.color});
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.14),
+        border: Border.all(color: color.withValues(alpha: 0.30)),
+        borderRadius: BorderRadius.circular(GwTokens.rPill),
+      ),
+      child: Text(
+        label,
+        style: GwType.mono(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 1.5,
+          color: color,
+        ),
+      ),
+    );
+  }
+}
+
+/// Chip identité (clan / diaspora / langues) — pilule 99, 12 px w600.
+class _IdentityChip extends StatelessWidget {
+  const _IdentityChip({
+    required this.label,
+    required this.bg,
+    required this.line,
+    required this.text,
+  });
+  final String label;
+  final Color bg;
+  final Color line;
+  final Color text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: bg,
+        border: Border.all(color: line),
+        borderRadius: BorderRadius.circular(GwTokens.rPill),
+      ),
+      child: Text(
+        label,
+        style: GwType.ui(fontSize: 12, fontWeight: FontWeight.w600, color: text),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────
+//  Carte lignée — « Génération N » + « X récits », lien vers l'arbre
+// ─────────────────────────────────────────────────────────────────
+
+class _LineageCard extends ConsumerWidget {
+  const _LineageCard({required this.user});
   final UserModel user;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final c = GwTokens.of(context);
-    final myVillages = ref.watch(myVillagesNotifierProvider);
-    final completion = _calcCompletion(user);
+    final t = GwTokens.of(context);
 
-    return Container(
-      color: c.ink,
-      child: Column(
-        children: [
-          // Header
-          Container(
-            height: 52,
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            decoration: BoxDecoration(
-              border: Border(bottom: BorderSide(color: c.line)),
-            ),
+    final myPerson = ref.watch(genealogyNotifierProvider).valueOrNull;
+    final tree = myPerson == null
+        ? null
+        : ref.watch(familyTreeProvider(myPerson.id)).valueOrNull;
+
+    final generations = tree != null
+        ? _countGenerations(tree)
+        : 1 + ((user.fatherName != null || user.motherName != null) ? 1 : 0);
+    final members = tree != null ? _treeMemberCount(tree) : null;
+
+    final lineageName = user.clan ?? _familyName(user);
+    final title = lineageName != null
+        ? 'Lignée $lineageName — génération $generations'
+        : 'Ma lignée — génération $generations';
+    final subtitle = members != null
+        ? '$members membres · — récits audio collectés'
+        : 'Explorer mon arbre familial';
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Material(
+        color: t.inkCard,
+        borderRadius: BorderRadius.circular(GwTokens.rCardLg),
+        child: InkWell(
+          onTap: () => context.go(Routes.genealogy),
+          borderRadius: BorderRadius.circular(GwTokens.rCardLg),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
             child: Row(
               children: [
-                Text('MON PROFIL',
-                    style: TextStyle(
-                      fontFamily: _mono,
-                      fontSize: 9,
-                      fontWeight: FontWeight.w500,
-                      letterSpacing: 1.4,
-                      color: c.stoneDim,
-                    )),
-                const Spacer(),
-              ],
-            ),
-          ),
-
-          // Scrollable content
-          Expanded(
-            child: ListView(
-              padding: EdgeInsets.zero,
-              children: [
-                // Identity card
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: t.goldBg,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  alignment: Alignment.center,
+                  child:
+                      Icon(Symbols.family_history, size: 24, color: t.goldText),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Avatar + Name
-                      Row(
-                        children: [
-                          _MiniAvatar(
-                              letter: _initial(user), size: 38, color: c.goldText),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  user.displayName ?? 'Membre',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w500,
-                                    color: c.stone,
-                                  ),
-                                ),
-                                Text(
-                                  '@${(user.displayName ?? user.email).toLowerCase().replaceAll(' ', '')}',
-                                  style: TextStyle(
-                                    fontFamily: _mono,
-                                    fontSize: 9,
-                                    color: c.stoneFaint,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 12),
-
-                      // Completion bar
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text('PROFIL COMPLÉTÉ',
-                              style: TextStyle(
-                                fontFamily: _mono,
-                                fontSize: 8,
-                                letterSpacing: 1,
-                                color: c.stoneFaint,
-                              )),
-                          Text('$completion %',
-                              style: TextStyle(
-                                fontFamily: _mono,
-                                fontSize: 10,
-                                color: c.goldText,
-                              )),
-                        ],
-                      ),
-                      const SizedBox(height: 5),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(99),
-                        child: LinearProgressIndicator(
-                          value: completion / 100,
-                          minHeight: 2,
-                          backgroundColor: c.inkHigh,
-                          valueColor:
-                              AlwaysStoppedAnimation<Color>(c.goldText),
+                      Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GwType.ui(
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.w600,
+                          color: t.stone,
                         ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GwType.ui(fontSize: 12.5, color: t.stoneDim),
                       ),
                     ],
                   ),
                 ),
-
-                const _RailDivider(),
-                const _RailSection(label: 'MES CLANS'),
-
-                // Clans actifs
-                ..._activeClanNames(user).map((name) => _RailClanItem(
-                      name: name,
-                      pending: false,
-                      c: c,
-                    )),
-
-                // Clans en attente de validation (placeholder — sera alimenté par l'API)
-                // ignore: dead_code
-                ...(_pendingClanNames(user)).map((name) => _RailClanItem(
-                      name: name,
-                      pending: true,
-                      c: c,
-                    )),
-
-                if (_activeClanNames(user).isEmpty && _pendingClanNames(user).isEmpty)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                    child: Text(
-                      'Aucun clan associé',
-                      style: TextStyle(fontSize: 12, color: c.stoneFaint),
-                    ),
-                  ),
-
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
-                  child: GestureDetector(
-                    onTap: () {
-                      showModalBottomSheet(
-                        context: context,
-                        isScrollControlled: true,
-                        backgroundColor: Colors.transparent,
-                        builder: (_) => const ProfileEditSheet(),
-                      );
-                    },
-                    child: Row(
-                      children: [
-                        Icon(Icons.add_circle_outline, size: 14, color: c.goldLine),
-                        const SizedBox(width: 6),
-                        Text(
-                          'Gérer mes clans',
-                          style: TextStyle(fontSize: 12, color: c.goldLine),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-                const _RailDivider(),
-                const _RailSection(label: 'MES VILLAGES'),
-
-                // Villages list
-                myVillages.when(
-                  loading: () => Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Center(
-                        child:
-                            SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 1.5, color: c.goldText))),
-                  ),
-                  error: (_, __) => const SizedBox.shrink(),
-                  data: (villages) => Column(
-                    children: [
-                      for (final v in villages)
-                        _RailNavItem(
-                          icon: Icons.holiday_village_outlined,
-                          label: v.name,
-                          onTap: () {
-                            ref
-                                .read(breadcrumbProvider.notifier)
-                                .reset(const BreadcrumbEntry(
-                                    label: 'Profil', route: Routes.profile));
-                            ref.read(breadcrumbProvider.notifier).push(
-                                BreadcrumbEntry(
-                                    label: v.name,
-                                    route: Routes.villageDetail(v.id)));
-                            context.push(Routes.villageDetail(v.id));
-                          },
-                        ),
-                      if (villages.isEmpty)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 20, vertical: 8),
-                          child: Text('Aucun village',
-                              style:
-                                  TextStyle(fontSize: 12, color: c.stoneFaint)),
-                        ),
-                    ],
-                  ),
-                ),
-
-                const _RailDivider(),
-                const _RailSection(label: 'PARAMÈTRES'),
-                const _RailNavItem(icon: Icons.settings_outlined, label: 'Paramètres'),
-                const _RailNavItem(
-                    icon: Icons.lock_outline, label: 'Confidentialité'),
-
-                const SizedBox(height: 16),
-
-                // Sign out
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Consumer(
-                    builder: (context, ref, _) {
-                      final c = GwTokens.of(context);
-                      return GestureDetector(
-                      onTap: () async {
-                        await ref
-                            .read(profileNotifierProvider.notifier)
-                            .signOut();
-                        if (context.mounted) context.go(Routes.auth);
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 8),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: GwTokens.emberLine),
-                          borderRadius: BorderRadius.circular(6),
-                          color: GwTokens.emberBg,
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.logout, size: 14, color: GwTokens.ember),
-                            const SizedBox(width: 6),
-                            Text('Déconnexion',
-                                style:
-                                    TextStyle(fontSize: 12, color: GwTokens.ember)),
-                          ],
-                        ),
-                      ),
-                    );
-                    },
-                  ),
-                ),
-                const SizedBox(height: 24),
+                Icon(Symbols.chevron_right, size: 20, color: t.stoneFaint),
               ],
             ),
           ),
-        ],
-      ),
-    );
-  }
-
-  List<String> _activeClanNames(UserModel u) {
-    if (u.clan == null || u.clan!.trim().isEmpty) return [];
-    return u.clan!
-        .split(',')
-        .map((s) => s.trim())
-        .where((s) => s.isNotEmpty)
-        .toList();
-  }
-
-  // Placeholder — à connecter à un futur endpoint /api/v1/clans/pending
-  List<String> _pendingClanNames(UserModel u) => [];
-
-  int _calcCompletion(UserModel u) {
-    int score = 0;
-    const total = 10;
-    if (u.displayName != null && u.displayName!.isNotEmpty) score++;
-    if (u.bio != null && u.bio!.isNotEmpty) score++;
-    if (u.avatarUrl != null && u.avatarUrl!.isNotEmpty) score++;
-    if (u.country != null) score++;
-    if (u.profession != null) score++;
-    if (u.nativeLanguage != null) score++;
-    if (u.clan != null) score++;
-    if (u.tribe != null) score++;
-    if (u.fatherName != null) score++;
-    if (u.motherName != null) score++;
-    return ((score / total) * 100).round();
-  }
-}
-
-// ═══════════════════════════════════════════════════════
-// CENTER PANEL — Hero + Tabs + Content
-// ═══════════════════════════════════════════════════════
-
-class _CenterPanel extends ConsumerStatefulWidget {
-  const _CenterPanel({required this.user});
-  final UserModel user;
-
-  @override
-  ConsumerState<_CenterPanel> createState() => _CenterPanelState();
-}
-
-class _CenterPanelState extends ConsumerState<_CenterPanel>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabCtrl;
-
-  static const _tabs = ['Aperçu', 'Publications', 'Généalogie', 'Langues', 'Formations'];
-
-  @override
-  void initState() {
-    super.initState();
-    _tabCtrl = TabController(length: _tabs.length, vsync: this);
-  }
-
-  @override
-  void dispose() {
-    _tabCtrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final user = widget.user;
-    final myVillages = ref.watch(myVillagesNotifierProvider);
-    final villageCount = myVillages.valueOrNull?.length ?? 0;
-
-    // Ancestor count from genealogy
-    final genealogyState = ref.watch(genealogyNotifierProvider);
-    final hasGenealogy = genealogyState.valueOrNull != null;
-
-    final c = GwTokens.of(context);
-    return Container(
-      color: c.inkDeep,
-      child: NestedScrollView(
-        headerSliverBuilder: (context, innerBoxIsScrolled) => [
-          // Hero
-          SliverToBoxAdapter(child: _HeroSection(user: user)),
-
-          // Tabs (sticky)
-          SliverPersistentHeader(
-            pinned: true,
-            delegate: _TabBarDelegate(
-              tabBar: TabBar(
-                controller: _tabCtrl,
-                isScrollable: true,
-                tabAlignment: TabAlignment.start,
-                labelColor: c.stone,
-                unselectedLabelColor: c.stoneDim,
-                labelStyle: const TextStyle(
-                    fontSize: 12.5, fontWeight: FontWeight.w500),
-                unselectedLabelStyle:
-                    const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w400),
-                indicatorColor: c.goldText,
-                indicatorWeight: 1.5,
-                dividerColor: c.line,
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                labelPadding: const EdgeInsets.symmetric(horizontal: 16),
-                tabs: _tabs.map((t) => Tab(text: t)).toList(),
-              ),
-            ),
-          ),
-        ],
-        body: TabBarView(
-          controller: _tabCtrl,
-          children: [
-            // ── Aperçu ──
-            _ApercuPane(
-              user: user,
-              villageCount: villageCount,
-              hasGenealogy: hasGenealogy,
-            ),
-            // ── Publications ──
-            const _ComingSoonPane(title: 'Publications', icon: Icons.article_outlined),
-            // ── Généalogie ──
-            const _ComingSoonPane(
-                title: 'Généalogie', icon: Icons.account_tree_outlined),
-            // ── Langues ──
-            const _ComingSoonPane(
-                title: 'Langues', icon: Icons.record_voice_over_outlined),
-            // ── Formations ──
-            const _ComingSoonPane(title: 'Formations', icon: Icons.school_outlined),
-          ],
         ),
       ),
     );
   }
+
+  String? _familyName(UserModel u) {
+    final parts = (u.displayName ?? '').trim().split(' ');
+    if (parts.length < 2) return null;
+    return parts.last;
+  }
 }
 
-// ═══════════════════════════════════════════════════════
-// HERO SECTION — Cover canvas + Avatar overlap + Identity
-// ═══════════════════════════════════════════════════════
+// ─────────────────────────────────────────────────────────────────
+//  Grille « Mes villages » — tuiles initiale Fraunces teintées
+// ─────────────────────────────────────────────────────────────────
 
-class _HeroSection extends ConsumerWidget {
-  const _HeroSection({required this.user});
-  final UserModel user;
+class _VillagesGrid extends ConsumerWidget {
+  const _VillagesGrid();
 
-  Future<void> _pickAndUpload(BuildContext context, WidgetRef ref, String folder, String profileField) async {
-    try {
-      final picker = ImagePicker();
-      final picked = await picker.pickImage(
-        source: ImageSource.gallery,
-        maxWidth: folder == 'avatars' ? 512 : 1920,
-        maxHeight: folder == 'avatars' ? 512 : 1080,
-        imageQuality: 85,
-      );
-      if (picked == null) return;
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Upload en cours...'), duration: Duration(seconds: 2)),
-      );
-      final bytes = await picked.readAsBytes();
-      await ref.read(profileNotifierProvider.notifier).uploadImage(
-        bytes: bytes,
-        filename: picked.name,
-        folder: folder,
-        profileField: profileField,
-      );
-      if (!context.mounted) return;
-      final c = GwTokens.of(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: const Text('Photo mise a jour'), backgroundColor: GwTokens.sage),
-      );
-    } catch (e) {
-      debugPrint('[UPLOAD] Error: $e');
-      if (!context.mounted) return;
-      final c = GwTokens.of(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erreur: $e'), backgroundColor: GwTokens.ember),
-      );
-    }
-  }
+  // Teintes des tuiles (cycle) : or, azur, sauge, rose cuivré.
+  static final _accents = <Color>[
+    GwTokens.gold,
+    GwTokens.dark.azureText,
+    GwTokens.dark.sageText,
+    GwTokens.rose,
+  ];
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final c = GwTokens.of(context);
-    final isMobile = MediaQuery.sizeOf(context).width < 800;
-    final hPad = isMobile ? 20.0 : 36.0;
-    final coverHeight = isMobile ? 180.0 : 220.0;
+    final t = GwTokens.of(context);
+    final myVillages = ref.watch(myVillagesNotifierProvider);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // ── Cover canvas ──
-        Stack(
-          clipBehavior: Clip.none,
-          children: [
-            // Cover image or fallback canvas
-            Container(
-              height: coverHeight,
-              decoration: user.coverUrl == null
-                  ? BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [c.inkDeep.withValues(alpha: 0.95), c.inkDeep.withValues(alpha: 0.97), c.inkDeep],
-                      ),
-                    )
-                  : null,
-              child: Stack(
-                children: [
-                  if (user.coverUrl != null)
-                    Positioned.fill(
-                      child: CachedNetworkImage(
-                        imageUrl: user.coverUrl!,
-                        fit: BoxFit.cover,
-                        errorWidget: (_, __, ___) => RepaintBoundary(
-                          child: CustomPaint(painter: _HeroCanvasPainter()),
-                        ),
-                      ),
-                    )
-                  else
-                    Positioned.fill(
-                      child: RepaintBoundary(
-                        child: CustomPaint(painter: _HeroCanvasPainter()),
-                      ),
-                    ),
-                  // Bottom gradient fade
-                  Positioned(
-                    bottom: 0, left: 0, right: 0, height: 100,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [c.inkDeep.withValues(alpha: 0.0), c.inkDeep.withValues(alpha: 0.69), c.inkDeep],
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // "Modifier la couverture" button
-            Positioned(
-              top: 12,
-              right: 16,
-              child: GestureDetector(
-                onTap: () => _pickAndUpload(context, ref, 'covers', 'coverUrl'),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-                  decoration: BoxDecoration(
-                    color: c.inkDeep.withValues(alpha: 0.8),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: c.lineMid),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.photo_camera_outlined, size: 14, color: c.stoneMid),
-                      const SizedBox(width: 6),
-                      Text('Modifier la couverture',
-                          style: TextStyle(fontSize: 12, color: c.stoneMid)),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-
-            // Avatar overlapping hero bottom — tap to change
-            Positioned(
-              bottom: -46,
-              left: hPad,
-              child: GestureDetector(
-                onTap: () => _pickAndUpload(context, ref, 'avatars', 'avatarUrl'),
-                child: Stack(
-                  children: [
-                    _LargeAvatar(user: user),
-                    Positioned(
-                      bottom: 2,
-                      right: 2,
-                      child: Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: c.goldText,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(Icons.camera_alt, size: 14, color: c.inkDeep),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-
-        const SizedBox(height: 6),
-
-        // ── Identity row: avatar space left + info + actions right ──
-        Padding(
-          padding: EdgeInsets.fromLTRB(hPad, 0, hPad, 0),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Space reserved for avatar overflow
-              const SizedBox(width: 110),
-              // Gold separator line
-              Expanded(
-                child: Container(
-                  height: 1,
-                  margin: const EdgeInsets.only(top: 8),
-                  color: c.goldLine,
-                ),
-              ),
-            ],
-          ),
-        ),
-
-        const SizedBox(height: 44),
-
-        // ── Name + Actions row ──
-        Padding(
-          padding: EdgeInsets.fromLTRB(hPad, 0, hPad, 0),
-          child: isMobile
-              ? Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildName(context, user),
-                    const SizedBox(height: 10),
-                    _HeroActions(user: user),
-                  ],
-                )
-              : Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Expanded(child: _buildName(context, user)),
-                    _HeroActions(user: user),
-                  ],
-                ),
-        ),
-
-        const SizedBox(height: 10),
-
-        // ── Badges row ──
-        Padding(
-          padding: EdgeInsets.fromLTRB(hPad, 0, hPad, 0),
-          child: Wrap(
-            spacing: 8,
-            runSpacing: 6,
-            children: [
-              // Role badge
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: c.goldBg,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.star, size: 12, color: c.goldText),
-                    const SizedBox(width: 4),
-                    Text(
-                      (user.role).toUpperCase(),
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 1,
-                        color: c.goldText,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              // Online badge
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  border: Border.all(color: GwTokens.sageLine),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.circle, size: 7, color: GwTokens.sage),
-                    const SizedBox(width: 5),
-                    Text('EN LIGNE',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w500,
-                          letterSpacing: 0.8,
-                          color: GwTokens.sage,
-                        )),
-                  ],
-                ),
-              ),
-              // Verified badge
-              if (user.verified)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: c.goldBg,
-                    border: Border.all(color: c.goldLine),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.verified, size: 12, color: c.goldText),
-                      const SizedBox(width: 4),
-                      Text('VERIFIE',
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: 0.8,
-                            color: c.goldText,
-                          )),
-                    ],
-                  ),
-                ),
-            ],
-          ),
-        ),
-
-        const SizedBox(height: 12),
-
-        // ── Bio text ──
-        if (user.bio != null && user.bio!.isNotEmpty)
-          Padding(
-            padding: EdgeInsets.fromLTRB(hPad, 0, hPad, 0),
-            child: Text(
-              user.bio!,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w300,
-                color: c.stoneMid,
-                height: 1.5,
-              ),
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-
-        if (user.bio != null && user.bio!.isNotEmpty)
-          const SizedBox(height: 6),
-
-        // ── Subtitle: Diaspora — Pays ──
-        Padding(
-          padding: EdgeInsets.fromLTRB(hPad, 0, hPad, 0),
-          child: _buildSubtitle(context, user),
-        ),
-
-        const SizedBox(height: 8),
-
-        // ── Meta row with icons ──
-        Padding(
-          padding: EdgeInsets.fromLTRB(hPad, 0, hPad, 16),
-          child: _buildMetaRow(context, user),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildName(BuildContext context, UserModel user) {
-    final c = GwTokens.of(context);
-    final parts = (user.displayName ?? 'Membre').split(' ');
-    final firstName = parts.first;
-    final lastName = parts.length > 1 ? parts.sublist(1).join(' ') : '';
-
-    return RichText(
-      text: TextSpan(
-        children: [
-          TextSpan(
-            text: firstName,
-            style: TextStyle(
-              fontFamily: _serif,
-              fontSize: 32,
-              fontWeight: FontWeight.w700,
-              letterSpacing: -0.5,
-              color: c.stone,
-              height: 1.1,
-            ),
-          ),
-          if (lastName.isNotEmpty) ...[
-            const TextSpan(text: ' '),
-            TextSpan(
-              text: lastName,
-              style: TextStyle(
-                fontFamily: _serif,
-                fontSize: 32,
-                fontWeight: FontWeight.w700,
-                letterSpacing: -0.5,
-                color: c.stone,
-                height: 1.1,
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSubtitle(BuildContext context, UserModel user) {
-    final c = GwTokens.of(context);
-    final parts = <String>[];
-    if (user.residenceCountry != null || user.country != null) {
-      parts.add('Diaspora');
-    }
-    if (user.residenceCountry != null) {
-      parts.add(user.residenceCountry!);
-    }
-    if (user.country != null && user.country != user.residenceCountry) {
-      parts.add(user.country!);
-    }
-
-    if (parts.isEmpty) return const SizedBox.shrink();
-
-    return Text(
-      parts.join(' \u2014 '),
-      style: TextStyle(
-        fontSize: 13,
-        fontWeight: FontWeight.w300,
-        color: c.stoneDim,
-      ),
-    );
-  }
-
-  Widget _buildMetaRow(BuildContext context, UserModel user) {
-    final c = GwTokens.of(context);
-    final items = <Widget>[];
-
-    if (user.residenceCity != null) {
-      items.add(_MetaItem(
-        icon: Icons.location_on_outlined,
-        text: user.residenceCity!,
-        iconColor: c.emberText,
-      ));
-    }
-
-    if (user.clan != null) {
-      items.add(_MetaItem(
-        icon: Icons.fort_outlined,
-        text: 'Clan ${user.clan}',
-        iconColor: c.goldLine,
-      ));
-    }
-
-    if (user.createdAt != null) {
-      final months = [
-        'Jan', 'Fev', 'Mar', 'Avr', 'Mai', 'Juin',
-        'Juil', 'Aout', 'Sep', 'Oct', 'Nov', 'Dec',
-      ];
-      items.add(_MetaItem(
-        icon: Icons.calendar_today_outlined,
-        text: 'Membre depuis ${months[user.createdAt!.month - 1]}. ${user.createdAt!.year}',
-        iconColor: c.stoneDim,
-      ));
-    }
-
-    if (items.isEmpty) return const SizedBox.shrink();
-
-    return Wrap(
-      spacing: 16,
-      runSpacing: 6,
-      children: items,
-    );
-  }
-}
-
-class _MetaItem extends StatelessWidget {
-  const _MetaItem({
-    required this.icon,
-    required this.text,
-    required this.iconColor,
-  });
-  final IconData icon;
-  final String text;
-  final Color iconColor;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = GwTokens.of(context);
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 14, color: iconColor),
-        const SizedBox(width: 4),
-        Text(text,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w300,
-              color: c.stoneDim,
-            )),
-      ],
-    );
-  }
-}
-
-class _HeroActions extends StatelessWidget {
-  const _HeroActions({required this.user});
-  final UserModel user;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = GwTokens.of(context);
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Modifier le profil
-        GestureDetector(
-          onTap: () => showProfileEditSheet(context),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-            decoration: BoxDecoration(
-              color: c.goldText,
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: const [
-                BoxShadow(color: Color(0x4DC9A84C), blurRadius: 20),
-              ],
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.edit, size: 14, color: c.inkDeep),
-                const SizedBox(width: 6),
-                Text('Modifier le profil',
-                    style: TextStyle(
-                      color: c.inkDeep,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    )),
-              ],
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: myVillages.when(
+        loading: () => Center(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(
+                  strokeWidth: 1.5, color: t.goldText),
             ),
           ),
         ),
-        const SizedBox(width: 8),
-        // Settings
-        GestureDetector(
-          onTap: () => showModalBottomSheet(
-            context: context,
-            isScrollControlled: true,
-            backgroundColor: Colors.transparent,
-            builder: (_) => const ProfileEditSheet(),
-          ),
-          child: Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: c.inkHigh,
-              border: Border.all(color: c.lineMid),
-            ),
-            alignment: Alignment.center,
-            child: Icon(Icons.settings_outlined, size: 18, color: c.stoneMid),
-          ),
-        ),
-        const SizedBox(width: 8),
-        // Partager
-        GestureDetector(
-          onTap: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: const Text('Partage de profil bientôt disponible'),
-                backgroundColor: c.inkHigh,
-                behavior: SnackBarBehavior.floating,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        error: (_, __) => const SizedBox.shrink(),
+        data: (villages) {
+          if (villages.isEmpty) {
+            return Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: t.inkCard,
+                borderRadius: BorderRadius.circular(GwTokens.rCard),
+              ),
+              child: Text(
+                'Aucun village rejoint pour le moment.',
+                style: GwType.ui(fontSize: 14, color: t.stoneDim),
               ),
             );
-          },
-          child: Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: c.inkHigh,
-              border: Border.all(color: c.lineMid),
+          }
+          return GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            padding: EdgeInsets.zero,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 10,
+              mainAxisSpacing: 10,
+              mainAxisExtent: 118,
             ),
-            alignment: Alignment.center,
-            child: Icon(Icons.share_outlined, size: 18, color: c.stoneMid),
+            itemCount: villages.length,
+            itemBuilder: (context, i) => _VillageTile(
+              village: villages[i],
+              accent: _accents[i % _accents.length],
+              highlighted: i == 0,
+              onTap: () {
+                ref.read(breadcrumbProvider.notifier).reset(
+                    const BreadcrumbEntry(
+                        label: 'Profil', route: Routes.profile));
+                ref.read(breadcrumbProvider.notifier).push(BreadcrumbEntry(
+                    label: villages[i].name,
+                    route: Routes.villageDetail(villages[i].id)));
+                context.push(Routes.villageDetail(villages[i].id));
+              },
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _VillageTile extends StatelessWidget {
+  const _VillageTile({
+    required this.village,
+    required this.accent,
+    required this.highlighted,
+    required this.onTap,
+  });
+  final VillageModel village;
+  final Color accent;
+  final bool highlighted;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = GwTokens.of(context);
+    return Material(
+      color: t.inkCard,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            border: Border.all(color: highlighted ? t.goldLine : t.line),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: accent,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  village.name.isNotEmpty
+                      ? village.name[0].toUpperCase()
+                      : '?',
+                  style: GwType.display(
+                      fontSize: 16, color: GwTokens.dark.ink),
+                ),
+              ),
+              const Spacer(),
+              Text(
+                village.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: GwType.ui(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w600,
+                  color: t.stone,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                '${village.memberCount} membres',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: GwType.ui(fontSize: 12, color: t.stoneDim),
+              ),
+            ],
           ),
         ),
-      ],
-    );
-  }
-}
-
-// ═══════════════════════════════════════════════════════
-// APERÇU PANE
-// ═══════════════════════════════════════════════════════
-
-class _ApercuPane extends StatelessWidget {
-  const _ApercuPane({
-    required this.user,
-    required this.villageCount,
-    required this.hasGenealogy,
-  });
-  final UserModel user;
-  final int villageCount;
-  final bool hasGenealogy;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      padding: EdgeInsets.zero,
-      children: [
-        // Stats band
-        _StatsBar(villageCount: villageCount),
-
-        // Bio section
-        _BioSection(user: user),
-
-        // Langues aperçu
-        _LanguesApercu(user: user),
-
-        // Placeholder formations
-        _FormationsApercu(),
-
-        const SizedBox(height: 40),
-      ],
-    );
-  }
-}
-
-// ═══════════════════════════════════════════════════════
-// STATS BAR
-// ═══════════════════════════════════════════════════════
-
-class _StatsBar extends StatelessWidget {
-  const _StatsBar({required this.villageCount});
-  final int villageCount;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = GwTokens.of(context);
-    return Container(
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: c.line)),
       ),
-      child: Row(
-        children: [
-          const _StatCell(value: '—', label: 'CONNEXIONS', highlight: true),
-          _StatCell(value: '$villageCount', label: 'VILLAGES'),
-          const _StatCell(value: '—', label: 'ANCÊTRES'),
-          const _StatCell(value: '—', label: 'FORMATIONS'),
-          const _StatCell(value: '—', label: 'PUBLICATIONS', isLast: true),
-        ],
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────
+//  Stats « contribution à la mémoire » — Fraunces + labels mono
+// ─────────────────────────────────────────────────────────────────
+
+class _ContributionCard extends ConsumerWidget {
+  const _ContributionCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = GwTokens.of(context);
+
+    final myPerson = ref.watch(genealogyNotifierProvider).valueOrNull;
+    final tree = myPerson == null
+        ? null
+        : ref.watch(familyTreeProvider(myPerson.id)).valueOrNull;
+    final added = tree != null ? '${_treeMemberCount(tree) - 1}' : '—';
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+        decoration: BoxDecoration(
+          color: t.inkCard,
+          borderRadius: BorderRadius.circular(GwTokens.rCardLg),
+        ),
+        child: IntrinsicHeight(
+          child: Row(
+            children: [
+              _StatCell(value: '—', label: 'RÉCITS AUDIO', color: t.sageText),
+              Container(width: 1, color: t.line),
+              _StatCell(
+                  value: added, label: 'PERSONNES AJOUTÉES', color: t.goldText),
+              Container(width: 1, color: t.line),
+              _StatCell(value: '—', label: 'PHOTOS', color: t.goldText),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -1293,282 +734,30 @@ class _StatCell extends StatelessWidget {
   const _StatCell({
     required this.value,
     required this.label,
-    this.highlight = false,
-    this.isLast = false,
+    required this.color,
   });
   final String value;
   final String label;
-  final bool highlight;
-  final bool isLast;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = GwTokens.of(context);
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-        decoration: BoxDecoration(
-          border: isLast
-              ? null
-              : Border(right: BorderSide(color: c.line)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(value,
-                style: TextStyle(
-                  fontFamily: _serif,
-                  fontSize: 30,
-                  fontWeight: FontWeight.w300,
-                  letterSpacing: -1,
-                  color: highlight ? GwTokens.goldLight : c.stone,
-                )),
-            const SizedBox(height: 4),
-            Text(label,
-                style: TextStyle(
-                  fontFamily: _mono,
-                  fontSize: 8,
-                  letterSpacing: 1,
-                  color: c.stoneFaint,
-                )),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ═══════════════════════════════════════════════════════
-// BIO SECTION
-// ═══════════════════════════════════════════════════════
-
-class _BioSection extends StatelessWidget {
-  const _BioSection({required this.user});
-  final UserModel user;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = GwTokens.of(context);
-    return Container(
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: c.line)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header
-          Padding(
-            padding: const EdgeInsets.fromLTRB(28, 18, 28, 14),
-            child: Row(
-              children: [
-                Text('À propos',
-                    style: TextStyle(
-                      fontFamily: _serif,
-                      fontSize: 22,
-                      fontWeight: FontWeight.w400,
-                      color: c.stone,
-                      letterSpacing: -0.4,
-                    )),
-                const Spacer(),
-                GestureDetector(
-                  onTap: () => showProfileEditSheet(context),
-                  child: Text('Modifier →',
-                      style: TextStyle(
-                        fontFamily: _mono,
-                        fontSize: 9.5,
-                        letterSpacing: 0.6,
-                        color: c.goldLine,
-                      )),
-                ),
-              ],
-            ),
-          ),
-
-          // Bio text
-          Padding(
-            padding: const EdgeInsets.fromLTRB(28, 0, 28, 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  user.bio ?? 'Aucune biographie renseignée.',
-                  style: TextStyle(
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w300,
-                    color: c.stoneMid,
-                    height: 2,
-                  ),
-                  maxLines: 6,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 16),
-                // Chips
-                Wrap(
-                  spacing: 7,
-                  runSpacing: 7,
-                  children: [
-                    if (user.residenceCity != null || user.residenceCountry != null)
-                      _BioChip(
-                          text:
-                              '${user.residenceCity ?? ''}${user.residenceCity != null && user.residenceCountry != null ? ', ' : ''}${user.residenceCountry ?? ''}'),
-                    if (user.country != null) _BioChip(text: user.country!),
-                    if (user.profession != null)
-                      _BioChip(text: user.profession!),
-                    if (user.clan != null)
-                      _BioChip(text: 'Clan ${user.clan}'),
-                    if (user.nativeLanguage != null)
-                      _BioChip(text: user.nativeLanguage!),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _BioChip extends StatelessWidget {
-  const _BioChip({required this.text});
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = GwTokens.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: c.inkHigh,
-        border: Border.all(color: c.line),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Text(text,
-          style: TextStyle(
-              fontSize: 12, color: c.stoneDim, fontWeight: FontWeight.w300)),
-    );
-  }
-}
-
-// ═══════════════════════════════════════════════════════
-// LANGUES APERÇU
-// ═══════════════════════════════════════════════════════
-
-class _LanguesApercu extends StatelessWidget {
-  const _LanguesApercu({required this.user});
-  final UserModel user;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = GwTokens.of(context);
-    return Container(
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: c.line)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(28, 18, 28, 14),
-            child: Row(
-              children: [
-                Text('Langues',
-                    style: TextStyle(
-                      fontFamily: _serif,
-                      fontSize: 22,
-                      fontWeight: FontWeight.w400,
-                      color: c.stone,
-                      letterSpacing: -0.4,
-                    )),
-                const SizedBox(width: 10),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: c.line),
-                    borderRadius: BorderRadius.circular(3),
-                  ),
-                  child: Text('Aperçu',
-                      style: TextStyle(
-                        fontFamily: _mono,
-                        fontSize: 8,
-                        letterSpacing: 1,
-                        color: c.stoneFaint,
-                      )),
-                ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(28, 0, 28, 20),
-            child: Column(
-              children: [
-                if (user.nativeLanguage != null)
-                  _LangueRow(
-                    name: user.nativeLanguage!,
-                    level: 'Langue native',
-                    pct: 1.0,
-                    color: c.goldText,
-                  ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _LangueRow extends StatelessWidget {
-  const _LangueRow({
-    required this.name,
-    required this.level,
-    required this.pct,
-    required this.color,
-  });
-  final String name;
-  final String level;
-  final double pct;
   final Color color;
 
   @override
   Widget build(BuildContext context) {
-    final c = GwTokens.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
+    final t = GwTokens.of(context);
+    return Expanded(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(name,
-                        style: TextStyle(
-                            fontSize: 13, fontWeight: FontWeight.w400, color: c.stone)),
-                    Text(level,
-                        style: TextStyle(
-                          fontFamily: _mono,
-                          fontSize: 9,
-                          letterSpacing: 0.6,
-                          color: color,
-                        )),
-                  ],
-                ),
-                const SizedBox(height: 7),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(99),
-                  child: LinearProgressIndicator(
-                    value: pct,
-                    minHeight: 2,
-                    backgroundColor: c.inkHigh,
-                    valueColor: AlwaysStoppedAnimation(color),
-                  ),
-                ),
-              ],
-            ),
+          Text(
+            value,
+            style: GwType.display(
+                fontSize: 22, fontWeight: FontWeight.w600, color: color),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style: GwType.mono(
+                fontSize: 10, letterSpacing: 1.5, color: t.stoneFaint),
           ),
         ],
       ),
@@ -1576,404 +765,52 @@ class _LangueRow extends StatelessWidget {
   }
 }
 
-// ═══════════════════════════════════════════════════════
-// FORMATIONS APERÇU (placeholder)
-// ═══════════════════════════════════════════════════════
+// ─────────────────────────────────────────────────────────────────
+//  CTA « Enregistrer mon récit » — bouton primaire or, ≥ 50 px
+// ─────────────────────────────────────────────────────────────────
 
-class _FormationsApercu extends StatelessWidget {
+class _RecordCta extends StatelessWidget {
+  const _RecordCta();
+
   @override
   Widget build(BuildContext context) {
-    final c = GwTokens.of(context);
-    return Container(
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: c.line)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(28, 18, 28, 14),
-            child: Row(
-              children: [
-                Text('Formations',
-                    style: TextStyle(
-                      fontFamily: _serif,
-                      fontSize: 22,
-                      fontWeight: FontWeight.w400,
-                      color: c.stone,
-                      letterSpacing: -0.4,
-                    )),
-                const SizedBox(width: 10),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: c.line),
-                    borderRadius: BorderRadius.circular(3),
-                  ),
-                  child: Text('Bientôt',
-                      style: TextStyle(
-                        fontFamily: _mono,
-                        fontSize: 8,
-                        letterSpacing: 1,
-                        color: c.stoneFaint,
-                      )),
-                ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(28, 0, 28, 24),
-            child: Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: c.inkHigh,
-                border: Border.all(color: c.line),
-                borderRadius: BorderRadius.circular(10),
+    final t = GwTokens.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Material(
+        color: t.goldText,
+        borderRadius: BorderRadius.circular(GwTokens.rBtn),
+        child: InkWell(
+          onTap: () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content:
+                    const Text('L\'enregistrement de récits arrive bientôt'),
+                backgroundColor: t.inkHigh,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(GwTokens.rBtn)),
               ),
-              child: Row(
-                children: [
-                  Icon(Icons.school_outlined, color: c.stoneFaint, size: 20),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'Les formations culturelles seront bientôt disponibles.',
-                      style: TextStyle(
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w300,
-                          color: c.stoneDim),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ═══════════════════════════════════════════════════════
-// RIGHT PANEL — Lignée + Villages + Complétion
-// ═══════════════════════════════════════════════════════
-
-class _RightPanel extends ConsumerWidget {
-  const _RightPanel({required this.user});
-  final UserModel user;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final c = GwTokens.of(context);
-    final myVillages = ref.watch(myVillagesNotifierProvider);
-
-    return Container(
-      color: c.ink,
-      child: Column(
-        children: [
-          // Header
-          Container(
+            );
+          },
+          borderRadius: BorderRadius.circular(GwTokens.rBtn),
+          child: SizedBox(
             height: 52,
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            decoration: BoxDecoration(
-              border: Border(bottom: BorderSide(color: c.line)),
-            ),
             child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text('CONNEXIONS',
-                    style: TextStyle(
-                      fontFamily: _mono,
-                      fontSize: 9,
-                      fontWeight: FontWeight.w500,
-                      letterSpacing: 1.4,
-                      color: c.stoneDim,
-                    )),
-              ],
-            ),
-          ),
-
-          Expanded(
-            child: ListView(
-              padding: EdgeInsets.zero,
-              children: [
-                // Lignée directe
-                _RightBlock(
-                  label: 'LIGNÉE DIRECTE',
-                  child: _FiliationTree(user: user),
-                ),
-
-                // Mes villages
-                _RightBlock(
-                  label: 'MES VILLAGES',
-                  child: myVillages.when(
-                    loading: () => SizedBox(
-                        height: 40,
-                        child: Center(
-                            child: SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(
-                                    strokeWidth: 1.5, color: c.goldText)))),
-                    error: (_, __) => const SizedBox.shrink(),
-                    data: (villages) => Column(
-                      children: [
-                        for (final v in villages)
-                          _VillageChip(
-                            name: v.name,
-                            memberCount: v.memberCount,
-                            onTap: () =>
-                                context.push(Routes.villageDetail(v.id)),
-                          ),
-                        if (villages.isEmpty)
-                          Text('Aucun village',
-                              style: TextStyle(
-                                  fontSize: 12, color: c.stoneFaint)),
-                      ],
-                    ),
+                Icon(Symbols.mic, size: 20, color: t.inkCard),
+                const SizedBox(width: 8),
+                Text(
+                  'Enregistrer mon récit',
+                  style: GwType.ui(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: t.inkCard,
                   ),
                 ),
-
-                // Complétion profil
-                _RightBlock(
-                  label: 'COMPLÉTER LE PROFIL',
-                  child: _CompletionChecklist(user: user),
-                ),
               ],
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ═══════════════════════════════════════════════════════
-// FILIATION TREE (Right Panel)
-// ═══════════════════════════════════════════════════════
-
-class _FiliationTree extends StatelessWidget {
-  const _FiliationTree({required this.user});
-  final UserModel user;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = GwTokens.of(context);
-    return Column(
-      children: [
-        // Vous
-        _FiliationRow(
-          initials: _initial(user),
-          name: user.displayName ?? 'Vous',
-          relation: 'Vous',
-          bgColor: c.goldBg,
-          borderColor: c.goldLine,
-          textColor: c.goldText,
-          isMe: true,
-        ),
-
-        // Père
-        if (user.fatherName != null)
-          Padding(
-            padding: const EdgeInsets.only(left: 14),
-            child: _FiliationRow(
-              initials: user.fatherName!
-                  .split(' ')
-                  .map((w) => w.isNotEmpty ? w[0] : '')
-                  .take(2)
-                  .join()
-                  .toUpperCase(),
-              name: user.fatherName!,
-              relation: 'Père',
-              bgColor: GwTokens.azureBg,
-              borderColor: GwTokens.azureLine,
-              textColor: c.azureText,
-            ),
-          ),
-
-        // Mère
-        if (user.motherName != null)
-          Padding(
-            padding: const EdgeInsets.only(left: 14),
-            child: _FiliationRow(
-              initials: user.motherName!
-                  .split(' ')
-                  .map((w) => w.isNotEmpty ? w[0] : '')
-                  .take(2)
-                  .join()
-                  .toUpperCase(),
-              name: user.motherName!,
-              relation: 'Mère',
-              bgColor: GwTokens.emberBg,
-              borderColor: GwTokens.emberLine,
-              textColor: c.emberText,
-            ),
-          ),
-
-        if (user.fatherName != null || user.motherName != null)
-          Padding(
-            padding: const EdgeInsets.only(top: 10),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-              decoration: BoxDecoration(
-                color: GwTokens.sageBg,
-                border: Border.all(color: GwTokens.sageLine),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.check_circle_outline,
-                      size: 12, color: GwTokens.sage),
-                  const SizedBox(width: 8),
-                  Text(
-                    '${(user.fatherName != null ? 1 : 0) + (user.motherName != null ? 1 : 0)} liens directs',
-                    style: TextStyle(
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w300,
-                        color: GwTokens.sage),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-        if (user.fatherName == null && user.motherName == null)
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: c.inkHigh,
-              border: Border.all(color: c.line),
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: Text(
-              'Ajoutez vos parents pour débloquer la lignée.',
-              style: TextStyle(
-                  fontSize: 11.5, fontWeight: FontWeight.w300, color: c.stoneDim),
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-class _FiliationRow extends StatelessWidget {
-  const _FiliationRow({
-    required this.initials,
-    required this.name,
-    required this.relation,
-    required this.bgColor,
-    required this.borderColor,
-    required this.textColor,
-    this.isMe = false,
-  });
-  final String initials;
-  final String name;
-  final String relation;
-  final Color bgColor;
-  final Color borderColor;
-  final Color textColor;
-  final bool isMe;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = GwTokens.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
-      child: Row(
-        children: [
-          // Avatar
-          Container(
-            width: 28,
-            height: 28,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: bgColor,
-              border: Border.all(color: borderColor),
-            ),
-            alignment: Alignment.center,
-            child: Text(initials,
-                style: TextStyle(
-                  fontFamily: _serif,
-                  fontSize: 9,
-                  color: textColor,
-                )),
-          ),
-          const SizedBox(width: 9),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(name,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: isMe ? c.stone : c.stoneMid,
-                      fontWeight: isMe ? FontWeight.w500 : FontWeight.w400,
-                    )),
-                Text(relation,
-                    style: TextStyle(
-                      fontFamily: _mono,
-                      fontSize: 9,
-                      color: c.stoneFaint,
-                    )),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ═══════════════════════════════════════════════════════
-// VILLAGE CHIP (Right Panel)
-// ═══════════════════════════════════════════════════════
-
-class _VillageChip extends StatelessWidget {
-  const _VillageChip({
-    required this.name,
-    this.memberCount,
-    this.onTap,
-  });
-  final String name;
-  final int? memberCount;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = GwTokens.of(context);
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
-          decoration: BoxDecoration(
-            color: c.inkHigh,
-            border: Border.all(color: c.line),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 7,
-                height: 7,
-                decoration: BoxDecoration(
-                  color: c.goldText,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(name,
-                    style: TextStyle(fontSize: 12, color: c.stone)),
-              ),
-              if (memberCount != null)
-                Text('$memberCount',
-                    style: TextStyle(
-                      fontFamily: _mono,
-                      fontSize: 9,
-                      color: c.stoneFaint,
-                    )),
-            ],
           ),
         ),
       ),
@@ -1981,69 +818,87 @@ class _VillageChip extends StatelessWidget {
   }
 }
 
-// ═══════════════════════════════════════════════════════
-// COMPLETION CHECKLIST (Right Panel)
-// ═══════════════════════════════════════════════════════
+// ─────────────────────────────────────────────────────────────────
+//  Complétion du profil — barre + checklist (logique conservée)
+// ─────────────────────────────────────────────────────────────────
 
-class _CompletionChecklist extends StatelessWidget {
-  const _CompletionChecklist({required this.user});
+class _CompletionCard extends StatelessWidget {
+  const _CompletionCard({required this.user, required this.completion});
   final UserModel user;
+  final int completion;
 
   @override
   Widget build(BuildContext context) {
-    final c = GwTokens.of(context);
+    final t = GwTokens.of(context);
     final items = <_CheckItem>[
       _CheckItem('Identité renseignée', user.displayName != null),
-      _CheckItem('Biographie ajoutée', user.bio != null && user.bio!.isNotEmpty),
+      _CheckItem(
+          'Biographie ajoutée', user.bio != null && user.bio!.isNotEmpty),
       _CheckItem('Photo de profil', user.avatarUrl != null, bonus: 8),
-      const _CheckItem('Village rejoint', true), // s'il voit le profil, il est inscrit
-      _CheckItem('Parents ajoutés', user.fatherName != null || user.motherName != null, bonus: 12),
+      const _CheckItem('Village rejoint', true),
+      _CheckItem('Parents ajoutés',
+          user.fatherName != null || user.motherName != null,
+          bonus: 12),
       const _CheckItem('Date de naissance', false, bonus: 8),
     ];
 
-    return Column(
-      children: [
-        for (final item in items)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 6),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
-              decoration: BoxDecoration(
-                color: item.done ? GwTokens.sageBg : c.inkHigh,
-                border: Border.all(
-                    color: item.done ? GwTokens.sageLine : c.line),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    item.done
-                        ? Icons.check_circle_outline
-                        : Icons.radio_button_unchecked,
-                    size: 14,
-                    color: item.done ? GwTokens.sage : c.stoneDim,
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(item.label,
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w300,
-                          color: item.done ? GwTokens.sage : c.stoneDim,
-                        )),
-                  ),
-                  if (!item.done && item.bonus != null)
-                    Text('+${item.bonus} %',
-                        style: TextStyle(
-                          fontFamily: _mono,
-                          fontSize: 8.5,
-                          color: c.goldLine,
-                        )),
-                ],
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: t.inkCard,
+          borderRadius: BorderRadius.circular(GwTokens.rCardLg),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(GwTokens.rPill),
+              child: LinearProgressIndicator(
+                value: completion / 100,
+                minHeight: 4,
+                backgroundColor: t.inkHigh,
+                valueColor: AlwaysStoppedAnimation<Color>(t.goldText),
               ),
             ),
-          ),
-      ],
+            const SizedBox(height: 12),
+            for (final item in items)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 5),
+                child: Row(
+                  children: [
+                    Icon(
+                      item.done
+                          ? Symbols.check_circle
+                          : Symbols.radio_button_unchecked,
+                      size: 16,
+                      color: item.done ? t.sageText : t.stoneDim,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        item.label,
+                        style: GwType.ui(
+                          fontSize: 13,
+                          color: item.done ? t.sageText : t.stoneDim,
+                        ),
+                      ),
+                    ),
+                    if (!item.done && item.bonus != null)
+                      Text(
+                        '+${item.bonus} %',
+                        style: GwType.mono(
+                            fontSize: 10,
+                            letterSpacing: 1,
+                            color: t.goldText),
+                      ),
+                  ],
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -2055,39 +910,68 @@ class _CheckItem {
   final int? bonus;
 }
 
-// ═══════════════════════════════════════════════════════
-// COMING SOON PANE (tabs secondaires)
-// ═══════════════════════════════════════════════════════
+// ─────────────────────────────────────────────────────────────────
+//  Réglages — édition profil, photos, partage (actions conservées)
+// ─────────────────────────────────────────────────────────────────
 
-class _ComingSoonPane extends StatelessWidget {
-  const _ComingSoonPane({required this.title, required this.icon});
-  final String title;
-  final IconData icon;
+class _SettingsCard extends ConsumerWidget {
+  const _SettingsCard();
 
   @override
-  Widget build(BuildContext context) {
-    final c = GwTokens.of(context);
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(60),
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = GwTokens.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Material(
+        color: t.inkCard,
+        borderRadius: BorderRadius.circular(GwTokens.rCardLg),
+        clipBehavior: Clip.antiAlias,
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 48, color: c.stoneFaint),
-            const SizedBox(height: 16),
-            Text(title,
-                style: TextStyle(
-                  fontFamily: _serif,
-                  fontSize: 24,
-                  fontWeight: FontWeight.w400,
-                  color: c.stone,
-                )),
-            const SizedBox(height: 8),
-            Text('Cette section sera bientôt disponible.',
-                style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w300,
-                    color: c.stoneDim)),
+            _SettingsRow(
+              icon: Symbols.edit,
+              label: 'Modifier le profil',
+              onTap: () => showProfileEditSheet(context),
+            ),
+            Divider(height: 1, color: t.line),
+            _SettingsRow(
+              icon: Symbols.photo_camera,
+              label: 'Photo de profil',
+              onTap: () => _pickAndUpload(
+                context,
+                ref,
+                folder: 'avatars',
+                profileField: 'avatarUrl',
+              ),
+            ),
+            Divider(height: 1, color: t.line),
+            _SettingsRow(
+              icon: Symbols.wallpaper,
+              label: 'Photo de couverture',
+              onTap: () => _pickAndUpload(
+                context,
+                ref,
+                folder: 'covers',
+                profileField: 'coverUrl',
+              ),
+            ),
+            Divider(height: 1, color: t.line),
+            _SettingsRow(
+              icon: Symbols.share,
+              label: 'Partager mon profil',
+              onTap: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content:
+                        const Text('Partage de profil bientôt disponible'),
+                    backgroundColor: t.inkHigh,
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(GwTokens.rBtn)),
+                  ),
+                );
+              },
+            ),
           ],
         ),
       ),
@@ -2095,397 +979,247 @@ class _ComingSoonPane extends StatelessWidget {
   }
 }
 
-// ═══════════════════════════════════════════════════════
-// SHARED WIDGETS
-// ═══════════════════════════════════════════════════════
-
-class _MiniAvatar extends StatelessWidget {
-  const _MiniAvatar({
-    required this.letter,
-    required this.size,
-    required this.color,
-  });
-  final String letter;
-  final double size;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = GwTokens.of(context);
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: LinearGradient(
-          colors: [c.goldLine, color, GwTokens.goldLight],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        border: Border.all(color: c.goldLine, width: 1.5),
-      ),
-      alignment: Alignment.center,
-      child: Text(letter,
-          style: TextStyle(
-            fontFamily: _serif,
-            fontSize: size * 0.42,
-            fontWeight: FontWeight.w500,
-            color: c.inkDeep,
-          )),
-    );
-  }
-}
-
-class _LargeAvatar extends StatelessWidget {
-  const _LargeAvatar({required this.user});
-  final UserModel user;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = GwTokens.of(context);
-    const size = 92.0;
-    return Stack(
-      children: [
-        Container(
-          width: size,
-          height: size,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(color: c.inkDeep, width: 2.5),
-            boxShadow: const [
-              BoxShadow(color: Color(0x38C9A84C), blurRadius: 32),
-            ],
-          ),
-          child: ClipOval(
-            child: user.avatarUrl != null
-                ? CachedNetworkImage(
-                    imageUrl: user.avatarUrl!,
-                    fit: BoxFit.cover,
-                    errorWidget: (_, __, ___) =>
-                        _MiniAvatar(letter: _initial(user), size: size, color: c.goldText),
-                  )
-                : _MiniAvatar(letter: _initial(user), size: size, color: c.goldText),
-          ),
-        ),
-        // Online status dot
-        Positioned(
-          bottom: 6,
-          right: 6,
-          child: Container(
-            width: 18,
-            height: 18,
-            decoration: BoxDecoration(
-              color: GwTokens.sage,
-              shape: BoxShape.circle,
-              border: Border.all(color: c.inkDeep, width: 2.5),
-            ),
-            child: const Icon(Icons.check, size: 9, color: Colors.white),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _RailDivider extends StatelessWidget {
-  const _RailDivider();
-
-  @override
-  Widget build(BuildContext context) {
-    final c = GwTokens.of(context);
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      height: 1,
-      color: c.line,
-    );
-  }
-}
-
-class _RailSection extends StatelessWidget {
-  const _RailSection({required this.label});
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = GwTokens.of(context);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 6),
-      child: Text(label,
-          style: TextStyle(
-            fontFamily: _mono,
-            fontSize: 8.5,
-            fontWeight: FontWeight.w500,
-            letterSpacing: 1.2,
-            color: c.stoneFaint,
-          )),
-    );
-  }
-}
-
-class _RailNavItem extends StatelessWidget {
-  const _RailNavItem({
+class _SettingsRow extends StatelessWidget {
+  const _SettingsRow({
     required this.icon,
     required this.label,
-    this.count,
-    this.active = false,
-    this.onTap,
+    required this.onTap,
   });
   final IconData icon;
   final String label;
-  final String? count;
-  final bool active;
-  final VoidCallback? onTap;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final c = GwTokens.of(context);
-    return GestureDetector(
+    final t = GwTokens.of(context);
+    return InkWell(
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-        decoration: BoxDecoration(
-          color: active ? c.goldBg : Colors.transparent,
-          border: Border(
-            left: BorderSide(
-              color: active ? c.goldText : Colors.transparent,
-              width: 2,
-            ),
-          ),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 28,
-              height: 28,
-              decoration: BoxDecoration(
-                color: active ? c.goldBg : c.inkHigh,
-                border: Border.all(color: active ? c.goldLine : c.line),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              alignment: Alignment.center,
-              child: Icon(icon,
-                  size: 13,
-                  color: active ? c.goldText : c.stoneDim),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(label,
-                  style: TextStyle(
-                    fontSize: 12.5,
-                    fontWeight: active ? FontWeight.w500 : FontWeight.w400,
-                    color: active ? c.stone : c.stoneDim,
-                  )),
-            ),
-            if (count != null)
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                decoration: BoxDecoration(
-                  color: active ? c.goldBg : c.inkHigh,
-                  borderRadius: BorderRadius.circular(3),
+      child: SizedBox(
+        height: 52, // cible tactile ≥ 44 px
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            children: [
+              Icon(icon, size: 20, color: t.stoneMid),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  label,
+                  style: GwType.ui(
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w500,
+                    color: t.stone,
+                  ),
                 ),
-                child: Text(count!,
-                    style: TextStyle(
-                      fontFamily: _mono,
-                      fontSize: 9,
-                      color: active ? c.goldLine : c.stoneFaint,
-                    )),
               ),
-          ],
+              Icon(Symbols.chevron_right, size: 18, color: t.stoneFaint),
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-// ── Item clan dans le rail gauche ────────────────────────────
-class _RailClanItem extends StatelessWidget {
-  const _RailClanItem({
-    required this.name,
-    required this.pending,
-    required this.c,
-  });
-  final String name;
-  final bool pending;
-  final GwTokens c;
+class _SignOutButton extends ConsumerWidget {
+  const _SignOutButton();
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 7),
-      child: Row(
-        children: [
-          // Icône clan / en attente
-          Container(
-            width: 28,
-            height: 28,
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = GwTokens.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Material(
+        color: GwTokens.emberBg,
+        borderRadius: BorderRadius.circular(GwTokens.rBtn),
+        child: InkWell(
+          onTap: () async {
+            await ref.read(profileNotifierProvider.notifier).signOut();
+            if (context.mounted) context.go(Routes.auth);
+          },
+          borderRadius: BorderRadius.circular(GwTokens.rBtn),
+          child: Container(
+            height: 50,
             decoration: BoxDecoration(
-              color: pending ? c.inkHigh : c.goldBg,
-              border: Border.all(color: pending ? c.line : c.goldLine),
-              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: GwTokens.emberLine),
+              borderRadius: BorderRadius.circular(GwTokens.rBtn),
             ),
-            alignment: Alignment.center,
-            child: Icon(
-              pending ? Icons.hourglass_top_outlined : Icons.fort_outlined,
-              size: 13,
-              color: pending ? c.stoneFaint : c.goldLine,
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              name,
-              style: TextStyle(
-                fontSize: 12.5,
-                fontWeight: FontWeight.w400,
-                color: pending ? c.stoneFaint : c.stoneDim,
-              ),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          if (pending)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-              decoration: BoxDecoration(
-                color: c.inkHigh,
-                borderRadius: BorderRadius.circular(3),
-              ),
-              child: Text(
-                'EN ATTENTE',
-                style: TextStyle(
-                  fontFamily: _mono,
-                  fontSize: 7.5,
-                  letterSpacing: 0.6,
-                  color: c.stoneFaint,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Symbols.logout, size: 18, color: t.emberText),
+                const SizedBox(width: 8),
+                Text(
+                  'Déconnexion',
+                  style: GwType.ui(
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w600,
+                    color: t.emberText,
+                  ),
                 ),
-              ),
+              ],
             ),
-        ],
+          ),
+        ),
       ),
     );
   }
 }
 
-class _RightBlock extends StatelessWidget {
-  const _RightBlock({required this.label, required this.child});
-  final String label;
-  final Widget child;
+// ─────────────────────────────────────────────────────────────────
+//  Widgets partagés
+// ─────────────────────────────────────────────────────────────────
+
+/// Label de section — JetBrains Mono MAJUSCULES, letter-spacing 2.
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel(this.text);
+  final String text;
 
   @override
   Widget build(BuildContext context) {
-    final c = GwTokens.of(context);
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: c.line)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label,
-              style: TextStyle(
-                fontFamily: _mono,
-                fontSize: 8.5,
-                fontWeight: FontWeight.w500,
-                letterSpacing: 1.2,
-                color: c.stoneFaint,
-              )),
-          const SizedBox(height: 12),
-          child,
-        ],
+    final t = GwTokens.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Text(
+        text,
+        style:
+            GwType.mono(fontSize: 10, letterSpacing: 2, color: t.stoneFaint),
       ),
     );
   }
 }
 
-// ═══════════════════════════════════════════════════════
-// TAB BAR DELEGATE
-// ═══════════════════════════════════════════════════════
-
-class _TabBarDelegate extends SliverPersistentHeaderDelegate {
-  const _TabBarDelegate({required this.tabBar});
-  final TabBar tabBar;
+/// Bouton pilule or (états vides / erreurs).
+class _GoldPillButton extends StatelessWidget {
+  const _GoldPillButton({required this.label, required this.onTap});
+  final String label;
+  final VoidCallback onTap;
 
   @override
-  double get minExtent => 46;
-
-  @override
-  double get maxExtent => 46;
-
-  @override
-  Widget build(
-      BuildContext context, double shrinkOffset, bool overlapsContent) {
-    final c = GwTokens.of(context);
-    return Container(
-      color: c.ink,
-      child: tabBar,
+  Widget build(BuildContext context) {
+    final t = GwTokens.of(context);
+    return Material(
+      color: t.goldText,
+      borderRadius: BorderRadius.circular(GwTokens.rBtn),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(GwTokens.rBtn),
+        child: Container(
+          height: GwTokens.tapTarget,
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          alignment: Alignment.center,
+          child: Text(
+            label,
+            style: GwType.ui(
+              fontSize: 14.5,
+              fontWeight: FontWeight.w600,
+              color: t.inkCard,
+            ),
+          ),
+        ),
+      ),
     );
   }
-
-  @override
-  bool shouldRebuild(covariant _TabBarDelegate oldDelegate) => false;
 }
 
-// ═══════════════════════════════════════════════════════
-// HERO CANVAS PAINTER
-// ═══════════════════════════════════════════════════════
+// ─────────────────────────────────────────────────────────────────
+//  Logique conservée — upload d'images, complétion, généalogie
+// ─────────────────────────────────────────────────────────────────
 
-class _HeroCanvasPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final w = size.width;
-    final h = size.height;
-
-    // Gold centre-right glow
-    final goldPaint = Paint()
-      ..shader = const RadialGradient(
-        center: Alignment(0.3, -0.2),
-        radius: 0.8,
-        colors: [
-          Color(0x22B48A32),
-          Color(0x0D785A1E),
-          Color(0x00000000),
-        ],
-      ).createShader(Rect.fromLTWH(0, 0, w, h));
-    canvas.drawRect(Rect.fromLTWH(0, 0, w, h), goldPaint);
-
-    // Sage left breath
-    final sagePaint = Paint()
-      ..shader = const RadialGradient(
-        center: Alignment(-0.84, 0.4),
-        radius: 0.5,
-        colors: [
-          Color(0x122A7A5C),
-          Color(0x00000000),
-        ],
-      ).createShader(Rect.fromLTWH(0, 0, w, h));
-    canvas.drawRect(Rect.fromLTWH(0, 0, w, h), sagePaint);
-
-    // Kente texture lines
-    final linePaint = Paint()
-      ..color = const Color(0x07B48C32)
-      ..strokeWidth = 0.6;
-    for (double y = 0; y < h; y += 5) {
-      canvas.drawLine(Offset(0, y), Offset(w, y), linePaint);
-    }
-
-    // Diagonal pattern
-    final diagPaint = Paint()
-      ..color = const Color(0x06C9A84C)
-      ..strokeWidth = 1
-      ..style = PaintingStyle.stroke;
-    for (double i = -h; i < w + h; i += 32) {
-      canvas.drawLine(Offset(i, 0), Offset(i + h, h), diagPaint);
-    }
+/// Sélectionne une image et l'upload (avatar ou couverture),
+/// puis met à jour le profil. Logique identique à l'existant.
+Future<void> _pickAndUpload(
+  BuildContext context,
+  WidgetRef ref, {
+  required String folder,
+  required String profileField,
+}) async {
+  try {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: folder == 'avatars' ? 512 : 1920,
+      maxHeight: folder == 'avatars' ? 512 : 1080,
+      imageQuality: 85,
+    );
+    if (picked == null) return;
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+          content: Text('Upload en cours...'),
+          duration: Duration(seconds: 2)),
+    );
+    final bytes = await picked.readAsBytes();
+    await ref.read(profileNotifierProvider.notifier).uploadImage(
+          bytes: bytes,
+          filename: picked.name,
+          folder: folder,
+          profileField: profileField,
+        );
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+          content: Text('Photo mise a jour'),
+          backgroundColor: GwTokens.sage),
+    );
+  } catch (e) {
+    debugPrint('[UPLOAD] Error: $e');
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Erreur: $e'), backgroundColor: GwTokens.ember),
+    );
   }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-// ═══════════════════════════════════════════════════════
-// UTILS
-// ═══════════════════════════════════════════════════════
+/// Score de complétion du profil (sur 10 critères) — logique conservée.
+int _calcCompletion(UserModel u) {
+  int score = 0;
+  const total = 10;
+  if (u.displayName != null && u.displayName!.isNotEmpty) score++;
+  if (u.bio != null && u.bio!.isNotEmpty) score++;
+  if (u.avatarUrl != null && u.avatarUrl!.isNotEmpty) score++;
+  if (u.country != null) score++;
+  if (u.profession != null) score++;
+  if (u.nativeLanguage != null) score++;
+  if (u.clan != null) score++;
+  if (u.tribe != null) score++;
+  if (u.fatherName != null) score++;
+  if (u.motherName != null) score++;
+  return ((score / total) * 100).round();
+}
+
+/// Noms de clans (champ `clan` séparé par des virgules) — logique conservée.
+List<String> _clanNames(UserModel u) {
+  if (u.clan == null || u.clan!.trim().isEmpty) return [];
+  return u.clan!
+      .split(',')
+      .map((s) => s.trim())
+      .where((s) => s.isNotEmpty)
+      .toList();
+}
+
+/// Nombre de générations visibles dans l'arbre (sujet, parents,
+/// grands-parents, enfants).
+int _countGenerations(FamilyTree tree) {
+  int g = 1;
+  if (tree.father.isNotEmpty || tree.mother.isNotEmpty) g++;
+  if (tree.paternalGP.isNotEmpty || tree.maternalGP.isNotEmpty) g++;
+  if (tree.children.isNotEmpty) g++;
+  return g;
+}
+
+/// Nombre total de membres connus de l'arbre.
+int _treeMemberCount(FamilyTree tree) {
+  return 1 +
+      tree.father.length +
+      tree.mother.length +
+      tree.paternalGP.length +
+      tree.maternalGP.length +
+      tree.siblings.length +
+      tree.children.length +
+      tree.cousins.length +
+      tree.uncles.length;
+}
 
 String _initial(UserModel user) {
   return (user.displayName ?? user.email).substring(0, 1).toUpperCase();
