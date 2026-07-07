@@ -138,7 +138,9 @@ public class SecurityConfig {
         config.setAllowedOriginPatterns(List.of(
                 "http://localhost:*",      // Flutter web, Next.js, Vite, Swagger (tout port local)
                 "https://gwangmeu.com",
-                "https://app.gwangmeu.com"
+                "https://app.gwangmeu.com",
+                "https://hmbopda.github.io",  // Build web hébergé sur GitHub Pages
+                "https://*.trycloudflare.com" // Tunnel de démo (exposition temporaire)
         ));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
