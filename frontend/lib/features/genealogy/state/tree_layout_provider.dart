@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:gwangmeu/core/theme/gw_tokens.dart';
 import 'package:gwangmeu/features/genealogy/models/family_tree.dart';
 import 'package:gwangmeu/features/genealogy/models/person_genealogy.dart';
 import 'package:gwangmeu/features/genealogy/models/sibling_genealogy.dart';
@@ -34,21 +35,25 @@ class TreeLayout {
 
 // ── Provider ────────────────────────────────────────────────
 
+// select() : n'écoute QUE currentView et hiddenGenerations
+// selectedPersonId / hoveredPersonId → PAS de recalcul (géré au niveau Painter)
 final treeLayoutProvider = Provider.autoDispose.family<TreeLayout, FamilyTree>(
   (ref, tree) {
-    final viewState = ref.watch(treeViewProvider);
-    return _computeLayout(tree, viewState);
+    final currentView = ref.watch(treeViewProvider.select((s) => s.currentView));
+    final hiddenGenerations = ref.watch(treeViewProvider.select((s) => s.hiddenGenerations));
+    return _computeLayout(tree, currentView, hiddenGenerations);
   },
 );
 
 // ── Layout algorithm ────────────────────────────────────────
 
-const double _hSpacing = 140.0;
-const double _vSpacing = 180.0;
-const double _padding = 80.0;
-const double _topPadding = 160.0; // extra top space for floating toolbar
+// Nœuds-cartes « Tissage » (~180 px de large) → espacements élargis.
+const double _hSpacing = 210.0;
+const double _vSpacing = 190.0;
+const double _padding = 100.0;
+const double _topPadding = 170.0; // extra top space for floating toolbar
 
-TreeLayout _computeLayout(FamilyTree tree, TreeViewState state) {
+TreeLayout _computeLayout(FamilyTree tree, TreeView currentView, Set<int> hiddenGenerations) {
   final nodes = <LayoutNode>[];
   final links = <LayoutLink>[];
   final nodeMap = <String, LayoutNode>{};
@@ -59,7 +64,7 @@ TreeLayout _computeLayout(FamilyTree tree, TreeViewState state) {
   // Extraire les conjoints depuis les unions
   final spouses = _extractSpouses(tree);
 
-  switch (state.currentView) {
+  switch (currentView) {
     case TreeView.full:
       _addRow(rows, 0, tree.paternalGP, tree.maternalGP);
       _addRow3(rows, 1, tree.father, tree.mother, tree.uncles);
@@ -73,7 +78,7 @@ TreeLayout _computeLayout(FamilyTree tree, TreeViewState state) {
       break;
     case TreeView.descendants:
       _addSubjectRowWithSpouses(rows, 0, tree.subject, const [], spouses);
-      _addRow(rows, 1, tree.children, const []);
+      _addRow(rows, 1, tree.children, const [], lineage1: NodeType.primaryLineage);
       break;
     case TreeView.migration:
       _addSubjectRow(rows, 0, tree.subject, const []);
@@ -84,8 +89,8 @@ TreeLayout _computeLayout(FamilyTree tree, TreeViewState state) {
   rows.removeWhere((_, v) => v.isEmpty);
 
   // Filter hidden generations
-  if (state.hiddenGenerations.isNotEmpty) {
-    rows.removeWhere((gen, _) => state.hiddenGenerations.contains(gen));
+  if (hiddenGenerations.isNotEmpty) {
+    rows.removeWhere((gen, _) => hiddenGenerations.contains(gen));
   }
 
   if (rows.isEmpty) return TreeLayout.empty;
@@ -117,7 +122,7 @@ TreeLayout _computeLayout(FamilyTree tree, TreeViewState state) {
         person: info.person,
         position: pos,
         generation: gen,
-        type: _nodeType(info.person, tree.subject.id),
+        type: _nodeType(info.person, tree.subject.id, info.lineage),
         hasDotPaid: info.hasDotPaid,
         isSubject: info.person.id == tree.subject.id,
       );
@@ -126,39 +131,46 @@ TreeLayout _computeLayout(FamilyTree tree, TreeViewState state) {
     }
   }
 
-  // ── Build links ──
+  // ── Build links — courbes colorées par lignée ──
+  // Lignée du sujet = or, lignée alliée/maternelle = rose cuivré.
+  const goldLine = GwTokens.gold;
+  const roseLine = GwTokens.rose;
+
   // Parent → child (filiation)
-  for (final parent in [...tree.father, ...tree.mother]) {
-    final pNode = nodeMap[parent.id];
-    if (pNode == null) continue;
+  void linkParentSide(List<PersonGenealogy> parents, Color color) {
+    for (final parent in parents) {
+      final pNode = nodeMap[parent.id];
+      if (pNode == null) continue;
 
-    // Subject
-    final sNode = nodeMap[tree.subject.id];
-    if (sNode != null) {
-      links.add(LayoutLink(
-        from: pNode.position,
-        to: sNode.position,
-        type: LinkType.filiation,
-        highlight: state.selectedPersonId == parent.id ||
-            state.selectedPersonId == tree.subject.id,
-      ));
-    }
-
-    // Siblings — link only to the shared parent(s)
-    for (final sib in tree.siblings) {
-      final sibNode = nodeMap[sib.person.id];
-      if (sibNode == null) continue;
-      // For FULL siblings, link to all parents
-      // For HALF siblings, link only if this parent is the shared one
-      if (sib.type == 'FULL' || sib.sharedParentId == parent.id) {
+      // Subject
+      final sNode = nodeMap[tree.subject.id];
+      if (sNode != null) {
         links.add(LayoutLink(
           from: pNode.position,
-          to: sibNode.position,
+          to: sNode.position,
           type: LinkType.filiation,
+          color: color,
         ));
+      }
+
+      // Siblings — link only to the shared parent(s)
+      for (final sib in tree.siblings) {
+        final sibNode = nodeMap[sib.person.id];
+        if (sibNode == null) continue;
+        if (sib.type == 'FULL' || sib.sharedParentId == parent.id) {
+          links.add(LayoutLink(
+            from: pNode.position,
+            to: sibNode.position,
+            type: LinkType.filiation,
+            color: color,
+          ));
+        }
       }
     }
   }
+
+  linkParentSide(tree.father, goldLine);
+  linkParentSide(tree.mother, roseLine);
 
   // Grandparents → parents
   for (final gp in tree.paternalGP) {
@@ -167,7 +179,11 @@ TreeLayout _computeLayout(FamilyTree tree, TreeViewState state) {
     for (final f in tree.father) {
       final fNode = nodeMap[f.id];
       if (fNode != null) {
-        links.add(LayoutLink(from: gpNode.position, to: fNode.position, type: LinkType.filiation));
+        links.add(LayoutLink(
+            from: gpNode.position,
+            to: fNode.position,
+            type: LinkType.filiation,
+            color: goldLine));
       }
     }
   }
@@ -177,7 +193,11 @@ TreeLayout _computeLayout(FamilyTree tree, TreeViewState state) {
     for (final m in tree.mother) {
       final mNode = nodeMap[m.id];
       if (mNode != null) {
-        links.add(LayoutLink(from: gpNode.position, to: mNode.position, type: LinkType.filiation));
+        links.add(LayoutLink(
+            from: gpNode.position,
+            to: mNode.position,
+            type: LinkType.filiation,
+            color: roseLine));
       }
     }
   }
@@ -190,7 +210,11 @@ TreeLayout _computeLayout(FamilyTree tree, TreeViewState state) {
     for (final gp in [...tree.paternalGP, ...tree.maternalGP]) {
       final gpNode = nodeMap[gp.id];
       if (gpNode != null) {
-        links.add(LayoutLink(from: gpNode.position, to: uNode.position, type: LinkType.filiation));
+        links.add(LayoutLink(
+            from: gpNode.position,
+            to: uNode.position,
+            type: LinkType.filiation,
+            color: goldLine));
       }
     }
   }
@@ -205,7 +229,7 @@ TreeLayout _computeLayout(FamilyTree tree, TreeViewState state) {
           from: subNode.position,
           to: cNode.position,
           type: LinkType.filiation,
-          highlight: state.selectedPersonId == child.id,
+          color: goldLine,
         ));
       }
     }
@@ -222,6 +246,7 @@ TreeLayout _computeLayout(FamilyTree tree, TreeViewState state) {
           from: spNode.position,
           to: cNode.position,
           type: LinkType.filiation,
+          color: roseLine,
         ));
       }
     }
@@ -254,24 +279,36 @@ TreeLayout _computeLayout(FamilyTree tree, TreeViewState state) {
 class _NodeInfo {
   final PersonGenealogy person;
   final bool hasDotPaid;
-  const _NodeInfo(this.person, {this.hasDotPaid = false});
+
+  /// Lignée structurelle (or = lignée du sujet, rose = lignée alliée).
+  final NodeType lineage;
+
+  const _NodeInfo(
+    this.person, {
+    this.hasDotPaid = false,
+    this.lineage = NodeType.primaryLineage,
+  });
 }
 
+/// group1 = lignée du sujet (or), group2 = lignée alliée/maternelle (rose).
 void _addRow(Map<int, List<_NodeInfo>> rows, int gen,
-    List<PersonGenealogy> group1, List<PersonGenealogy> group2) {
+    List<PersonGenealogy> group1, List<PersonGenealogy> group2,
+    {NodeType lineage1 = NodeType.primaryLineage,
+    NodeType lineage2 = NodeType.secondaryLineage}) {
   final list = <_NodeInfo>[
-    ...group1.map((p) => _NodeInfo(p)),
-    ...group2.map((p) => _NodeInfo(p)),
+    ...group1.map((p) => _NodeInfo(p, lineage: lineage1)),
+    ...group2.map((p) => _NodeInfo(p, lineage: lineage2)),
   ];
   if (list.isNotEmpty) rows[gen] = list;
 }
 
+/// group1 = paternel (or), group2 = maternel (rose), group3 = oncles (or).
 void _addRow3(Map<int, List<_NodeInfo>> rows, int gen,
     List<PersonGenealogy> group1, List<PersonGenealogy> group2, List<PersonGenealogy> group3) {
   final list = <_NodeInfo>[
-    ...group1.map((p) => _NodeInfo(p)),
-    ...group2.map((p) => _NodeInfo(p)),
-    ...group3.map((p) => _NodeInfo(p)),
+    ...group1.map((p) => _NodeInfo(p, lineage: NodeType.primaryLineage)),
+    ...group2.map((p) => _NodeInfo(p, lineage: NodeType.secondaryLineage)),
+    ...group3.map((p) => _NodeInfo(p, lineage: NodeType.primaryLineage)),
   ];
   if (list.isNotEmpty) rows[gen] = list;
 }
@@ -298,7 +335,11 @@ List<_NodeInfo> _extractSpouses(FamilyTree tree) {
     }
     if (spouse != null && !addedIds.contains(spouse.id)) {
       addedIds.add(spouse.id);
-      spouses.add(_NodeInfo(spouse, hasDotPaid: union.isDotPaid));
+      spouses.add(_NodeInfo(
+        spouse,
+        hasDotPaid: union.isDotPaid,
+        lineage: NodeType.spouse,
+      ));
     }
   }
   return spouses;
@@ -324,10 +365,10 @@ void _addSubjectRowWithSpouses(Map<int, List<_NodeInfo>> rows, int gen,
   }
 }
 
-NodeType _nodeType(PersonGenealogy p, String subjectId) {
+/// Couleur par lignée, plus par genre. Les disparus deviennent des
+/// « ancêtres » (bordure discrète + ✦), jamais de noir « décédé ».
+NodeType _nodeType(PersonGenealogy p, String subjectId, NodeType lineage) {
   if (p.id == subjectId) return NodeType.subject;
-  if (!p.isAlive) return NodeType.deceased;
-  if (p.gender == 'MALE') return NodeType.male;
-  if (p.gender == 'FEMALE') return NodeType.female;
-  return NodeType.male;
+  if (!p.isAlive) return NodeType.ancestor;
+  return lineage;
 }

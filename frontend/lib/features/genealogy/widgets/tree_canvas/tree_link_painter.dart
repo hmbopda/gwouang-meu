@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
-import 'package:gwangmeu/features/genealogy/state/tree_tokens.dart';
+import 'package:gwangmeu/core/theme/gw_tokens.dart';
 import 'package:gwangmeu/features/genealogy/state/tree_view_state.dart';
 
-/// Paints Bézier-curve links between tree nodes.
+/// Liens « Tissage » (#2c) : courbes bézier douces 2 px, opacité 30–45 %,
+/// colorées par lignée (or Mbopda, rose Ngo Bassa). Unions en pointillé
+/// discret, suggestions IA en tirets sage.
 class TreeLinkPainter extends CustomPainter {
   final List<LayoutLink> links;
   final String? selectedPersonId;
@@ -27,17 +29,17 @@ class TreeLinkPainter extends CustomPainter {
   }
 
   void _drawFiliation(Canvas canvas, LayoutLink link) {
+    final base = link.color ?? GwTokens.dark.stoneFaint;
     final paint = Paint()
-      ..color = link.highlight ? T.gold : T.txt3
-      ..strokeWidth = link.highlight ? 2.5 : 1.5
+      ..color = base.withValues(alpha: link.highlight ? 0.65 : 0.38)
+      ..strokeWidth = link.highlight ? 2.5 : 2
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
 
     if (link.highlight) {
-      // Glow effect
       final glow = Paint()
-        ..color = T.goldGlow
-        ..strokeWidth = 6
+        ..color = base.withValues(alpha: 0.18)
+        ..strokeWidth = 7
         ..style = PaintingStyle.stroke
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
       _drawBezier(canvas, glow, link.from, link.to);
@@ -46,67 +48,47 @@ class TreeLinkPainter extends CustomPainter {
     _drawBezier(canvas, paint, link.from, link.to);
   }
 
+  /// Union : pointillé discret entre conjoints (plus de cœur orange).
   void _drawUnion(Canvas canvas, LayoutLink link) {
     final paint = Paint()
-      ..color = T.orange
-      ..strokeWidth = 2.0
+      ..color = Colors.white.withValues(alpha: 0.12)
+      ..strokeWidth = 1.5
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
 
-    // Dashed horizontal line for unions
-    final path = Path();
-    final dx = link.to.dx - link.from.dx;
-    final dy = link.to.dy - link.from.dy;
-    final dist = (link.to - link.from).distance;
-    const dashLen = 6.0;
-    const gapLen = 4.0;
-    double d = 0;
-    bool drawing = true;
-    while (d < dist) {
-      final seg = drawing ? dashLen : gapLen;
-      final end = (d + seg).clamp(0.0, dist);
-      final p1 = Offset(
-        link.from.dx + dx * (d / dist),
-        link.from.dy + dy * (d / dist),
-      );
-      final p2 = Offset(
-        link.from.dx + dx * (end / dist),
-        link.from.dy + dy * (end / dist),
-      );
-      if (drawing) {
-        path.moveTo(p1.dx, p1.dy);
-        path.lineTo(p2.dx, p2.dy);
-      }
-      d = end;
-      drawing = !drawing;
-    }
+    final path = _dottedPath(link.from, link.to, 1.5, 5);
     canvas.drawPath(path, paint);
 
-    // Heart icon at midpoint
+    // Petit point rose au milieu (alliance).
     final mid = Offset(
       (link.from.dx + link.to.dx) / 2,
       (link.from.dy + link.to.dy) / 2,
     );
-    _drawHeart(canvas, mid);
+    canvas.drawCircle(
+      mid,
+      3,
+      Paint()..color = GwTokens.rose.withValues(alpha: 0.6),
+    );
   }
 
   void _drawSiblings(Canvas canvas, LayoutLink link) {
     final paint = Paint()
-      ..color = T.txt3.withValues(alpha: 0.5)
-      ..strokeWidth = 1.0
+      ..color = GwTokens.dark.stoneFaint.withValues(alpha: 0.3)
+      ..strokeWidth = 1.5
       ..style = PaintingStyle.stroke;
 
     canvas.drawLine(link.from, link.to, paint);
   }
 
+  /// Affluent IA : tirets sage arrondis (4 / 6).
   void _drawAiSuggestion(Canvas canvas, LayoutLink link) {
     final paint = Paint()
-      ..color = T.green
-      ..strokeWidth = 1.5
-      ..style = PaintingStyle.stroke;
+      ..color = GwTokens.sage.withValues(alpha: 0.5)
+      ..strokeWidth = 2
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
 
-    // Dotted line
-    final path = _dottedPath(link.from, link.to, 3, 5);
+    final path = _dottedPath(link.from, link.to, 4, 6);
     canvas.drawPath(path, paint);
   }
 
@@ -121,6 +103,7 @@ class TreeLinkPainter extends CustomPainter {
   Path _dottedPath(Offset from, Offset to, double dotLen, double gapLen) {
     final path = Path();
     final dist = (to - from).distance;
+    if (dist == 0) return path;
     final dx = to.dx - from.dx;
     final dy = to.dy - from.dy;
     double d = 0;
@@ -142,21 +125,6 @@ class TreeLinkPainter extends CustomPainter {
       drawing = !drawing;
     }
     return path;
-  }
-
-  void _drawHeart(Canvas canvas, Offset center) {
-    final paint = Paint()
-      ..color = T.orange
-      ..style = PaintingStyle.fill;
-
-    canvas.drawCircle(center, 4, paint);
-
-    // Orange ring
-    final ring = Paint()
-      ..color = T.orange.withValues(alpha: 0.3)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.5;
-    canvas.drawCircle(center, 7, ring);
   }
 
   @override

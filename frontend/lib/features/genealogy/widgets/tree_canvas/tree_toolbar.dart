@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:material_symbols_icons/symbols.dart';
 
-import 'package:gwangmeu/features/genealogy/state/tree_tokens.dart';
+import 'package:gwangmeu/core/theme/gw_tokens.dart';
 import 'package:gwangmeu/features/genealogy/state/tree_view_state.dart';
 
-/// Floating toolbar for switching tree views (Full, Ancestors, Descendants, Migration).
-/// Adapts to screen width: shows labels on desktop, icons-only + tooltip on mobile.
+/// Toolbar flottante — portée de l'arbre (complet, ascendants, descendants,
+/// migration). Segmenté « Tissage » : actif = pilule or, cibles ≥ 40 px.
 class TreeToolbar extends StatelessWidget {
   final TreeView currentView;
   final ValueChanged<TreeView> onViewChanged;
@@ -19,12 +20,13 @@ class TreeToolbar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = GwTokens.of(context);
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: T.ink3,
-        borderRadius: BorderRadius.circular(T.r),
-        border: Border.all(color: T.border2),
+        color: t.inkCard,
+        borderRadius: BorderRadius.circular(GwTokens.rBtn),
+        border: Border.all(color: t.line),
         boxShadow: const [
           BoxShadow(color: Colors.black26, blurRadius: 8, offset: Offset(0, 2)),
         ],
@@ -32,16 +34,16 @@ class TreeToolbar extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _chip(TreeView.full, Icons.account_tree, 'Arbre complet'),
-          _chip(TreeView.ancestors, Icons.arrow_upward, 'Ascendants'),
-          _chip(TreeView.descendants, Icons.arrow_downward, 'Descendants'),
-          _chip(TreeView.migration, Icons.flight, 'Migration'),
+          _chip(t, TreeView.full, Symbols.family_history, 'Rivière'),
+          _chip(t, TreeView.ancestors, Symbols.arrow_upward, 'Ascendants'),
+          _chip(t, TreeView.descendants, Symbols.arrow_downward, 'Descendants'),
+          _chip(t, TreeView.migration, Symbols.travel_explore, 'Migration'),
         ],
       ),
     );
   }
 
-  Widget _chip(TreeView view, IconData icon, String label) {
+  Widget _chip(GwTokens t, TreeView view, IconData icon, String label) {
     final selected = currentView == view;
     final chip = Padding(
       padding: const EdgeInsets.symmetric(horizontal: 2),
@@ -52,12 +54,10 @@ class TreeToolbar extends StatelessWidget {
           borderRadius: BorderRadius.circular(10),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
-            padding: EdgeInsets.symmetric(
-              horizontal: compact ? 8 : 12,
-              vertical: 7,
-            ),
+            height: 40,
+            padding: EdgeInsets.symmetric(horizontal: compact ? 10 : 14),
             decoration: BoxDecoration(
-              color: selected ? T.gold : Colors.transparent,
+              color: selected ? GwTokens.gold : Colors.transparent,
               borderRadius: BorderRadius.circular(10),
             ),
             child: Row(
@@ -65,17 +65,19 @@ class TreeToolbar extends StatelessWidget {
               children: [
                 Icon(
                   icon,
-                  size: 14,
-                  color: selected ? T.ink : T.txt2,
+                  size: 16,
+                  fill: selected ? 1 : 0,
+                  color: selected ? const Color(0xFF0C0B0F) : t.stoneMid,
                 ),
                 if (!compact) ...[
-                  const SizedBox(width: 5),
+                  const SizedBox(width: 6),
                   Text(
                     label,
-                    style: TextStyle(
-                      color: selected ? T.ink : T.txt2,
-                      fontSize: 11,
-                      fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                    style: GwType.ui(
+                      fontSize: 13,
+                      fontWeight:
+                          selected ? FontWeight.w700 : FontWeight.w600,
+                      color: selected ? const Color(0xFF0C0B0F) : t.stoneMid,
                     ),
                   ),
                 ],

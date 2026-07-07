@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:material_symbols_icons/symbols.dart';
 
+import 'package:gwangmeu/core/theme/gw_tokens.dart';
 import 'package:gwangmeu/features/genealogy/models/family_tree.dart';
 import 'package:gwangmeu/features/genealogy/state/tree_layout_provider.dart';
-import 'package:gwangmeu/features/genealogy/state/tree_tokens.dart';
 import 'package:gwangmeu/features/genealogy/state/tree_view_state.dart';
 import 'package:gwangmeu/features/genealogy/widgets/tree_canvas/tree_link_painter.dart';
 import 'package:gwangmeu/features/genealogy/widgets/dialogs/person_detail_popup.dart';
@@ -12,7 +13,8 @@ import 'package:gwangmeu/features/genealogy/widgets/tree_canvas/tree_node_widget
 import 'package:gwangmeu/features/genealogy/widgets/tree_canvas/tree_toolbar.dart';
 import 'package:gwangmeu/features/genealogy/widgets/tree_canvas/tree_zoom_controls.dart';
 
-/// The main center canvas: interactive tree with pan/zoom, nodes and links.
+/// Canvas central « Rivière » (#2c) : strates de générations en bandes douces,
+/// nœuds-cartes colorés par lignée, liens bézier calmes, légende des lignées.
 class TreeCanvas extends ConsumerStatefulWidget {
   final FamilyTree tree;
   final String personId;
@@ -20,6 +22,9 @@ class TreeCanvas extends ConsumerStatefulWidget {
   final VoidCallback? onAddChild;
   final VoidCallback? onAddUnion;
   final VoidCallback? onExport;
+
+  /// Affiche la légende des lignées (desktop).
+  final bool showLegend;
 
   const TreeCanvas({
     super.key,
@@ -29,6 +34,7 @@ class TreeCanvas extends ConsumerStatefulWidget {
     this.onAddChild,
     this.onAddUnion,
     this.onExport,
+    this.showLegend = false,
   });
 
   @override
@@ -63,19 +69,19 @@ class _TreeCanvasState extends ConsumerState<TreeCanvas> {
 
   @override
   Widget build(BuildContext context) {
-    final viewState = ref.watch(treeViewProvider);
+    final t = GwTokens.of(context);
+    // select() : rebuild uniquement si le layout géométrique ou la vue changent
     final layout = ref.watch(treeLayoutProvider(widget.tree));
+    final selectedPersonId =
+        ref.watch(treeViewProvider.select((s) => s.selectedPersonId));
+    final currentView =
+        ref.watch(treeViewProvider.select((s) => s.currentView));
     final notifier = ref.read(treeViewProvider.notifier);
 
     return Container(
-      color: T.ink,
+      color: t.ink,
       child: Stack(
         children: [
-          // ── Grid pattern background ──
-          Positioned.fill(
-            child: CustomPaint(painter: _GridPainter()),
-          ),
-
           // ── Interactive pan/zoom area ──
           InteractiveViewer(
             transformationController: _transformCtrl,
@@ -89,48 +95,30 @@ class _TreeCanvasState extends ConsumerState<TreeCanvas> {
               child: Stack(
                 clipBehavior: Clip.none,
                 children: [
+                  // Strates de générations — bandes douces + labels mono
+                  Positioned.fill(
+                    child: CustomPaint(painter: _StrataPainter(layout)),
+                  ),
+
                   // Links (Bézier curves)
                   Positioned.fill(
                     child: CustomPaint(
                       painter: TreeLinkPainter(
                         links: layout.links,
-                        selectedPersonId: viewState.selectedPersonId,
+                        selectedPersonId: selectedPersonId,
                       ),
                     ),
                   ),
 
-                  // Nodes
-                  ...layout.nodes.map((node) {
-                    final isSelected = viewState.selectedPersonId == node.person.id;
-                    final isHovered = viewState.hoveredPersonId == node.person.id;
-                    return Positioned(
-                      left: node.position.dx - 60,
-                      top: node.position.dy - (node.isSubject ? T.subjectRadius : T.nodeRadius),
-                      child: TreeNodeWidget(
+                  // Nodes — chaque _NodeSlot observe son propre isSelected/isHovered
+                  ...layout.nodes.map((node) => _NodeSlot(
+                        key: ValueKey(node.person.id),
                         node: node,
-                        isSelected: isSelected,
-                        isHovered: isHovered,
-                        onTap: () {
-                          notifier.selectPerson(node.person.id);
-                          setState(() => _tooltipNodeId = null);
-                        },
-                        onHover: (hovering) {
-                          if (hovering) {
-                            notifier.hoverPerson(node.person.id);
-                            setState(() => _tooltipNodeId = node.person.id);
-                          } else {
-                            // Deferred — onExit in TreeNodeWidget already defers
-                            notifier.hoverPerson(null);
-                            Future.delayed(const Duration(milliseconds: 300), () {
-                              if (mounted && _tooltipNodeId == node.person.id) {
-                                setState(() => _tooltipNodeId = null);
-                              }
-                            });
-                          }
-                        },
-                      ),
-                    );
-                  }),
+                        notifier: notifier,
+                        tooltipNodeId: _tooltipNodeId,
+                        onTooltipChanged: (id) =>
+                            setState(() => _tooltipNodeId = id),
+                      )),
 
                   // Tooltip overlay
                   if (_tooltipNodeId != null &&
@@ -159,14 +147,14 @@ class _TreeCanvasState extends ConsumerState<TreeCanvas> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         TreeToolbar(
-                          currentView: viewState.currentView,
+                          currentView: currentView,
                           onViewChanged: notifier.changeView,
                           compact: compact,
                         ),
                         const SizedBox(width: 16),
                         if (widget.onAddParent != null) ...[
-                          _ActionChip(
-                            icon: Icons.person_add_alt_1,
+                          _ActionPill(
+                            icon: Symbols.person_add,
                             label: 'Ajouter un parent',
                             onTap: widget.onAddParent!,
                             compact: compact,
@@ -174,20 +162,22 @@ class _TreeCanvasState extends ConsumerState<TreeCanvas> {
                           const SizedBox(width: 8),
                         ],
                         if (widget.onAddUnion != null) ...[
-                          _ActionChip(
-                            icon: Icons.favorite_border,
+                          _ActionPill(
+                            icon: Symbols.favorite,
                             label: 'Ajouter une union',
                             onTap: widget.onAddUnion!,
                             compact: compact,
+                            outlined: true,
                           ),
                           const SizedBox(width: 8),
                         ],
                         if (widget.onExport != null)
-                          _ActionChip(
-                            icon: Icons.download,
+                          _ActionPill(
+                            icon: Symbols.download,
                             label: 'Exporter',
                             onTap: widget.onExport!,
                             compact: compact,
+                            outlined: true,
                           ),
                       ],
                     ),
@@ -196,6 +186,14 @@ class _TreeCanvasState extends ConsumerState<TreeCanvas> {
               },
             ),
           ),
+
+          // ── Légende des lignées (desktop, bas gauche) ──
+          if (widget.showLegend)
+            Positioned(
+              bottom: 16,
+              left: 20,
+              child: _LineageLegend(),
+            ),
 
           // ── Zoom controls (bottom right) ──
           Positioned(
@@ -214,23 +212,27 @@ class _TreeCanvasState extends ConsumerState<TreeCanvas> {
               child: Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: T.ink3,
-                  borderRadius: BorderRadius.circular(T.r),
-                  border: Border.all(color: T.border2),
+                  color: t.inkCard,
+                  borderRadius: BorderRadius.circular(GwTokens.rCard),
+                  border: Border.all(color: t.goldLine),
                 ),
-                child: const Column(
+                child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.account_tree_outlined, size: 48, color: T.txt3),
-                    SizedBox(height: 12),
+                    Icon(Symbols.family_history,
+                        size: 48, color: t.stoneDim),
+                    const SizedBox(height: 12),
                     Text(
-                      'Votre arbre est encore vide',
-                      style: TextStyle(color: T.txt1, fontSize: 15, fontWeight: FontWeight.w600),
+                      'Votre rivière commence ici',
+                      style: GwType.display(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w600,
+                          color: t.stone),
                     ),
-                    SizedBox(height: 4),
+                    const SizedBox(height: 4),
                     Text(
-                      'Utilisez les boutons pour ajouter des membres',
-                      style: TextStyle(color: T.txt3, fontSize: 12),
+                      'Ajoutez vos parents pour faire couler la lignée',
+                      style: GwType.ui(fontSize: 13, color: t.stoneDim),
                     ),
                   ],
                 ),
@@ -243,7 +245,7 @@ class _TreeCanvasState extends ConsumerState<TreeCanvas> {
 
   Widget _buildTooltip(LayoutNode node, TreeViewNotifier notifier) {
     return Positioned(
-      left: node.position.dx + 50,
+      left: node.position.dx + 70,
       top: node.position.dy - 60,
       child: MouseRegion(
         onEnter: (_) {},
@@ -279,53 +281,54 @@ class _TreeCanvasState extends ConsumerState<TreeCanvas> {
   }
 }
 
-/// Gold action chip for add parent / add child.
-/// In compact mode, shows icon only with a tooltip.
-class _ActionChip extends StatelessWidget {
+/// Pilule d'action or (pleine ou contour), cible ≥ 40 px.
+class _ActionPill extends StatelessWidget {
   final IconData icon;
   final String label;
   final VoidCallback onTap;
   final bool compact;
+  final bool outlined;
 
-  const _ActionChip({
+  const _ActionPill({
     required this.icon,
     required this.label,
     required this.onTap,
     this.compact = false,
+    this.outlined = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    final chip = Material(
-      color: Colors.transparent,
+    final fg = outlined ? GwTokens.gold : const Color(0xFF0C0B0F);
+
+    final pill = Material(
+      color: outlined ? GwTokens.dark.inkCard : GwTokens.gold,
+      borderRadius: BorderRadius.circular(GwTokens.rPill),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(T.rSm),
+        borderRadius: BorderRadius.circular(GwTokens.rPill),
         child: Container(
-          padding: EdgeInsets.symmetric(
-            horizontal: compact ? 8 : 12,
-            vertical: 8,
-          ),
-          decoration: BoxDecoration(
-            color: T.gold,
-            borderRadius: BorderRadius.circular(T.rSm),
-            boxShadow: const [
-              BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2)),
-            ],
-          ),
+          height: 44,
+          padding: EdgeInsets.symmetric(horizontal: compact ? 13 : 18),
+          decoration: outlined
+              ? BoxDecoration(
+                  borderRadius: BorderRadius.circular(GwTokens.rPill),
+                  border: Border.all(
+                      color: GwTokens.gold.withValues(alpha: 0.35)),
+                )
+              : null,
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: 14, color: T.ink),
+              Icon(icon, size: 18, color: fg),
               if (!compact) ...[
-                const SizedBox(width: 6),
+                const SizedBox(width: 8),
                 Text(
                   label,
-                  style: const TextStyle(
-                    color: T.ink,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                  ),
+                  style: GwType.ui(
+                      fontSize: 13.5,
+                      fontWeight: outlined ? FontWeight.w600 : FontWeight.w700,
+                      color: fg),
                 ),
               ],
             ],
@@ -335,28 +338,193 @@ class _ActionChip extends StatelessWidget {
     );
 
     if (compact) {
-      return Tooltip(message: label, child: chip);
+      return Tooltip(message: label, child: pill);
     }
-    return chip;
+    return pill;
   }
 }
 
-/// Subtle dot grid background.
-class _GridPainter extends CustomPainter {
+/// Légende : lignées, affluent IA, ancêtres ✦.
+class _LineageLegend extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final t = GwTokens.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: t.ink.withValues(alpha: 0.85),
+        border: Border.all(color: t.line),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _item(t, GwTokens.gold, 'Lignée du sujet'),
+          const SizedBox(width: 14),
+          _item(t, GwTokens.rose, 'Lignée alliée'),
+          const SizedBox(width: 14),
+          _item(t, GwTokens.sage, 'Affluent IA', dashed: true),
+          const SizedBox(width: 14),
+          _item(t, t.stoneFaint, 'Ancêtres ✦'),
+        ],
+      ),
+    );
+  }
+
+  Widget _item(GwTokens t, Color color, String label, {bool dashed = false}) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: color, width: 2),
+          ),
+        ),
+        const SizedBox(width: 6),
+        Text(label, style: GwType.ui(fontSize: 12, color: t.stoneMid)),
+      ],
+    );
+  }
+}
+
+/// Widget isolé pour un node : observe UNIQUEMENT isSelected et isHovered
+/// pour ce node. Évite le rebuild de tous les nodes à chaque clic.
+class _NodeSlot extends ConsumerWidget {
+  final LayoutNode node;
+  final TreeViewNotifier notifier;
+  final String? tooltipNodeId;
+  final ValueChanged<String?> onTooltipChanged;
+
+  const _NodeSlot({
+    super.key,
+    required this.node,
+    required this.notifier,
+    required this.tooltipNodeId,
+    required this.onTooltipChanged,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isSelected = ref.watch(
+      treeViewProvider.select((s) => s.selectedPersonId == node.person.id),
+    );
+    final isHovered = ref.watch(
+      treeViewProvider.select((s) => s.hoveredPersonId == node.person.id),
+    );
+
+    final width = node.isSubject ? kTreeSubjectWidth : kTreeNodeWidth;
+
+    return Positioned(
+      left: node.position.dx - width / 2,
+      top: node.position.dy - 40,
+      child: TreeNodeWidget(
+        node: node,
+        isSelected: isSelected,
+        isHovered: isHovered,
+        onTap: () {
+          notifier.selectPerson(node.person.id);
+          onTooltipChanged(null);
+        },
+        onHover: (hovering) {
+          if (hovering) {
+            notifier.hoverPerson(node.person.id);
+            onTooltipChanged(node.person.id);
+          } else {
+            notifier.hoverPerson(null);
+            Future.delayed(const Duration(milliseconds: 300), () {
+              if (tooltipNodeId == node.person.id) {
+                onTooltipChanged(null);
+              }
+            });
+          }
+        },
+      ),
+    );
+  }
+}
+
+/// Strates de générations : bandes douces, séparateurs pointillés,
+/// labels mono « GÉNÉRATION N » (or pour la génération du sujet).
+class _StrataPainter extends CustomPainter {
+  final TreeLayout layout;
+
+  _StrataPainter(this.layout);
+
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = T.border
-      ..style = PaintingStyle.fill;
+    if (layout.nodes.isEmpty) return;
 
-    const step = 30.0;
-    for (double x = 0; x < size.width; x += step) {
-      for (double y = 0; y < size.height; y += step) {
-        canvas.drawCircle(Offset(x, y), 0.5, paint);
+    // Générations → bornes Y
+    final gens = <int, double>{};
+    int? subjectGen;
+    for (final n in layout.nodes) {
+      gens[n.generation] = n.position.dy;
+      if (n.isSubject) subjectGen = n.generation;
+    }
+    final sorted = gens.keys.toList()..sort();
+
+    final dashPaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.05)
+      ..strokeWidth = 1;
+
+    for (int i = 0; i < sorted.length; i++) {
+      final gen = sorted[i];
+      final y = gens[gen]!;
+      final top = y - 90;
+      final isSubjectGen = gen == subjectGen;
+
+      // Bande douce pour la génération du sujet + la première
+      if (isSubjectGen || i == 0) {
+        final rect = Rect.fromLTWH(0, top, size.width, 180);
+        final gradient = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: isSubjectGen
+              ? [
+                  GwTokens.gold.withValues(alpha: 0.05),
+                  GwTokens.gold.withValues(alpha: 0.015),
+                ]
+              : [
+                  GwTokens.dark.stoneFaint.withValues(alpha: 0.05),
+                  Colors.transparent,
+                ],
+        );
+        canvas.drawRect(rect, Paint()..shader = gradient.createShader(rect));
       }
+
+      // Séparateur pointillé bas de strate
+      final sepY = top + 180;
+      double x = 0;
+      while (x < size.width) {
+        canvas.drawLine(Offset(x, sepY), Offset(x + 4, sepY), dashPaint);
+        x += 12;
+      }
+
+      // Label mono
+      final label = isSubjectGen
+          ? 'GÉNÉRATION ${gen + 1} · VOUS'
+          : i == 0
+              ? 'GÉNÉRATION ${gen + 1} · LES FONDATEURS'
+              : 'GÉNÉRATION ${gen + 1}';
+      final tp = TextPainter(
+        text: TextSpan(
+          text: label,
+          style: GwType.mono(
+            fontSize: 10,
+            letterSpacing: 2,
+            color: isSubjectGen ? GwTokens.gold : GwTokens.dark.stoneFaint,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      tp.paint(canvas, Offset(24, top + 14));
     }
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _StrataPainter oldDelegate) =>
+      oldDelegate.layout != layout;
 }

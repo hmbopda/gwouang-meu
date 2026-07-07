@@ -8,9 +8,25 @@ import 'package:gwangmeu/features/genealogy/models/person_genealogy.dart';
 
 enum TreeView { full, ancestors, descendants, migration }
 
+/// Mode d'affichage mobile de la lignée (#1d) : rivière, arbre ou liste.
+enum RiverMode { river, tree, list }
+
 enum RightTab { personne, migration, ia }
 
-enum NodeType { subject, male, female, deceased, aiSuggestion, founder, wife }
+/// Couleur par lignée, plus par genre (« Tissage » #1d/#2c) :
+/// - [primaryLineage] : lignée du sujet (or)
+/// - [secondaryLineage] : lignée alliée, ex. maternelle (rose cuivré)
+/// - [ancestor] : ancêtre disparu — bordure discrète + « ✦ », jamais de noir
+/// - [spouse] : conjoint·e (lignée alliée, rose)
+enum NodeType {
+  subject,
+  primaryLineage,
+  secondaryLineage,
+  ancestor,
+  aiSuggestion,
+  founder,
+  spouse,
+}
 
 enum LinkType { filiation, union, siblings, aiSuggestion }
 
@@ -40,11 +56,16 @@ class LayoutLink {
   final LinkType type;
   final bool highlight;
 
+  /// Couleur de lignée du lien (or Mbopda, rose Ngo Bassa…).
+  /// Null → couleur neutre du painter.
+  final Color? color;
+
   const LayoutLink({
     required this.from,
     required this.to,
     required this.type,
     this.highlight = false,
+    this.color,
   });
 }
 
@@ -128,3 +149,7 @@ final treeViewProvider =
     StateNotifierProvider.autoDispose<TreeViewNotifier, TreeViewState>(
   (ref) => TreeViewNotifier(),
 );
+
+/// Mode d'affichage mobile de la lignée (#1d) — Rivière par défaut.
+final riverModeProvider =
+    StateProvider.autoDispose<RiverMode>((_) => RiverMode.river);

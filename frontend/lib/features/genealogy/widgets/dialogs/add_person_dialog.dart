@@ -12,9 +12,10 @@ import 'package:gwangmeu/features/genealogy/genealogy_notifier.dart';
 import 'package:gwangmeu/features/genealogy/models/clan_model.dart';
 import 'package:gwangmeu/features/genealogy/models/genealogy_union.dart';
 import 'package:gwangmeu/features/genealogy/models/person_genealogy.dart';
+import 'package:gwangmeu/features/genealogy/models/family_tree.dart';
 import 'package:gwangmeu/features/genealogy/services/genealogy_api_service.dart';
 
-enum AddPersonStep { chooseAction, lookupContact, selectClan, selectPerson, createForm, checkDuplicate, selectCoParent }
+enum AddPersonStep { chooseAction, lookupContact, selectFromTree, selectClan, selectPerson, createForm, checkDuplicate, selectCoParent }
 
 class AddPersonDialog extends ConsumerStatefulWidget {
   const AddPersonDialog({
@@ -191,6 +192,8 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
         return '';
       case AddPersonStep.lookupContact:
         return 'Recherche par email / telephone';
+      case AddPersonStep.selectFromTree:
+        return 'Membres de votre arbre';
       case AddPersonStep.selectClan:
         return 'Etape 1/2 — Choisir une grande famille';
       case AddPersonStep.selectPerson:
@@ -210,6 +213,8 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
         return _buildChooseAction();
       case AddPersonStep.lookupContact:
         return _buildLookupContact();
+      case AddPersonStep.selectFromTree:
+        return _buildSelectFromTree();
       case AddPersonStep.selectClan:
         return _buildSelectClan();
       case AddPersonStep.selectPerson:
@@ -262,6 +267,13 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
         ),
         const SizedBox(height: 12),
         _ActionTile(
+          icon: Icons.family_restroom,
+          title: 'Choisir dans mon arbre',
+          subtitle: 'Lier une personne deja enregistree',
+          onTap: () => setState(() => _step = AddPersonStep.selectFromTree),
+        ),
+        const SizedBox(height: 10),
+        _ActionTile(
           icon: Icons.email_outlined,
           title: 'Rechercher par email / telephone',
           subtitle: 'Verifier si la personne existe deja en base',
@@ -285,6 +297,96 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
           }),
         ),
       ],
+    );
+  }
+
+  Widget _buildSelectFromTree() {
+    final myPerson = ref.watch(genealogyNotifierProvider).valueOrNull;
+    if (myPerson == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    final treeAsync = ref.watch(familyTreeProvider(myPerson.id));
+
+    return treeAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (e, _) => Center(child: Text('Erreur: $e')),
+      data: (tree) {
+        // Collecter tous les membres de l'arbre sauf le sujet lui-même et la personne courante
+        final all = <PersonGenealogy>[
+          ...tree.father,
+          ...tree.mother,
+          ...tree.paternalGP,
+          ...tree.maternalGP,
+          ...tree.children,
+          ...tree.cousins,
+          ...tree.uncles,
+          ...tree.siblings.map((s) => s.person),
+          for (final u in tree.unions) ...[
+            if (u.husband != null) u.husband!,
+            if (u.wife != null) u.wife!,
+          ],
+        ];
+
+        // Dédupliquer et exclure le sujet et la personne courante
+        final seen = <String>{myPerson.id, widget.personId};
+        final candidates = all.where((p) => seen.add(p.id)).toList();
+
+        // Filtrer par genre selon le rôle
+        final filtered = candidates
+            .where((p) => p.gender == _genderFilter)
+            .toList();
+
+        if (filtered.isEmpty) {
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.people_outline, size: 48, color: Colors.grey),
+              const SizedBox(height: 12),
+              Text(
+                'Aucun(e) ${_genderLabel.toLowerCase()} trouve(e) dans votre arbre.',
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.grey),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: () => setState(() {
+                  _gender = _role == 'FATHER' ? 'MALE' : 'FEMALE';
+                  _step = AddPersonStep.createForm;
+                }),
+                icon: const Icon(Icons.person_add, size: 18),
+                label: const Text('Creer manuellement'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  foregroundColor: Colors.black,
+                ),
+              ),
+            ],
+          );
+        }
+
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Membres de votre arbre — ${filtered.length} ${_genderLabel.toLowerCase()}(s)',
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Selectionnez la personne a lier comme ${widget.isParent ? "parent" : "enfant"}.',
+              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+            ),
+            const SizedBox(height: 12),
+            ...filtered.map((person) => _PersonTile(
+                  person: person,
+                  selected: _selectedPerson?.id == person.id,
+                  onTap: () => setState(() => _selectedPerson = person),
+                )),
+          ],
+        );
+      },
     );
   }
 
@@ -905,7 +1007,7 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
             onPressed: _loading ? null : () => Navigator.of(context).pop(),
             child: const Text('Annuler'),
           ),
-          if (_step == AddPersonStep.selectPerson && _selectedPerson != null)
+          if ((_step == AddPersonStep.selectPerson || _step == AddPersonStep.selectFromTree) && _selectedPerson != null)
             ElevatedButton(
               onPressed: _loading ? null : _linkSelectedPerson,
               style: ElevatedButton.styleFrom(
@@ -956,6 +1058,9 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
     setState(() {
       switch (_step) {
         case AddPersonStep.lookupContact:
+          _step = AddPersonStep.chooseAction;
+        case AddPersonStep.selectFromTree:
+          _selectedPerson = null;
           _step = AddPersonStep.chooseAction;
         case AddPersonStep.selectClan:
           _step = AddPersonStep.chooseAction;

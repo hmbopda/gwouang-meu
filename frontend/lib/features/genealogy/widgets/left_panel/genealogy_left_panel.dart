@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:gwangmeu/features/genealogy/models/family_tree.dart';
 import 'package:gwangmeu/features/genealogy/models/person_genealogy.dart';
-import 'package:gwangmeu/features/genealogy/state/tree_tokens.dart';
+import 'package:gwangmeu/core/theme/gw_tokens.dart';
 import 'package:gwangmeu/features/genealogy/state/tree_view_state.dart';
 
 /// Left sidebar: Stats grid, Legend, Generation filters, Clan members list.
@@ -14,37 +14,41 @@ class GenealogyLeftPanel extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final viewState = ref.watch(treeViewProvider);
+    // select() : rebuild uniquement si hiddenGenerations change (filtres génération)
+    final hiddenGenerations = ref.watch(treeViewProvider.select((s) => s.hiddenGenerations));
     final notifier = ref.read(treeViewProvider.notifier);
     final allMembers = _allMembers(tree);
 
+    // Sections fixes avant la liste des membres
+    const headerItems = 8;
+
     return Container(
-      width: T.leftPanelW,
-      color: T.ink2,
+      width: 280.0,
+      color: GwTokens.dark.inkCard,
       child: Column(
         children: [
           // ── Header ──
           Container(
             padding: const EdgeInsets.all(16),
-            decoration: const BoxDecoration(
-              border: Border(bottom: BorderSide(color: T.border)),
+            decoration: BoxDecoration(
+              border: Border(bottom: BorderSide(color: GwTokens.dark.line)),
             ),
             child: Row(
               children: [
                 Container(
                   padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
-                    color: T.goldBg,
+                    color: GwTokens.dark.goldBg,
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(Icons.account_tree, size: 16, color: T.gold),
+                  child: const Icon(Icons.account_tree, size: 16, color: GwTokens.gold),
                 ),
                 const SizedBox(width: 8),
-                const Expanded(
+                Expanded(
                   child: Text(
                     'Arbre Généalogique',
                     style: TextStyle(
-                      color: T.txt1,
+                      color: GwTokens.dark.stone,
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
                     ),
@@ -54,41 +58,53 @@ class GenealogyLeftPanel extends ConsumerWidget {
             ),
           ),
 
+          // ListView.builder : virtualisation — seuls les items visibles sont buildés
           Expanded(
-            child: ListView(
+            child: ListView.builder(
               padding: const EdgeInsets.all(12),
-              children: [
-                // ── Stats grid ──
-                const _SectionTitle(title: 'Statistiques'),
-                const SizedBox(height: 8),
-                _StatsGrid(tree: tree),
-                const SizedBox(height: 16),
-
-                // ── Legend ──
-                const _SectionTitle(title: 'Légende'),
-                const SizedBox(height: 8),
-                _LegendSection(),
-                const SizedBox(height: 16),
-
-                // ── Generation filters ──
-                const _SectionTitle(title: 'Générations'),
-                const SizedBox(height: 8),
-                _GenerationFilters(
-                  hiddenGenerations: viewState.hiddenGenerations,
-                  onToggle: notifier.toggleGeneration,
-                ),
-                const SizedBox(height: 16),
-
-                // ── Members list ──
-                _SectionTitle(title: 'Membres (${allMembers.length})'),
-                const SizedBox(height: 8),
-                ...allMembers.map((p) => _MemberTile(
+              itemCount: headerItems + allMembers.length,
+              itemBuilder: (context, index) {
+                switch (index) {
+                  case 0:
+                    return const _SectionTitle(title: 'Statistiques');
+                  case 1:
+                    return const SizedBox(height: 8);
+                  case 2:
+                    return _StatsGrid(tree: tree);
+                  case 3:
+                    return const SizedBox(height: 16);
+                  case 4:
+                    return const _SectionTitle(title: 'Légende');
+                  case 5:
+                    return const SizedBox(height: 8);
+                  case 6:
+                    return _LegendSection();
+                  case 7:
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 16),
+                        const _SectionTitle(title: 'Générations'),
+                        const SizedBox(height: 8),
+                        _GenerationFilters(
+                          hiddenGenerations: hiddenGenerations,
+                          onToggle: notifier.toggleGeneration,
+                        ),
+                        const SizedBox(height: 16),
+                        _SectionTitle(title: 'Membres (${allMembers.length})'),
+                        const SizedBox(height: 8),
+                      ],
+                    );
+                  default:
+                    final p = allMembers[index - headerItems];
+                    return _SelectableMemberTile(
+                      key: ValueKey(p.id),
                       person: p,
-                      isSelected: viewState.selectedPersonId == p.id,
                       isSubject: p.id == tree.subject.id,
                       onTap: () => notifier.selectPerson(p.id),
-                    )),
-              ],
+                    );
+                }
+              },
             ),
           ),
         ],
@@ -136,8 +152,8 @@ class _SectionTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       title.toUpperCase(),
-      style: const TextStyle(
-        color: T.txt3,
+      style: TextStyle(
+        color: GwTokens.dark.stoneDim,
         fontSize: 10,
         fontWeight: FontWeight.w700,
         letterSpacing: 1.2,
@@ -163,10 +179,10 @@ class _StatsGrid extends StatelessWidget {
       spacing: 6,
       runSpacing: 6,
       children: [
-        _StatCard(value: '$total', label: 'Membres', icon: Icons.people, color: T.blue),
-        _StatCard(value: '$living', label: 'Vivants', icon: Icons.favorite, color: T.green),
-        _StatCard(value: '$generations', label: 'Générations', icon: Icons.layers, color: T.gold),
-        _StatCard(value: '$unions', label: 'Unions', icon: Icons.favorite_border, color: T.orange),
+        _StatCard(value: '$total', label: 'Membres', icon: Icons.people, color: GwTokens.azure),
+        _StatCard(value: '$living', label: 'Vivants', icon: Icons.favorite, color: GwTokens.sage),
+        _StatCard(value: '$generations', label: 'Générations', icon: Icons.layers, color: GwTokens.gold),
+        _StatCard(value: '$unions', label: 'Unions', icon: Icons.favorite_border, color: GwTokens.ember),
       ],
     );
   }
@@ -215,7 +231,7 @@ class _StatCard extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
           color: color.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(T.rSm),
+          borderRadius: BorderRadius.circular(8.0),
           border: Border.all(color: color.withValues(alpha: 0.15)),
         ),
         child: Row(
@@ -235,7 +251,7 @@ class _StatCard extends StatelessWidget {
                 ),
                 Text(
                   label,
-                  style: const TextStyle(color: T.txt3, fontSize: 9),
+                  style: TextStyle(color: GwTokens.dark.stoneDim, fontSize: 9),
                 ),
               ],
             ),
@@ -253,16 +269,16 @@ class _LegendSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        _legendRow(T.gold, 'Sujet principal'),
-        _legendRow(T.maleBorder, 'Homme'),
-        _legendRow(T.femaleBorder, 'Femme'),
-        _legendRow(T.deadBorder, 'Décédé(e)'),
-        _legendRow(T.aiBorder, 'Suggestion IA'),
-        _legendRow(T.wifeBorder, 'Épouse'),
+        _legendRow(GwTokens.gold, 'Sujet principal'),
+        _legendRow(GwTokens.gold, 'Homme'),
+        _legendRow(GwTokens.rose, 'Femme'),
+        _legendRow(GwTokens.dark.stoneFaint, 'Décédé(e)'),
+        _legendRow(GwTokens.sage, 'Suggestion IA'),
+        _legendRow(GwTokens.rose, 'Épouse'),
         const SizedBox(height: 6),
-        _linkLegend(T.txt3, 'Filiation', false),
-        _linkLegend(T.orange, 'Union', true),
-        _linkLegend(T.green, 'Suggestion IA', true),
+        _linkLegend(GwTokens.dark.stoneDim, 'Filiation', false),
+        _linkLegend(GwTokens.ember, 'Union', true),
+        _linkLegend(GwTokens.sage, 'Suggestion IA', true),
       ],
     );
   }
@@ -281,7 +297,7 @@ class _LegendSection extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          Text(label, style: const TextStyle(color: T.txt2, fontSize: 11)),
+          Text(label, style: TextStyle(color: GwTokens.dark.stoneMid, fontSize: 11)),
         ],
       ),
     );
@@ -298,7 +314,7 @@ class _LegendSection extends StatelessWidget {
             child: CustomPaint(painter: _LinePainter(color, dashed)),
           ),
           const SizedBox(width: 6),
-          Text(label, style: const TextStyle(color: T.txt2, fontSize: 11)),
+          Text(label, style: TextStyle(color: GwTokens.dark.stoneMid, fontSize: 11)),
         ],
       ),
     );
@@ -354,10 +370,10 @@ class _GenerationFilters extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final gens = [
-      (0, 'Grands-parents', T.genColors[1]),
-      (1, 'Parents', T.genColors[2]),
-      (2, 'Sujet / Fratrie', T.genColors[3]),
-      (3, 'Enfants', T.genColors[5]),
+      (0, 'Grands-parents', GwTokens.dark.stoneFaint),
+      (1, 'Parents', GwTokens.rose),
+      (2, 'Sujet / Fratrie', GwTokens.gold),
+      (3, 'Enfants', GwTokens.goldLight),
     ];
 
     return Column(
@@ -374,7 +390,7 @@ class _GenerationFilters extends StatelessWidget {
                 color: hidden ? Colors.transparent : g.$3.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(6),
                 border: Border.all(
-                  color: hidden ? T.border : g.$3.withValues(alpha: 0.3),
+                  color: hidden ? GwTokens.dark.line : g.$3.withValues(alpha: 0.3),
                 ),
               ),
               child: Row(
@@ -384,7 +400,7 @@ class _GenerationFilters extends StatelessWidget {
                     height: 8,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: hidden ? T.txt3 : g.$3,
+                      color: hidden ? GwTokens.dark.stoneDim : g.$3,
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -392,7 +408,7 @@ class _GenerationFilters extends StatelessWidget {
                     child: Text(
                       g.$2,
                       style: TextStyle(
-                        color: hidden ? T.txt3 : T.txt1,
+                        color: hidden ? GwTokens.dark.stoneDim : GwTokens.dark.stone,
                         fontSize: 11,
                         decoration: hidden ? TextDecoration.lineThrough : null,
                       ),
@@ -401,7 +417,7 @@ class _GenerationFilters extends StatelessWidget {
                   Icon(
                     hidden ? Icons.visibility_off : Icons.visibility,
                     size: 14,
-                    color: hidden ? T.txt3 : g.$3,
+                    color: hidden ? GwTokens.dark.stoneDim : g.$3,
                   ),
                 ],
               ),
@@ -413,7 +429,35 @@ class _GenerationFilters extends StatelessWidget {
   }
 }
 
-// ── Member tile ──
+// ── SelectableMemberTile : observe uniquement son propre isSelected ──
+
+class _SelectableMemberTile extends ConsumerWidget {
+  final PersonGenealogy person;
+  final bool isSubject;
+  final VoidCallback onTap;
+
+  const _SelectableMemberTile({
+    super.key,
+    required this.person,
+    required this.isSubject,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isSelected = ref.watch(
+      treeViewProvider.select((s) => s.selectedPersonId == person.id),
+    );
+    return _MemberTile(
+      person: person,
+      isSelected: isSelected,
+      isSubject: isSubject,
+      onTap: onTap,
+    );
+  }
+}
+
+// ── Member tile (présentation pure) ──
 
 class _MemberTile extends StatelessWidget {
   final PersonGenealogy person;
@@ -433,8 +477,8 @@ class _MemberTile extends StatelessWidget {
     final initials =
         '${person.firstName.isNotEmpty ? person.firstName[0] : ''}${person.lastName.isNotEmpty ? person.lastName[0] : ''}'
             .toUpperCase();
-    final avatarColor = person.gender == 'MALE' ? T.maleNode : T.femaleNode;
-    final borderColor = person.gender == 'MALE' ? T.maleBorder : T.femaleBorder;
+    final avatarColor = person.gender == 'MALE' ? GwTokens.dark.inkLift : GwTokens.dark.inkLift;
+    final borderColor = person.gender == 'MALE' ? GwTokens.gold : GwTokens.rose;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
@@ -442,13 +486,13 @@ class _MemberTile extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(T.rSm),
+          borderRadius: BorderRadius.circular(8.0),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
             decoration: BoxDecoration(
-              color: isSelected ? T.goldBg : Colors.transparent,
-              borderRadius: BorderRadius.circular(T.rSm),
-              border: isSelected ? Border.all(color: T.gold.withValues(alpha: 0.3)) : null,
+              color: isSelected ? GwTokens.dark.goldBg : Colors.transparent,
+              borderRadius: BorderRadius.circular(8.0),
+              border: isSelected ? Border.all(color: GwTokens.gold.withValues(alpha: 0.3)) : null,
             ),
             child: Row(
               children: [
@@ -472,7 +516,7 @@ class _MemberTile extends StatelessWidget {
                       Text(
                         '${person.firstName} ${person.lastName}',
                         style: TextStyle(
-                          color: isSelected ? T.gold : T.txt1,
+                          color: isSelected ? GwTokens.gold : GwTokens.dark.stone,
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
                         ),
@@ -482,13 +526,13 @@ class _MemberTile extends StatelessWidget {
                       if (isSubject)
                         const Text(
                           'Sujet',
-                          style: TextStyle(color: T.gold, fontSize: 9),
+                          style: TextStyle(color: GwTokens.gold, fontSize: 9),
                         ),
                     ],
                   ),
                 ),
                 if (!person.isAlive)
-                  const Icon(Icons.brightness_3, size: 12, color: T.txt3),
+                  Icon(Icons.brightness_3, size: 12, color: GwTokens.dark.stoneDim),
               ],
             ),
           ),

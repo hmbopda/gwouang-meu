@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:gwangmeu/features/genealogy/models/person_genealogy.dart';
-import 'package:gwangmeu/features/genealogy/state/tree_tokens.dart';
+import 'package:gwangmeu/core/theme/gw_tokens.dart';
 import 'package:gwangmeu/features/genealogy/state/tree_view_state.dart';
 
 /// Hover tooltip overlay for a tree node — shows person details + action buttons.
@@ -26,9 +26,9 @@ class TreeNodeTooltip extends StatelessWidget {
       width: 220,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: T.ink3,
-        borderRadius: BorderRadius.circular(T.rSm),
-        border: Border.all(color: T.border2),
+        color: GwTokens.dark.inkCard,
+        borderRadius: BorderRadius.circular(8.0),
+        border: Border.all(color: GwTokens.dark.goldLine),
         boxShadow: const [
           BoxShadow(color: Colors.black54, blurRadius: 16, offset: Offset(0, 4)),
         ],
@@ -48,8 +48,8 @@ class TreeNodeTooltip extends StatelessWidget {
                   children: [
                     Text(
                       '${p.firstName} ${p.lastName}',
-                      style: const TextStyle(
-                        color: T.txt1,
+                      style: TextStyle(
+                        color: GwTokens.dark.stone,
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
                       ),
@@ -59,7 +59,7 @@ class TreeNodeTooltip extends StatelessWidget {
                     if (p.clan != null && p.clan!.isNotEmpty)
                       Text(
                         'Clan ${p.clan}',
-                        style: const TextStyle(color: T.gold, fontSize: 10),
+                        style: const TextStyle(color: GwTokens.gold, fontSize: 10),
                       ),
                   ],
                 ),
@@ -73,7 +73,7 @@ class TreeNodeTooltip extends StatelessWidget {
           if (p.birthPlace != null) _infoRow(Icons.place_outlined, p.birthPlace!),
           if (p.totem != null) _infoRow(Icons.pets, 'Totem: ${p.totem}'),
           const SizedBox(height: 8),
-          const Divider(color: T.border, height: 1),
+          Divider(color: GwTokens.dark.line, height: 1),
           const SizedBox(height: 8),
           // Actions
           Row(
@@ -95,7 +95,7 @@ class TreeNodeTooltip extends StatelessWidget {
         '${p.firstName.isNotEmpty ? p.firstName[0] : ''}${p.lastName.isNotEmpty ? p.lastName[0] : ''}';
     return CircleAvatar(
       radius: 16,
-      backgroundColor: p.gender == 'MALE' ? T.maleNode : T.femaleNode,
+      backgroundColor: p.gender == 'MALE' ? GwTokens.dark.inkLift : GwTokens.dark.inkLift,
       child: Text(
         initials.toUpperCase(),
         style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700),
@@ -108,12 +108,12 @@ class TreeNodeTooltip extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 3),
       child: Row(
         children: [
-          Icon(icon, size: 12, color: T.txt3),
+          Icon(icon, size: 12, color: GwTokens.dark.stoneDim),
           const SizedBox(width: 6),
           Expanded(
             child: Text(
               text,
-              style: const TextStyle(color: T.txt2, fontSize: 11),
+              style: TextStyle(color: GwTokens.dark.stoneMid, fontSize: 11),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -131,15 +131,15 @@ class TreeNodeTooltip extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 6),
           decoration: BoxDecoration(
-            color: T.ink5,
+            color: GwTokens.dark.inkHigh,
             borderRadius: BorderRadius.circular(6),
-            border: Border.all(color: T.border),
+            border: Border.all(color: GwTokens.dark.line),
           ),
           child: Column(
             children: [
-              Icon(icon, size: 14, color: T.txt2),
+              Icon(icon, size: 14, color: GwTokens.dark.stoneMid),
               const SizedBox(height: 2),
-              Text(label, style: const TextStyle(color: T.txt2, fontSize: 9)),
+              Text(label, style: TextStyle(color: GwTokens.dark.stoneMid, fontSize: 9)),
             ],
           ),
         ),

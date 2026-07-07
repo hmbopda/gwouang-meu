@@ -16,14 +16,18 @@ class GenealogyApiService {
   // ── Ma fiche personne ───────────────────────────────────
 
   Future<PersonGenealogy> getMyPerson() async {
+    final t = DateTime.now();
     final response = await _api.get('/api/v1/persons/me');
+    debugPrint('[PERF] GET /persons/me : ${DateTime.now().difference(t).inMilliseconds}ms');
     return PersonGenealogy.fromJson(response['data'] as Map<String, dynamic>);
   }
 
   // ── Arbre complet ────────────────────────────────────────
 
   Future<FamilyTree> getFullTree(String personId) async {
+    final t = DateTime.now();
     final response = await _api.get('/api/v1/genealogy/tree/$personId');
+    debugPrint('[PERF] GET /genealogy/tree : ${DateTime.now().difference(t).inMilliseconds}ms');
     return FamilyTree.fromJson(response['data'] as Map<String, dynamic>);
   }
 

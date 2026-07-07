@@ -6,7 +6,7 @@ import 'package:gwangmeu/features/genealogy/models/family_tree.dart';
 import 'package:gwangmeu/features/genealogy/models/person_genealogy.dart';
 import 'package:gwangmeu/features/genealogy/models/sibling_genealogy.dart';
 import 'package:gwangmeu/features/genealogy/services/genealogy_api_service.dart';
-import 'package:gwangmeu/features/genealogy/state/tree_tokens.dart';
+import 'package:gwangmeu/core/theme/gw_tokens.dart';
 import 'package:gwangmeu/features/genealogy/state/tree_view_state.dart';
 import 'package:gwangmeu/features/genealogy/widgets/dialogs/add_person_dialog.dart';
 
@@ -27,14 +27,14 @@ class GenealogyRightPanel extends ConsumerWidget {
     final notifier = ref.read(treeViewProvider.notifier);
 
     return Container(
-      width: T.rightPanelW,
-      color: T.ink2,
+      width: 380.0,
+      color: GwTokens.dark.inkCard,
       child: Column(
         children: [
           // ── Tabs ──
           Container(
-            decoration: const BoxDecoration(
-              border: Border(bottom: BorderSide(color: T.border)),
+            decoration: BoxDecoration(
+              border: Border(bottom: BorderSide(color: GwTokens.dark.line)),
             ),
             child: Row(
               children: [
@@ -111,7 +111,7 @@ class _Tab extends StatelessWidget {
           decoration: BoxDecoration(
             border: Border(
               bottom: BorderSide(
-                color: selected ? T.gold : Colors.transparent,
+                color: selected ? GwTokens.gold : Colors.transparent,
                 width: 2,
               ),
             ),
@@ -119,12 +119,12 @@ class _Tab extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 14, color: selected ? T.gold : T.txt3),
+              Icon(icon, size: 14, color: selected ? GwTokens.gold : GwTokens.dark.stoneDim),
               const SizedBox(width: 4),
               Text(
                 label,
                 style: TextStyle(
-                  color: selected ? T.gold : T.txt3,
+                  color: selected ? GwTokens.gold : GwTokens.dark.stoneDim,
                   fontSize: 11,
                   fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                 ),
@@ -134,7 +134,7 @@ class _Tab extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
                   decoration: BoxDecoration(
-                    color: T.green,
+                    color: GwTokens.sage,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
@@ -167,18 +167,18 @@ class _PersonTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (selectedId == null) {
-      return const Center(
+      return Center(
         child: Padding(
           padding: EdgeInsets.all(24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.touch_app, size: 40, color: T.txt3),
+              Icon(Icons.touch_app, size: 40, color: GwTokens.dark.stoneDim),
               SizedBox(height: 8),
               Text(
                 'Sélectionnez un membre\npour voir ses détails',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: T.txt3, fontSize: 12),
+                style: TextStyle(color: GwTokens.dark.stoneDim, fontSize: 12),
               ),
             ],
           ),
@@ -188,8 +188,8 @@ class _PersonTab extends StatelessWidget {
 
     final person = _findPerson(selectedId!);
     if (person == null) {
-      return const Center(
-        child: Text('Personne introuvable', style: TextStyle(color: T.txt3)),
+      return Center(
+        child: Text('Personne introuvable', style: TextStyle(color: GwTokens.dark.stoneDim)),
       );
     }
 
@@ -249,10 +249,10 @@ class _PersonHeader extends StatelessWidget {
     final initials =
         '${person.firstName.isNotEmpty ? person.firstName[0] : ''}${person.lastName.isNotEmpty ? person.lastName[0] : ''}'
             .toUpperCase();
-    final avatarColor = person.gender == 'MALE' ? T.maleNode : T.femaleNode;
+    final avatarColor = person.gender == 'MALE' ? GwTokens.dark.inkLift : GwTokens.dark.inkLift;
     final borderColor = isSubject
-        ? T.gold
-        : (person.gender == 'MALE' ? T.maleBorder : T.femaleBorder);
+        ? GwTokens.gold
+        : (person.gender == 'MALE' ? GwTokens.gold : GwTokens.rose);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -300,8 +300,8 @@ class _PersonHeader extends StatelessWidget {
                   height: 14,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: T.green,
-                    border: Border.all(color: T.ink2, width: 2),
+                    color: GwTokens.sage,
+                    border: Border.all(color: GwTokens.dark.inkCard, width: 2),
                   ),
                 ),
               ),
@@ -312,8 +312,8 @@ class _PersonHeader extends StatelessWidget {
         // Name
         Text(
           '${person.firstName} ${person.lastName}',
-          style: const TextStyle(
-            color: T.txt1,
+          style: TextStyle(
+            color: GwTokens.dark.stone,
             fontSize: 18,
             fontWeight: FontWeight.w700,
           ),
@@ -321,8 +321,8 @@ class _PersonHeader extends StatelessWidget {
         if (person.maidenName != null)
           Text(
             'née ${person.maidenName}',
-            style: const TextStyle(
-              color: T.txt3,
+            style: TextStyle(
+              color: GwTokens.dark.stoneDim,
               fontSize: 11,
               fontStyle: FontStyle.italic,
             ),
@@ -347,15 +347,15 @@ class _InfoCard extends StatelessWidget {
     // Tags row
     final tags = <Widget>[];
     if (person.clan != null) {
-      tags.add(_tag(person.clan!, T.txt2, T.ink5));
+      tags.add(_tag(person.clan!, GwTokens.dark.stoneMid, GwTokens.dark.inkHigh));
     }
     tags.add(_tag(
       person.isAlive ? 'Vivant(e)' : 'Décédé(e)',
-      person.isAlive ? T.green : T.txt3,
+      person.isAlive ? GwTokens.sage : GwTokens.dark.stoneDim,
       person.isAlive
-          ? T.green.withValues(alpha: 0.12)
-          : T.txt3.withValues(alpha: 0.12),
-      dotColor: person.isAlive ? T.green : T.txt3,
+          ? GwTokens.sage.withValues(alpha: 0.12)
+          : GwTokens.dark.stoneDim.withValues(alpha: 0.12),
+      dotColor: person.isAlive ? GwTokens.sage : GwTokens.dark.stoneDim,
     ));
 
     return Column(
@@ -365,7 +365,7 @@ class _InfoCard extends StatelessWidget {
         if (birthInfo.isNotEmpty)
           Text(
             birthInfo,
-            style: const TextStyle(color: T.txt3, fontSize: 12),
+            style: TextStyle(color: GwTokens.dark.stoneDim, fontSize: 12),
           ),
         const SizedBox(height: 8),
 
@@ -427,20 +427,20 @@ class _InfoCard extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 10),
       child: Row(
         children: [
-          Icon(icon, size: 16, color: T.txt3),
+          Icon(icon, size: 16, color: GwTokens.dark.stoneDim),
           const SizedBox(width: 10),
           SizedBox(
             width: 90,
             child: Text(
               label,
-              style: const TextStyle(color: T.txt3, fontSize: 12),
+              style: TextStyle(color: GwTokens.dark.stoneDim, fontSize: 12),
             ),
           ),
           Expanded(
             child: Text(
               value ?? '—',
               style: TextStyle(
-                color: value != null ? T.txt1 : T.txt3,
+                color: value != null ? GwTokens.dark.stone : GwTokens.dark.stoneDim,
                 fontSize: 12,
               ),
             ),
@@ -543,18 +543,18 @@ class _RelationsCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: T.ink3,
-        borderRadius: BorderRadius.circular(T.rSm),
-        border: Border.all(color: T.border),
+        color: GwTokens.dark.inkCard,
+        borderRadius: BorderRadius.circular(8.0),
+        border: Border.all(color: GwTokens.dark.line),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             children: [
-              Icon(Icons.elderly, size: 12, color: T.txt3),
+              Icon(Icons.elderly, size: 12, color: GwTokens.dark.stoneDim),
               SizedBox(width: 6),
-              Text('GRANDS-PARENTS', style: TextStyle(color: T.txt3, fontSize: 9, fontWeight: FontWeight.w700, letterSpacing: 1)),
+              Text('GRANDS-PARENTS', style: TextStyle(color: GwTokens.dark.stoneDim, fontSize: 9, fontWeight: FontWeight.w700, letterSpacing: 1)),
             ],
           ),
           const SizedBox(height: 8),
@@ -569,22 +569,22 @@ class _RelationsCard extends StatelessWidget {
                   Icon(
                     p.gender == 'MALE' ? Icons.man : Icons.woman,
                     size: 14,
-                    color: p.gender == 'MALE' ? T.maleBorder : T.femaleBorder,
+                    color: p.gender == 'MALE' ? GwTokens.gold : GwTokens.rose,
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       '${p.firstName} ${p.lastName}',
-                      style: const TextStyle(color: T.txt1, fontSize: 11),
+                      style: TextStyle(color: GwTokens.dark.stone, fontSize: 11),
                     ),
                   ),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
-                      color: T.ink5,
+                      color: GwTokens.dark.inkHigh,
                       borderRadius: BorderRadius.circular(4),
                     ),
-                    child: Text('$role $side', style: const TextStyle(color: T.txt2, fontSize: 9)),
+                    child: Text('$role $side', style: TextStyle(color: GwTokens.dark.stoneMid, fontSize: 9)),
                   ),
                 ],
               ),
@@ -599,18 +599,18 @@ class _RelationsCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: T.ink3,
-        borderRadius: BorderRadius.circular(T.rSm),
-        border: Border.all(color: T.border),
+        color: GwTokens.dark.inkCard,
+        borderRadius: BorderRadius.circular(8.0),
+        border: Border.all(color: GwTokens.dark.line),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             children: [
-              Icon(Icons.group, size: 12, color: T.txt3),
+              Icon(Icons.group, size: 12, color: GwTokens.dark.stoneDim),
               SizedBox(width: 6),
-              Text('FRÈRES / SŒURS', style: TextStyle(color: T.txt3, fontSize: 9, fontWeight: FontWeight.w700, letterSpacing: 1)),
+              Text('FRÈRES / SŒURS', style: TextStyle(color: GwTokens.dark.stoneDim, fontSize: 9, fontWeight: FontWeight.w700, letterSpacing: 1)),
             ],
           ),
           const SizedBox(height: 8),
@@ -624,23 +624,23 @@ class _RelationsCard extends StatelessWidget {
                   Icon(
                     p.gender == 'MALE' ? Icons.man : Icons.woman,
                     size: 14,
-                    color: p.gender == 'MALE' ? T.maleBorder : T.femaleBorder,
+                    color: p.gender == 'MALE' ? GwTokens.gold : GwTokens.rose,
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       '${p.firstName} ${p.lastName}',
-                      style: const TextStyle(color: T.txt1, fontSize: 11),
+                      style: TextStyle(color: GwTokens.dark.stone, fontSize: 11),
                     ),
                   ),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
-                      color: s.type == 'FULL' ? T.ink5 : T.ink5,
+                      color: s.type == 'FULL' ? GwTokens.dark.inkHigh : GwTokens.dark.inkHigh,
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Text(role, style: TextStyle(
-                      color: s.type == 'FULL' ? T.txt2 : T.orange,
+                      color: s.type == 'FULL' ? GwTokens.dark.stoneMid : GwTokens.ember,
                       fontSize: 9,
                     )),
                   ),
@@ -676,18 +676,18 @@ class _RelationsCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: T.ink3,
-        borderRadius: BorderRadius.circular(T.rSm),
-        border: Border.all(color: T.border),
+        color: GwTokens.dark.inkCard,
+        borderRadius: BorderRadius.circular(8.0),
+        border: Border.all(color: GwTokens.dark.line),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(icon, size: 12, color: T.txt3),
+              Icon(icon, size: 12, color: GwTokens.dark.stoneDim),
               const SizedBox(width: 6),
-              Text(label, style: const TextStyle(color: T.txt3, fontSize: 9, fontWeight: FontWeight.w700, letterSpacing: 1)),
+              Text(label, style: TextStyle(color: GwTokens.dark.stoneDim, fontSize: 9, fontWeight: FontWeight.w700, letterSpacing: 1)),
             ],
           ),
           const SizedBox(height: 8),
@@ -698,22 +698,22 @@ class _RelationsCard extends StatelessWidget {
                     Icon(
                       p.gender == 'MALE' ? Icons.man : Icons.woman,
                       size: 14,
-                      color: p.gender == 'MALE' ? T.maleBorder : T.femaleBorder,
+                      color: p.gender == 'MALE' ? GwTokens.gold : GwTokens.rose,
                     ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         '${p.firstName} ${p.lastName}',
-                        style: const TextStyle(color: T.txt1, fontSize: 11),
+                        style: TextStyle(color: GwTokens.dark.stone, fontSize: 11),
                       ),
                     ),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: T.ink5,
+                        color: GwTokens.dark.inkHigh,
                         borderRadius: BorderRadius.circular(4),
                       ),
-                      child: Text(roleBuilder(p), style: const TextStyle(color: T.txt2, fontSize: 9)),
+                      child: Text(roleBuilder(p), style: TextStyle(color: GwTokens.dark.stoneMid, fontSize: 9)),
                     ),
                   ],
                 ),
@@ -751,8 +751,8 @@ class _FixedActions extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-      decoration: const BoxDecoration(
-        border: Border(top: BorderSide(color: T.border)),
+      decoration: BoxDecoration(
+        border: Border(top: BorderSide(color: GwTokens.dark.line)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -761,8 +761,8 @@ class _FixedActions extends StatelessWidget {
           _FixedActionBtn(
             icon: Icons.edit_note,
             label: 'Modifier la fiche',
-            backgroundColor: T.gold,
-            foregroundColor: T.ink,
+            backgroundColor: GwTokens.gold,
+            foregroundColor: GwTokens.dark.ink,
             onTap: () => _showEditDialog(context, person, treeOwnerId),
           ),
           const SizedBox(height: 8),
@@ -789,9 +789,9 @@ class _FixedActions extends StatelessWidget {
           _FixedActionBtn(
             icon: Icons.add,
             label: 'Ajouter un enfant',
-            backgroundColor: T.ink3,
-            foregroundColor: T.txt2,
-            borderColor: T.border2,
+            backgroundColor: GwTokens.dark.inkCard,
+            foregroundColor: GwTokens.dark.stoneMid,
+            borderColor: GwTokens.dark.goldLine,
             onTap: () => _safeDialog(
               context,
               AddPersonDialog(personId: person.id, isParent: false),
@@ -856,23 +856,23 @@ class _MigrationTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
+    return Center(
       child: Padding(
         padding: EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.flight_takeoff, size: 40, color: T.txt3),
+            Icon(Icons.flight_takeoff, size: 40, color: GwTokens.dark.stoneDim),
             SizedBox(height: 8),
             Text(
               'Parcours migratoire',
-              style: TextStyle(color: T.txt1, fontSize: 14, fontWeight: FontWeight.w600),
+              style: TextStyle(color: GwTokens.dark.stone, fontSize: 14, fontWeight: FontWeight.w600),
             ),
             SizedBox(height: 4),
             Text(
               'Fonctionnalité en cours de développement.\nVous pourrez bientôt visualiser les parcours migratoires de chaque membre.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: T.txt3, fontSize: 11),
+              style: TextStyle(color: GwTokens.dark.stoneDim, fontSize: 11),
             ),
           ],
         ),
@@ -892,23 +892,23 @@ class _IaTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     if (suggestions.isEmpty) {
-      return const Center(
+      return Center(
         child: Padding(
           padding: EdgeInsets.all(24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.auto_awesome, size: 40, color: T.txt3),
+              Icon(Icons.auto_awesome, size: 40, color: GwTokens.dark.stoneDim),
               SizedBox(height: 8),
               Text(
                 'Aucune suggestion',
-                style: TextStyle(color: T.txt1, fontSize: 14, fontWeight: FontWeight.w600),
+                style: TextStyle(color: GwTokens.dark.stone, fontSize: 14, fontWeight: FontWeight.w600),
               ),
               SizedBox(height: 4),
               Text(
                 'L\'IA analysera votre arbre et proposera des liens potentiels.',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: T.txt3, fontSize: 11),
+                style: TextStyle(color: GwTokens.dark.stoneDim, fontSize: 11),
               ),
             ],
           ),
@@ -950,18 +950,18 @@ class _AiSuggestionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final pct = (suggestion.confidence * 100).toStringAsFixed(0);
     final color = suggestion.confidence >= 0.75
-        ? T.green
+        ? GwTokens.sage
         : suggestion.confidence >= 0.5
-            ? T.orange
-            : T.red;
+            ? GwTokens.ember
+            : GwTokens.ember;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: T.ink3,
-        borderRadius: BorderRadius.circular(T.rSm),
-        border: Border.all(color: T.aiBorder.withValues(alpha: 0.3)),
+        color: GwTokens.dark.inkCard,
+        borderRadius: BorderRadius.circular(8.0),
+        border: Border.all(color: GwTokens.sage.withValues(alpha: 0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -969,12 +969,12 @@ class _AiSuggestionCard extends StatelessWidget {
           // Relation
           Row(
             children: [
-              const Icon(Icons.auto_awesome, size: 14, color: T.green),
+              const Icon(Icons.auto_awesome, size: 14, color: GwTokens.sage),
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
                   '${suggestion.personA?.firstName ?? "?"} ↔ ${suggestion.personB?.firstName ?? "?"}',
-                  style: const TextStyle(color: T.txt1, fontSize: 12, fontWeight: FontWeight.w600),
+                  style: TextStyle(color: GwTokens.dark.stone, fontSize: 12, fontWeight: FontWeight.w600),
                 ),
               ),
               Text(
@@ -986,7 +986,7 @@ class _AiSuggestionCard extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             suggestion.suggestedRelation,
-            style: const TextStyle(color: T.txt2, fontSize: 11),
+            style: TextStyle(color: GwTokens.dark.stoneMid, fontSize: 11),
           ),
 
           // Confidence bar
@@ -995,7 +995,7 @@ class _AiSuggestionCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(3),
             child: LinearProgressIndicator(
               value: suggestion.confidence,
-              backgroundColor: T.ink5,
+              backgroundColor: GwTokens.dark.inkHigh,
               valueColor: AlwaysStoppedAnimation(color),
               minHeight: 4,
             ),
@@ -1009,9 +1009,9 @@ class _AiSuggestionCard extends StatelessWidget {
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('• ', style: TextStyle(color: T.txt3, fontSize: 10)),
+                      Text('• ', style: TextStyle(color: GwTokens.dark.stoneDim, fontSize: 10)),
                       Expanded(
-                        child: Text(r, style: const TextStyle(color: T.txt2, fontSize: 10)),
+                        child: Text(r, style: TextStyle(color: GwTokens.dark.stoneMid, fontSize: 10)),
                       ),
                     ],
                   ),
@@ -1028,7 +1028,7 @@ class _AiSuggestionCard extends StatelessWidget {
                 icon: const Icon(Icons.close, size: 14),
                 label: const Text('Rejeter'),
                 style: TextButton.styleFrom(
-                  foregroundColor: T.red,
+                  foregroundColor: GwTokens.ember,
                   textStyle: const TextStyle(fontSize: 11),
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 ),
@@ -1039,7 +1039,7 @@ class _AiSuggestionCard extends StatelessWidget {
                 icon: const Icon(Icons.check, size: 14),
                 label: const Text('Confirmer'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: T.green,
+                  backgroundColor: GwTokens.sage,
                   foregroundColor: Colors.white,
                   textStyle: const TextStyle(fontSize: 11),
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -1213,7 +1213,7 @@ class _InlineEditDialogState extends ConsumerState<_InlineEditDialog> {
         ),
         ElevatedButton(
           onPressed: _loading ? null : _submit,
-          style: ElevatedButton.styleFrom(backgroundColor: T.gold, foregroundColor: T.ink),
+          style: ElevatedButton.styleFrom(backgroundColor: GwTokens.gold, foregroundColor: GwTokens.dark.ink),
           child: _loading
               ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
               : const Text('Enregistrer'),
