@@ -298,6 +298,12 @@ class GenealogyApiService {
     );
     return AiSuggestion.fromJson(response['data'] as Map<String, dynamic>);
   }
+
+  /// Confirme une suggestion IA — la branche rejoint la rivière.
+  /// (parcours « Suggestion IA vers Arbre », README design)
+  Future<void> confirmSuggestion(String suggestionId) async {
+    await _api.post('/api/v1/genealogy/suggestions/$suggestionId/confirm');
+  }
 }
 
 // ── Providers ──────────────────────────────────────────────

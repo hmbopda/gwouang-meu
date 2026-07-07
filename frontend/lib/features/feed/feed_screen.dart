@@ -361,7 +361,9 @@ class _FeedList extends ConsumerWidget {
           final post = posts[index - 2];
           return PostCard(
             post: post,
-            onAiExplore: () => context.go(Routes.genealogy),
+            // Parcours prototype : Explorer le lien → écran de vérification
+            // (fade + translateY 300ms), puis la branche rejoint la rivière.
+            onAiExplore: () => context.push(Routes.verify(post.id)),
             onAiDismiss: () {},
           );
         },

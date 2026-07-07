@@ -14,6 +14,8 @@ import 'package:gwangmeu/shared/widgets/deferred_widget.dart';
 
 // ── Deferred imports (chargés à la demande — réduit ~30-40% bundle web) ──
 import 'package:gwangmeu/features/genealogy/genealogy_screen.dart' deferred as genealogy;
+import 'package:gwangmeu/features/genealogy/verification/verification_screen.dart'
+    deferred as verification;
 import 'package:gwangmeu/features/messages/conversation_screen.dart'
     deferred as conversation;
 import 'package:gwangmeu/features/messages/messages_screen.dart'
@@ -182,6 +184,37 @@ final routerProvider = Provider<GoRouter>((ref) {
             ),
           ),
         ],
+      ),
+
+      // Vérification suggestion IA (hors shell — transition fade + translateY
+      // 14px, 300ms ease, deferred)
+      GoRoute(
+        path: Routes.verifySuggestion,
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          transitionDuration: const Duration(milliseconds: 300),
+          reverseTransitionDuration: const Duration(milliseconds: 300),
+          child: DeferredWidget(
+            loader: verification.loadLibrary,
+            builder: () => verification.VerificationScreen(
+              suggestionId: state.pathParameters['suggestionId']!,
+            ),
+          ),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            final curved =
+                CurvedAnimation(parent: animation, curve: Curves.ease);
+            return FadeTransition(
+              opacity: curved,
+              child: SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(0, 0.018), // ≈ 14px sur 844px
+                  end: Offset.zero,
+                ).animate(curved),
+                child: child,
+              ),
+            );
+          },
+        ),
       ),
 
       // Conversation (hors shell — plein écran avec retour, deferred)

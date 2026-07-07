@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
+import 'package:gwangmeu/core/router/route_names.dart';
 import 'package:gwangmeu/core/theme/app_theme.dart';
 import 'package:gwangmeu/core/theme/gw_tokens.dart';
+import 'package:gwangmeu/features/genealogy/verification/verification_provider.dart';
 import 'package:gwangmeu/features/home/home_screen.dart';
 import 'package:gwangmeu/features/genealogy/genealogy_notifier.dart';
 import 'package:gwangmeu/features/genealogy/models/family_tree.dart';
@@ -83,7 +86,10 @@ class _MobileLayout extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final t = GwTokens.of(context);
     final mode = ref.watch(riverModeProvider);
-    final memberCount = _memberCount(tree);
+    // Mutation optimiste : la branche confirmée compte immédiatement (+1).
+    final aiConfirmed =
+        ref.watch(confirmedSuggestionsProvider).isNotEmpty;
+    final memberCount = _memberCount(tree) + (aiConfirmed ? 1 : 0);
 
     return Column(
       children: [
@@ -171,12 +177,13 @@ class _MobileLayout extends ConsumerWidget {
           child: switch (mode) {
             RiverMode.river => GenealogyRiverView(
                 tree: tree,
+                aiConfirmed: aiConfirmed,
                 onPersonTap: (p) => showDialog(
                   context: context,
                   builder: (_) => PersonDetailPopup(person: p),
                 ),
                 onVerifySuggestion: () =>
-                    showGwToast(context, 'Vérification — bientôt disponible'),
+                    context.push(Routes.verify(kDemoSuggestionId)),
               ),
             RiverMode.tree => TreeCanvas(
                 tree: tree,
@@ -369,7 +376,9 @@ class _DesktopLayout extends ConsumerWidget {
     final t = GwTokens.of(context);
     final selectedId =
         ref.watch(treeViewProvider.select((s) => s.selectedPersonId));
-    final memberCount = _memberCount(tree);
+    final aiConfirmed =
+        ref.watch(confirmedSuggestionsProvider).isNotEmpty;
+    final memberCount = _memberCount(tree) + (aiConfirmed ? 1 : 0);
 
     return Column(
       children: [
@@ -439,8 +448,9 @@ class _DesktopLayout extends ConsumerWidget {
               selectedId == null
                   ? GenealogyStoryPanel(
                       tree: tree,
-                      onVerifySuggestion: () => showGwToast(
-                          context, 'Vérification — bientôt disponible'),
+                      suggestionConfirmed: aiConfirmed,
+                      onVerifySuggestion: () =>
+                          context.push(Routes.verify(kDemoSuggestionId)),
                       onDismissSuggestion: () {},
                     )
                   : GenealogyRightPanel(tree: tree, personId: personId),

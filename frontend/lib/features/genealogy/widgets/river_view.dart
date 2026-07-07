@@ -18,12 +18,17 @@ class GenealogyRiverView extends StatelessWidget {
     this.onPersonTap,
     this.onVerifySuggestion,
     this.showAiAffluent = true,
+    this.aiConfirmed = false,
   });
 
   final FamilyTree tree;
   final void Function(PersonGenealogy person)? onPersonTap;
   final VoidCallback? onVerifySuggestion;
   final bool showAiAffluent;
+
+  /// La suggestion a été confirmée : la branche passe de pointillée
+  /// « AFFLUENT · 87% » à pleine « BRANCHE CONFIRMÉE » (fade-up 0,5 s).
+  final bool aiConfirmed;
 
   @override
   Widget build(BuildContext context) {
@@ -72,7 +77,9 @@ class GenealogyRiverView extends StatelessWidget {
                           ? _subjectCard(context, m)
                           : _personCard(context, m),
                     if (gen.isSubjectGen && showAiAffluent)
-                      _affluentCard(context),
+                      aiConfirmed
+                          ? _confirmedBranchCard(context)
+                          : _affluentCard(context),
                   ],
                 ),
               ),
@@ -329,6 +336,68 @@ class GenealogyRiverView extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  /// Branche confirmée — carte pleine sage, fade-up 0,5 s.
+  Widget _confirmedBranchCard(BuildContext context) {
+    final t = GwTokens.of(context);
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 500),
+      curve: Curves.easeOut,
+      builder: (context, v, child) => Opacity(
+        opacity: v,
+        child: Transform.translate(
+          offset: Offset(0, 14 * (1 - v)),
+          child: child,
+        ),
+      ),
+      child: Container(
+        width: 132,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: GwTokens.sage.withValues(alpha: 0.1),
+          border: Border.all(color: GwTokens.sage, width: 1.5),
+          borderRadius: BorderRadius.circular(GwTokens.rCard),
+        ),
+        child: Column(
+          children: [
+            Container(
+              width: 46,
+              height: 46,
+              decoration: BoxDecoration(
+                color: const Color(0xFF0D1F16),
+                shape: BoxShape.circle,
+                border: Border.all(color: GwTokens.sage, width: 2),
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                'K',
+                style: GwType.display(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w700,
+                    color: t.sageText),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Kwame Asante',
+              style: GwType.ui(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: t.stone),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              'BRANCHE CONFIRMÉE',
+              textAlign: TextAlign.center,
+              style: GwType.mono(
+                  fontSize: 10, color: t.sageText, letterSpacing: 0.5),
+            ),
+          ],
         ),
       ),
     );

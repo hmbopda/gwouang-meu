@@ -22,7 +22,11 @@ abstract class Routes {
   static const myVillages = '/my-villages';
   static const invite = '/invite';
 
+  /// Vérification d'une suggestion IA (parcours « Suggestion IA vers Arbre »).
+  static const verifySuggestion = '/genealogy/verify/:suggestionId';
+
   static String villageDetail(String id) => '/villages/$id';
   static String villageEdit(String id) => '/villages/$id/edit';
   static String conversation(String groupId) => '/messages/$groupId';
+  static String verify(String suggestionId) => '/genealogy/verify/$suggestionId';
 }

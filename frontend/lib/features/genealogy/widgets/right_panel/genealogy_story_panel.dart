@@ -13,6 +13,7 @@ class GenealogyStoryPanel extends StatelessWidget {
     required this.tree,
     this.onVerifySuggestion,
     this.onDismissSuggestion,
+    this.suggestionConfirmed = false,
   });
 
   final FamilyTree tree;
@@ -20,6 +21,9 @@ class GenealogyStoryPanel extends StatelessWidget {
   /// CTA « Vérifier ensemble » de l'affluent IA.
   final VoidCallback? onVerifySuggestion;
   final VoidCallback? onDismissSuggestion;
+
+  /// L'affluent a rejoint la rivière (mutation optimiste confirmée).
+  final bool suggestionConfirmed;
 
   @override
   Widget build(BuildContext context) {
@@ -104,61 +108,92 @@ class GenealogyStoryPanel extends StatelessWidget {
                 _audioPlayer(t),
                 const SizedBox(height: 22),
 
-                // ── Affluent proposé ──
-                _sectionLabel(t, 'AFFLUENT PROPOSÉ · 87%',
-                    color: t.sageText),
-                const SizedBox(height: 10),
-                Text(
-                  'Kwame Asante partage 3 lignées Bakoko avec vous. '
-                  'Vérifiez ensemble, puis la branche rejoindra la rivière.',
-                  style: GwType.ui(
-                      fontSize: 13.5, color: t.stoneMid, height: 1.65),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: SizedBox(
+                // ── Affluent proposé / branche confirmée ──
+                if (suggestionConfirmed) ...[
+                  _sectionLabel(t, 'BRANCHE CONFIRMÉE', color: t.sageText),
+                  const SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: GwTokens.sage.withValues(alpha: 0.1),
+                      border: Border.all(color: GwTokens.sageLine),
+                      borderRadius: BorderRadius.circular(GwTokens.rBtn),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Symbols.check_circle,
+                            size: 20, color: t.sageText, fill: 1),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'Kwame Asante a rejoint la rivière — '
+                            'il en sera informé.',
+                            style: GwType.ui(
+                                fontSize: 13,
+                                color: t.stoneMid,
+                                height: 1.5),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ] else ...[
+                  _sectionLabel(t, 'AFFLUENT PROPOSÉ · 87%',
+                      color: t.sageText),
+                  const SizedBox(height: 10),
+                  Text(
+                    'Kwame Asante partage 3 lignées Bakoko avec vous. '
+                    'Vérifiez ensemble, puis la branche rejoindra la rivière.',
+                    style: GwType.ui(
+                        fontSize: 13.5, color: t.stoneMid, height: 1.65),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: SizedBox(
+                          height: 46,
+                          child: FilledButton(
+                            onPressed: onVerifySuggestion,
+                            style: FilledButton.styleFrom(
+                              backgroundColor: GwTokens.sage,
+                              foregroundColor: const Color(0xFFF0EBE1),
+                              shape: RoundedRectangleBorder(
+                                borderRadius:
+                                    BorderRadius.circular(GwTokens.rBtn),
+                              ),
+                            ),
+                            child: Text(
+                              'Vérifier ensemble',
+                              style: GwType.ui(
+                                  fontSize: 13.5,
+                                  fontWeight: FontWeight.w600),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      SizedBox(
                         height: 46,
-                        child: FilledButton(
-                          onPressed: onVerifySuggestion,
-                          style: FilledButton.styleFrom(
-                            backgroundColor: GwTokens.sage,
-                            foregroundColor: const Color(0xFFF0EBE1),
+                        child: TextButton(
+                          onPressed: onDismissSuggestion,
+                          style: TextButton.styleFrom(
+                            backgroundColor: t.inkCard,
+                            foregroundColor: t.stoneFaint,
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 16),
                             shape: RoundedRectangleBorder(
                               borderRadius:
                                   BorderRadius.circular(GwTokens.rBtn),
                             ),
                           ),
-                          child: Text(
-                            'Vérifier ensemble',
-                            style: GwType.ui(
-                                fontSize: 13.5, fontWeight: FontWeight.w600),
-                          ),
+                          child: Text('Plus tard',
+                              style: GwType.ui(fontSize: 13.5)),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 10),
-                    SizedBox(
-                      height: 46,
-                      child: TextButton(
-                        onPressed: onDismissSuggestion,
-                        style: TextButton.styleFrom(
-                          backgroundColor: t.inkCard,
-                          foregroundColor: t.stoneFaint,
-                          padding:
-                              const EdgeInsets.symmetric(horizontal: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius:
-                                BorderRadius.circular(GwTokens.rBtn),
-                          ),
-                        ),
-                        child: Text('Plus tard',
-                            style: GwType.ui(fontSize: 13.5)),
-                      ),
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
+                ],
                 const SizedBox(height: 22),
 
                 // ── Mémoire vivante ──
