@@ -3,12 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
+import 'package:gwangmeu/core/router/breadcrumb_provider.dart';
 import 'package:gwangmeu/core/router/route_names.dart';
 import 'package:gwangmeu/core/theme/gw_tokens.dart';
 import 'package:gwangmeu/features/feed/feed_notifier.dart';
 import 'package:gwangmeu/features/home/home_screen.dart';
 import 'package:gwangmeu/features/notifications/widgets/notification_panel.dart';
 import 'package:gwangmeu/features/profile/profile_notifier.dart';
+import 'package:gwangmeu/features/villages/villages_notifier.dart';
 import 'package:gwangmeu/shared/models/post_model.dart';
 import 'package:gwangmeu/shared/widgets/compose_box.dart';
 import 'package:gwangmeu/shared/widgets/loading_overlay.dart';
@@ -31,7 +33,22 @@ class FeedScreen extends ConsumerWidget {
       data: (posts) => _FeedList(posts: posts.isEmpty ? _demoPosts : posts),
     );
 
-    if (desktop) return feed;
+    // Desktop (#2d) : deux colonnes — fil + rail contextuel IA/village.
+    if (desktop) {
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            flex: 16,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 720),
+              child: feed,
+            ),
+          ),
+          const Expanded(flex: 10, child: _DesktopContextRail()),
+        ],
+      );
+    }
 
     return Scaffold(
       body: SafeArea(
@@ -43,6 +60,150 @@ class FeedScreen extends ConsumerWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────
+//  Rail contextuel desktop — encart IA + Mon village (#2d)
+// ─────────────────────────────────────────────────────────────────
+
+class _DesktopContextRail extends ConsumerWidget {
+  const _DesktopContextRail();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = GwTokens.of(context);
+    final myVillages = ref.watch(myVillagesNotifierProvider).valueOrNull;
+    final village = (myVillages?.isNotEmpty ?? false) ? myVillages!.first : null;
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(4, 20, 24, 20),
+      children: [
+        // ── Encart IA ──
+        Container(
+          padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+          decoration: BoxDecoration(
+            color: GwTokens.sage.withValues(alpha: 0.08),
+            border: Border.all(color: GwTokens.sage.withValues(alpha: 0.3)),
+            borderRadius: BorderRadius.circular(GwTokens.rCard),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'MÉMOIRE · 87%',
+                style: GwType.mono(
+                    fontSize: 10, letterSpacing: 1.5, color: t.sageText),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'Un ancêtre commun avec Kwame Asante ? 3 lignées Bakoko correspondent.',
+                style:
+                    GwType.ui(fontSize: 13.5, color: t.stone, height: 1.6),
+              ),
+              const SizedBox(height: 10),
+              SizedBox(
+                height: 42,
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: () {
+                    ref.read(breadcrumbProvider.notifier).clear();
+                    context.go(Routes.genealogy);
+                  },
+                  style: FilledButton.styleFrom(
+                    backgroundColor: GwTokens.sage,
+                    foregroundColor: const Color(0xFFF0EBE1),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: Text(
+                    'Explorer le lien',
+                    style:
+                        GwType.ui(fontSize: 13, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 14),
+
+        // ── Mon village ──
+        if (village != null)
+          Container(
+            padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+            decoration: BoxDecoration(
+              color: t.inkCard,
+              borderRadius: BorderRadius.circular(GwTokens.rCard),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'MON VILLAGE',
+                  style: GwType.mono(
+                      fontSize: 10, letterSpacing: 1.5, color: t.stoneFaint),
+                ),
+                const SizedBox(height: 10),
+                InkWell(
+                  onTap: () {
+                    ref.read(breadcrumbProvider.notifier).clear();
+                    context.push(Routes.villageDetail(village.id));
+                  },
+                  borderRadius: BorderRadius.circular(12),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: GwTokens.gold,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          village.name.isNotEmpty
+                              ? village.name[0].toUpperCase()
+                              : '?',
+                          style: GwType.display(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: const Color(0xFF0C0B0F)),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              village.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: GwType.ui(
+                                  fontSize: 13.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: t.stone),
+                            ),
+                            Text(
+                              '${village.memberCount} MEMBRES',
+                              style: GwType.mono(
+                                  fontSize: 11.5,
+                                  color: t.emberText,
+                                  letterSpacing: 0.5),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
     );
   }
 }

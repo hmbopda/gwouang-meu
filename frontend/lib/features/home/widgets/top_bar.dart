@@ -1,103 +1,69 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:material_symbols_icons/symbols.dart';
 
 import 'package:gwangmeu/core/router/breadcrumb_provider.dart';
 import 'package:gwangmeu/core/router/route_names.dart';
 import 'package:gwangmeu/core/theme/gw_tokens.dart';
-import 'package:gwangmeu/features/notifications/widgets/notification_bell.dart';
-import 'package:gwangmeu/features/home/widgets/accent_color_picker.dart';
+import 'package:gwangmeu/features/notifications/notifications_notifier.dart';
+import 'package:gwangmeu/features/notifications/widgets/notification_panel.dart';
 
-/// Barre supérieure du layout desktop — breadcrumb dynamique, recherche, notifications, users.
+/// Topbar desktop 60 px (#2d) — fil d'Ariane mono « GWANG MEU — SECTION »,
+/// recherche 44 px, cloche 44 px avec point ember.
 class TopBar extends ConsumerWidget {
   const TopBar({super.key});
 
-  static const double height = 52;
+  static const double height = 60;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = GwTokens.of(context);
     final location = GoRouterState.of(context).matchedLocation;
-    final cs = Theme.of(context).colorScheme;
     final breadcrumbs = ref.watch(breadcrumbProvider);
-
-    final bgColor = Theme.of(context).scaffoldBackgroundColor.withAlpha(235);
-    final borderColor = cs.outline.withAlpha(30);
-
-    final fallbackSection = _sectionName(location);
 
     return Container(
       height: height,
-      padding: const EdgeInsets.symmetric(horizontal: 28),
+      padding: const EdgeInsets.symmetric(horizontal: 24),
       decoration: BoxDecoration(
-        color: bgColor,
-        border: Border(bottom: BorderSide(color: borderColor)),
+        border: Border(bottom: BorderSide(color: t.line)),
       ),
       child: Row(
         children: [
-          // ── Breadcrumb (dynamique si disponible, sinon fallback) ──
-          breadcrumbs.isNotEmpty
-              ? _DynamicBreadcrumb(crumbs: breadcrumbs)
-              : _StaticBreadcrumb(sectionName: fallbackSection),
+          // ── Fil d'Ariane mono ──
+          Expanded(
+            child: breadcrumbs.isNotEmpty
+                ? _DynamicBreadcrumb(crumbs: breadcrumbs)
+                : _StaticBreadcrumb(sectionName: _sectionName(location)),
+          ),
 
-          const Spacer(),
-
-          // ── Search ──
+          // ── Recherche 44 px ──
           const _SearchBar(),
+          const SizedBox(width: 14),
 
-          const SizedBox(width: 16),
-
-          // ── Actions ──
-          const _ActionButton(
-            icon: Icons.notifications_outlined,
-            hasDot: true,
-            child: NotificationBell(),
-          ),
-          const SizedBox(width: 8),
-          _IconCircle(
-            icon: Icons.people_outline,
-            hasDot: false,
-            onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Communauté — bientôt disponible'),
-                duration: Duration(seconds: 2),
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          _IconCircle(
-            icon: Icons.chat_bubble_outline,
-            hasDot: true,
-            onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Messages — bientôt disponible'),
-                duration: Duration(seconds: 2),
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-
-          // ── Accent color picker ──
-          const AccentColorButton(),
+          // ── Notifications 44 px ──
+          const _NotificationButton(),
         ],
       ),
     );
   }
 
   String _sectionName(String location) {
-    if (location.startsWith(Routes.feed)) return 'Fil d\'actualité';
-    if (location == Routes.villages || location.startsWith('${Routes.villages}/')) return 'Villages';
-    if (location.startsWith(Routes.genealogy)) return 'Généalogie';
+    if (location.startsWith(Routes.feed)) return 'Fil';
+    if (location.startsWith(Routes.genealogy)) return 'Lignées';
     if (location.startsWith(Routes.profile)) return 'Profil';
     if (location.startsWith(Routes.search)) return 'Recherche';
+    if (location.startsWith(Routes.messages)) return 'Messages';
     if (location.startsWith('/my-villages')) return 'Mes villages';
     if (location.startsWith('/villages/create')) return 'Villages › Créer';
     if (location.contains('/edit')) return 'Villages › Édition';
     if (location.startsWith('/villages/')) return 'Villages › Détail';
-    return 'Accueil';
+    if (location.contains('villages')) return 'Villages';
+    return 'Fil';
   }
 }
 
-// ─── Dynamic Breadcrumb (from provider) ──────────────────────────────────────
+// ─── Fil d'Ariane dynamique ──────────────────────────────────
 
 class _DynamicBreadcrumb extends ConsumerWidget {
   const _DynamicBreadcrumb({required this.crumbs});
@@ -105,25 +71,23 @@ class _DynamicBreadcrumb extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final accent = Theme.of(context).colorScheme.primary;
+    final t = GwTokens.of(context);
 
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // GWANG MEU prefix
         Text(
           'GWANG MEU',
-          style: TextStyle(fontFamily: 'monospace', fontSize: 9, letterSpacing: 1.2, color: GwTokens.dark.stoneDim),
+          style: GwType.mono(
+              fontSize: 10, letterSpacing: 1.5, color: t.stoneFaint),
         ),
-
-        // Breadcrumb segments
         for (int i = 0; i < crumbs.length; i++) ...[
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: 6),
-            child: Text('—', style: TextStyle(color: GwTokens.dark.stoneDim, fontSize: 9)),
+            padding: const EdgeInsets.symmetric(horizontal: 6),
+            child: Text('—',
+                style: GwType.mono(fontSize: 10, color: t.stoneFaint)),
           ),
           if (i < crumbs.length - 1)
-            // Clickable intermediate segment
             InkWell(
               onTap: () {
                 ref.read(breadcrumbProvider.notifier).popTo(crumbs[i].route);
@@ -131,28 +95,23 @@ class _DynamicBreadcrumb extends ConsumerWidget {
               },
               borderRadius: BorderRadius.circular(4),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                 child: Text(
                   crumbs[i].label.toUpperCase(),
-                  style: TextStyle(
-                    fontFamily: 'monospace',
-                    fontSize: 9,
-                    letterSpacing: 1,
-                    color: GwTokens.dark.stoneDim,
-                  ),
+                  style: GwType.mono(
+                      fontSize: 10, letterSpacing: 1, color: t.stoneFaint),
                 ),
               ),
             )
           else
-            // Last segment (active, not clickable)
             Text(
               crumbs[i].label.toUpperCase(),
-              style: TextStyle(
-                fontFamily: 'monospace',
-                fontSize: 9,
+              style: GwType.mono(
+                fontSize: 10,
                 letterSpacing: 1,
-                color: accent,
                 fontWeight: FontWeight.w600,
+                color: t.goldText,
               ),
             ),
         ],
@@ -161,7 +120,7 @@ class _DynamicBreadcrumb extends ConsumerWidget {
   }
 }
 
-// ─── Static Breadcrumb (fallback) ────────────────────────────────────────────
+// ─── Fil d'Ariane statique ───────────────────────────────────
 
 class _StaticBreadcrumb extends StatelessWidget {
   const _StaticBreadcrumb({required this.sectionName});
@@ -169,24 +128,27 @@ class _StaticBreadcrumb extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = GwTokens.of(context);
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
           'GWANG MEU',
-          style: TextStyle(fontFamily: 'monospace', fontSize: 9, letterSpacing: 1.2, color: GwTokens.dark.stoneDim),
+          style: GwType.mono(
+              fontSize: 10, letterSpacing: 1.5, color: t.stoneFaint),
         ),
         Padding(
-          padding: EdgeInsets.symmetric(horizontal: 8),
-          child: Text('—', style: TextStyle(color: GwTokens.dark.stoneDim, fontSize: 9)),
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          child:
+              Text('—', style: GwType.mono(fontSize: 10, color: t.stoneFaint)),
         ),
         Text(
           sectionName.toUpperCase(),
-          style: TextStyle(
-            fontFamily: 'monospace',
-            fontSize: 9,
+          style: GwType.mono(
+            fontSize: 10,
             letterSpacing: 1,
-            color: Theme.of(context).colorScheme.primary,
+            fontWeight: FontWeight.w600,
+            color: t.goldText,
           ),
         ),
       ],
@@ -194,106 +156,129 @@ class _StaticBreadcrumb extends StatelessWidget {
   }
 }
 
-// ─── Search Bar ──────────────────────────────────────────────────────────────
+// ─── Recherche 320×44 ────────────────────────────────────────
 
-class _SearchBar extends StatelessWidget {
+class _SearchBar extends ConsumerWidget {
   const _SearchBar();
 
   @override
-  Widget build(BuildContext context) {
-    final bgColor = Theme.of(context).colorScheme.surfaceContainerHighest;
-    final borderColor = Theme.of(context).colorScheme.outline.withAlpha(30);
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = GwTokens.of(context);
 
-    return Container(
-      width: 320,
-      height: 32,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: BoxDecoration(
-        color: bgColor,
-        border: Border.all(color: borderColor),
-        borderRadius: BorderRadius.circular(99),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.search, size: 14, color: GwTokens.dark.stoneDim),
-          SizedBox(width: 8),
-          Expanded(
-            child: Text('Rechercher…', style: TextStyle(fontSize: 12, color: GwTokens.dark.stoneDim)),
+    return Material(
+      color: t.inkCard,
+      borderRadius: BorderRadius.circular(GwTokens.rPill),
+      child: InkWell(
+        onTap: () {
+          ref.read(breadcrumbProvider.notifier).clear();
+          context.go(Routes.search);
+        },
+        borderRadius: BorderRadius.circular(GwTokens.rPill),
+        child: Container(
+          width: 320,
+          height: GwTokens.tapTarget,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(GwTokens.rPill),
+            border: Border.all(color: t.lineMid),
           ),
-        ],
+          child: Row(
+            children: [
+              Icon(Symbols.search, size: 18, color: t.stoneDim),
+              const SizedBox(width: 10),
+              Text(
+                'Rechercher…',
+                style: GwType.ui(fontSize: 13.5, color: t.stoneDim),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
 }
 
-// ─── Action Buttons ──────────────────────────────────────────────────────────
+// ─── Cloche 44 px ────────────────────────────────────────────
 
-class _ActionButton extends StatelessWidget {
-  const _ActionButton({
-    required this.icon,
-    this.hasDot = false,
-    required this.child,
-  });
-
-  final IconData icon;
-  final bool hasDot;
-  final Widget child;
+class _NotificationButton extends ConsumerWidget {
+  const _NotificationButton();
 
   @override
-  Widget build(BuildContext context) {
-    return child;
-  }
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = GwTokens.of(context);
+    final unread = ref.watch(unreadCountProvider).valueOrNull ?? 0;
 
-class _IconCircle extends StatelessWidget {
-  const _IconCircle({
-    required this.icon,
-    this.hasDot = false,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final bool hasDot;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final bgColor = Theme.of(context).colorScheme.surfaceContainerHighest;
-    final borderColor = Theme.of(context).colorScheme.outline.withAlpha(30);
-
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(99),
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: bgColor,
-              shape: BoxShape.circle,
-              border: Border.all(color: borderColor),
-            ),
-            child: Icon(icon, size: 14, color: GwTokens.dark.stoneMid),
+    return Material(
+      color: t.inkCard,
+      shape: const CircleBorder(),
+      child: InkWell(
+        onTap: () => _openPanel(context),
+        customBorder: const CircleBorder(),
+        child: Container(
+          width: GwTokens.tapTarget,
+          height: GwTokens.tapTarget,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: t.lineMid),
           ),
-          if (hasDot)
-            Positioned(
-              top: 5,
-              right: 5,
-              child: Container(
-                width: 7,
-                height: 7,
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primary,
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: Theme.of(context).scaffoldBackgroundColor,
-                    width: 1.5,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Icon(Symbols.notifications, size: 19, color: t.stoneMid),
+              if (unread > 0)
+                Positioned(
+                  top: 8,
+                  right: 9,
+                  child: Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: GwTokens.ember,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: t.ink, width: 2),
+                    ),
                   ),
                 ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _openPanel(BuildContext context) {
+    final t = GwTokens.of(context);
+    showDialog(
+      context: context,
+      barrierColor: Colors.black26,
+      builder: (ctx) => Stack(
+        children: [
+          Positioned(
+            top: 64,
+            right: 24,
+            child: Material(
+              color: Colors.transparent,
+              child: Container(
+                width: 400,
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.sizeOf(ctx).height - 100,
+                ),
+                decoration: BoxDecoration(
+                  color: t.inkCard,
+                  borderRadius: BorderRadius.circular(GwTokens.rCard),
+                  border: Border.all(color: t.lineMid),
+                  boxShadow: const [
+                    BoxShadow(
+                        color: Colors.black38,
+                        blurRadius: 24,
+                        offset: Offset(0, 8)),
+                  ],
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: const NotificationPanel(),
               ),
             ),
+          ),
         ],
       ),
     );

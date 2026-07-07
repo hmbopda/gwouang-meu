@@ -40,20 +40,25 @@ class _DesktopShell extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: Row(
+      body: Column(
         children: [
-          // ── Icon Rail (64px, fixe à gauche) ──
-          const IconRail(),
-
-          // ── Zone principale (TopBar + Content) ──
+          // ── Bande tissée signature ──
+          const GwWeaveBand(),
           Expanded(
-            child: Column(
+            child: Row(
               children: [
-                // TopBar
-                const TopBar(),
+                // ── Rail 216px avec labels (#2d) ──
+                const IconRail(),
 
-                // Contenu routé
-                Expanded(child: child),
+                // ── Zone principale (TopBar 60px + Content) ──
+                Expanded(
+                  child: Column(
+                    children: [
+                      const TopBar(),
+                      Expanded(child: child),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
@@ -430,7 +435,10 @@ class _DrawerItem extends StatelessWidget {
             ),
             child: Row(
               children: [
-                Text(item.icon, style: const TextStyle(fontSize: 18)),
+                Icon(item.icon, size: 20,
+                    color: isActive
+                        ? accent
+                        : Theme.of(context).textTheme.bodyMedium?.color),
                 const SizedBox(width: 14),
                 Expanded(
                   child: Text(
@@ -444,23 +452,6 @@ class _DrawerItem extends StatelessWidget {
                     ),
                   ),
                 ),
-                if (item.badge != null && item.badge! > 0)
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: accent,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      '${item.badge}',
-                      style: const TextStyle(
-                        color: Colors.black,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
               ],
             ),
           ),
