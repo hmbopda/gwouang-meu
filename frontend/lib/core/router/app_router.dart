@@ -14,8 +14,11 @@ import 'package:gwangmeu/shared/widgets/deferred_widget.dart';
 
 // ── Deferred imports (chargés à la demande — réduit ~30-40% bundle web) ──
 import 'package:gwangmeu/features/genealogy/genealogy_screen.dart' deferred as genealogy;
+import 'package:gwangmeu/features/messages/conversation_screen.dart'
+    deferred as conversation;
 import 'package:gwangmeu/features/messages/messages_screen.dart'
     deferred as messages;
+import 'package:gwangmeu/shared/models/chat_group_model.dart';
 import 'package:gwangmeu/features/genealogy/invitation_screen.dart'
     deferred as invitation;
 import 'package:gwangmeu/features/profile/profile_screen.dart' deferred as profile;
@@ -179,6 +182,22 @@ final routerProvider = Provider<GoRouter>((ref) {
             ),
           ),
         ],
+      ),
+
+      // Conversation (hors shell — plein écran avec retour, deferred)
+      GoRoute(
+        path: Routes.messagesConversation,
+        builder: (context, state) {
+          final extra = state.extra as Map<String, Object>?;
+          return DeferredWidget(
+            loader: conversation.loadLibrary,
+            builder: () => conversation.ConversationScreen(
+              groupId: state.pathParameters['groupId']!,
+              group: extra?['group'] as ChatGroupModel?,
+              villageName: extra?['villageName'] as String?,
+            ),
+          );
+        },
       ),
 
       // Invitation (hors shell, accessible sans auth, deferred)
