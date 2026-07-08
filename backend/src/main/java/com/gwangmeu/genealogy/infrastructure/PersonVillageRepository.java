@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
@@ -12,6 +13,8 @@ import java.util.UUID;
 public interface PersonVillageRepository extends JpaRepository<PersonVillage, PersonVillage.PersonVillageId> {
 
     List<PersonVillage> findByPersonId(UUID personId);
+
+    List<PersonVillage> findByPersonIdIn(Collection<UUID> personIds);
 
     List<PersonVillage> findByVillageId(UUID villageId);
 

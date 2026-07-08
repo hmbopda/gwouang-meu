@@ -14,6 +14,14 @@ public final class GenealogyMapper {
     private GenealogyMapper() {}
 
     public static PersonDTO toDTO(Person p, List<UUID> villageIds) {
+        return toDTO(p, villageIds, null);
+    }
+
+    /**
+     * Variante avec nom de clan resolu (coalesce person_clans M2M / colonne legacy persons.clan).
+     * Si {@code resolvedClanName} est null, la colonne legacy est utilisee.
+     */
+    public static PersonDTO toDTO(Person p, List<UUID> villageIds, String resolvedClanName) {
         if (p == null) return null;
         return PersonDTO.builder()
                 .id(p.getId())
@@ -23,8 +31,9 @@ public final class GenealogyMapper {
                 .gender(p.getGender())
                 .birthDate(p.getBirthDate())
                 .birthPlace(p.getBirthPlace())
+                .deathDate(p.getDeathDate())
                 .isAlive(p.isAlive())
-                .clan(p.getClan())
+                .clan(resolvedClanName != null && !resolvedClanName.isBlank() ? resolvedClanName : p.getClan())
                 .totem(p.getTotem())
                 .nativeLanguage(p.getNativeLanguage())
                 .religion(p.getReligion())
@@ -38,6 +47,7 @@ public final class GenealogyMapper {
                 .userId(p.getUserId())
                 .villageIds(villageIds != null ? villageIds : List.of())
                 .createdAt(p.getCreatedAt())
+                .updatedAt(p.getUpdatedAt())
                 .build();
     }
 

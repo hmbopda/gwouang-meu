@@ -23,6 +23,7 @@ public class PersonDTO {
     private GenderEnum gender;
     private LocalDate birthDate;
     private String birthPlace;
+    private LocalDate deathDate;
     @JsonProperty("isAlive")
     private boolean isAlive;
     private String clan;
@@ -39,4 +40,5 @@ public class PersonDTO {
     private UUID userId;
     private List<UUID> villageIds;
     private Instant createdAt;
+    private Instant updatedAt;
 }

@@ -13,6 +13,8 @@ public interface PersonClanRepository extends JpaRepository<PersonClan, PersonCl
 
     List<PersonClan> findByPersonId(UUID personId);
 
+    List<PersonClan> findByPersonIdIn(java.util.Collection<UUID> personIds);
+
     List<PersonClan> findByClanId(UUID clanId);
 
     @Query("SELECT pc.clanId FROM PersonClan pc WHERE pc.personId = :personId")

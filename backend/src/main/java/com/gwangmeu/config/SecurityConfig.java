@@ -140,7 +140,9 @@ public class SecurityConfig {
                 "https://gwangmeu.com",
                 "https://app.gwangmeu.com",
                 "https://hmbopda.github.io",  // Build web hébergé sur GitHub Pages
-                "https://*.trycloudflare.com" // Tunnel de démo (exposition temporaire)
+                "https://*.trycloudflare.com", // Tunnel de démo (exposition temporaire)
+                "https://gwangmeu-app.pages.dev",   // Cloudflare Pages (production)
+                "https://*.gwangmeu-app.pages.dev"  // Cloudflare Pages (previews)
         ));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));

@@ -1,0 +1,29 @@
+# =============================================================
+# GWANG MEU — .dockerignore (contexte de build = backend/)
+# Objectif : contexte minimal + AUCUN secret dans l'image.
+# =============================================================
+
+# Secrets — ne doivent JAMAIS entrer dans le contexte Docker
+.env
+.env.*
+*.env
+prod.md
+src/main/resources/firebase/
+
+# Artefacts de build (le build se fait dans l'image)
+target/
+
+# IDE / outils
+.idea/
+.vscode/
+*.iml
+
+# Logs
+*.log
+logs/
+
+# Git & Docker
+.git/
+.gitignore
+Dockerfile
+.dockerignore

@@ -27,6 +27,9 @@ public interface UnionRepository extends JpaRepository<GenealogyUnion, UUID> {
     @Query("SELECT u FROM GenealogyUnion u WHERE u.husbandId = :personId OR u.wifeId = :personId")
     List<GenealogyUnion> findByPersonId(UUID personId);
 
+    @Query("SELECT u FROM GenealogyUnion u WHERE u.husbandId IN :personIds OR u.wifeId IN :personIds")
+    List<GenealogyUnion> findByPersonIdIn(java.util.Collection<UUID> personIds);
+
     @Query("SELECT u FROM GenealogyUnion u WHERE (u.husbandId = :personId OR u.wifeId = :personId) AND u.status IN ('ACTIVE', 'PENDING_APPROVAL', 'DIVORCE_PENDING', 'DEATH_PENDING', 'DISPUTE')")
     List<GenealogyUnion> findActiveUnionsByPerson(UUID personId);
 
