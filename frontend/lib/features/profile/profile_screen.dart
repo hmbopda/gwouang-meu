@@ -131,14 +131,66 @@ class _ProfileView extends ConsumerWidget {
       ),
     );
 
-    // Desktop : colonne centrée dans le shell (rail + topbar déjà fournis).
+    // Desktop : vraie composition 2 colonnes qui remplit la largeur donnée
+    // par le shell (rail + topbar déjà fournis, contenu déjà borné ~1180).
+    // Gauche (fixe ~380) : identité, lignée, contribution, CTA récit.
+    // Droite (flexible) : villages, complétion, réglages, déconnexion.
+    // Chaque colonne défile indépendamment.
     if (desktop) {
       return Container(
         color: t.ink,
+        padding: const EdgeInsets.all(24),
         alignment: Alignment.topCenter,
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 560),
-          child: content,
+          constraints: const BoxConstraints(maxWidth: 1080),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ── Colonne gauche (largeur fixe) ──
+              SizedBox(
+                width: 380,
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      _IdentityHeader(user: user),
+                      const SizedBox(height: 10),
+                      _LineageCard(user: user),
+                      const SizedBox(height: 24),
+                      const _SectionLabel('MA CONTRIBUTION À LA MÉMOIRE'),
+                      const SizedBox(height: 8),
+                      const _ContributionCard(),
+                      const SizedBox(height: 12),
+                      const _RecordCta(),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 24),
+              // ── Colonne droite (flexible) ──
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const _SectionLabel('MES VILLAGES'),
+                      const SizedBox(height: 8),
+                      const _VillagesGrid(),
+                      const SizedBox(height: 24),
+                      _SectionLabel('PROFIL COMPLÉTÉ · $completion %'),
+                      const SizedBox(height: 8),
+                      _CompletionCard(user: user, completion: completion),
+                      const SizedBox(height: 24),
+                      const _SectionLabel('RÉGLAGES'),
+                      const SizedBox(height: 8),
+                      const _SettingsCard(),
+                      const SizedBox(height: 12),
+                      const _SignOutButton(),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       );
     }

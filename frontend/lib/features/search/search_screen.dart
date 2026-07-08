@@ -120,7 +120,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   message: 'Aucun résultat pour « $query »',
                 );
               }
-              return _resultsList(visible, query);
+              return _resultsList(visible, query, desktop: desktop);
             },
           );
 
@@ -136,10 +136,19 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       ),
     );
 
+    // Desktop (#2d) : on remplit la largeur donnée par la coquille (jusqu'à
+    // ~1080). La zone de saisie est bornée à ~720 pour la lisibilité de la
+    // frappe, mais les résultats groupés occupent toute la largeur en grille
+    // 2 colonnes par section (voir [_resultsList]).
     if (desktop) {
       return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          searchZone,
+          const SizedBox(height: 8),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 720),
+            child: searchZone,
+          ),
           const SizedBox(height: 4),
           Expanded(child: results),
         ],
@@ -265,7 +274,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   // ── Liste des résultats, groupée par entité ─────────────────────
 
-  Widget _resultsList(List<_SearchResult> visible, String query) {
+  Widget _resultsList(
+    List<_SearchResult> visible,
+    String query, {
+    required bool desktop,
+  }) {
     final t = GwTokens.of(context);
     final groups = <String, List<_SearchResult>>{};
     for (final r in visible) {
@@ -275,6 +288,48 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       ..._typeOrder.where(groups.containsKey),
       ...groups.keys.where((k) => !_typeOrder.contains(k)),
     ];
+
+    // Desktop (#2d) : résultats larges — chaque section en grille 2 colonnes
+    // (maxCrossAxisExtent 540 → 2 colonnes sur la plage ~900-1180 fournie par
+    // la coquille), au lieu d'une colonne étroite. Remplit la largeur donnée.
+    if (desktop) {
+      return ListView(
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
+        children: [
+          for (final type in orderedTypes) ...[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(4, 14, 4, 8),
+              child: Text(
+                '${_sectionLabel(type)} · ${groups[type]!.length}',
+                style: GwType.mono(
+                    fontSize: 10, color: t.stoneFaint, letterSpacing: 2),
+              ),
+            ),
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              padding: EdgeInsets.zero,
+              gridDelegate:
+                  const SliverGridDelegateWithMaxCrossAxisExtent(
+                maxCrossAxisExtent: 540,
+                mainAxisExtent: 70,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 4,
+              ),
+              itemCount: groups[type]!.length,
+              itemBuilder: (context, i) {
+                final r = groups[type]![i];
+                return _ResultTile(
+                  result: r,
+                  query: query,
+                  onTap: () => _navigate(context, r),
+                );
+              },
+            ),
+          ],
+        ],
+      );
+    }
 
     return ListView(
       padding: const EdgeInsets.only(bottom: 24),

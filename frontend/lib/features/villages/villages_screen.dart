@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
+import 'package:gwangmeu/core/responsive/responsive.dart';
 import 'package:gwangmeu/core/router/breadcrumb_provider.dart';
 import 'package:gwangmeu/core/router/route_names.dart';
 import 'package:gwangmeu/core/theme/gw_tokens.dart';
@@ -269,6 +270,8 @@ class _VillagesScreenState extends ConsumerState<VillagesScreen> {
       ),
       data: (villages) {
         final filtered = _applyFilter(villages);
+        // Grille de découverte : 2 colonnes dès la tablette, 1 sur mobile.
+        final columns = context.responsive(mobile: 1, tablet: 2, desktop: 2);
         return RefreshIndicator(
           color: t.goldText,
           onRefresh: _refreshAll,
@@ -288,13 +291,15 @@ class _VillagesScreenState extends ConsumerState<VillagesScreen> {
                           ? 'Aucun village pour ce filtre'
                           : 'Aucun village pour le moment',
                 )
-              else
+              else if (columns == 1)
                 ...filtered.map(
                   (v) => Padding(
                     padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
                     child: _VillageRow(village: v),
                   ),
-                ),
+                )
+              else
+                _DiscoveryGrid(villages: filtered, columns: columns),
             ],
           ),
         );
@@ -522,9 +527,13 @@ class _MyVillageCard extends ConsumerWidget {
 // ─────────────────────────────────────────────────────────────────
 
 class _VillageRow extends ConsumerWidget {
-  const _VillageRow({required this.village});
+  const _VillageRow({required this.village, this.grid = false});
 
   final VillageModel village;
+
+  /// En mode grille (desktop/tablette), la tuile devient une carte verticale :
+  /// initiale + nom en tête, méta, activité mono, puis bouton pleine largeur.
+  final bool grid;
 
   /// Teintes par région : or, sage, azure, rose (GwTokens.rose).
   static const _tints = [
@@ -573,77 +582,123 @@ class _VillageRow extends ConsumerWidget {
         borderRadius: BorderRadius.circular(GwTokens.rCard),
         child: Padding(
           padding: const EdgeInsets.all(16),
-          child: Row(
+          child: grid
+              ? _cardBody(context, ref, t, meta, joined)
+              : _rowBody(context, ref, t, meta, joined),
+        ),
+      ),
+    );
+  }
+
+  // ── Tuile initiale teintée (partagée row / card) ──
+  Widget _initialTile(GwTokens t) {
+    return Container(
+      width: 48,
+      height: 48,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: _tint,
+        borderRadius: BorderRadius.circular(GwTokens.rBtn),
+      ),
+      child: Text(
+        _initial(village.name),
+        style: GwType.display(
+            fontSize: 19, fontWeight: FontWeight.w700, color: _onTint),
+      ),
+    );
+  }
+
+  Widget _nameRow(GwTokens t) {
+    return Row(
+      children: [
+        Flexible(
+          child: Text(
+            village.name,
+            style: GwType.ui(
+                fontSize: 14.5, fontWeight: FontWeight.w600, color: t.stone),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        if (village.verified) ...[
+          const SizedBox(width: 6),
+          Icon(Symbols.verified, size: 15, fill: 1, color: t.goldText),
+        ],
+      ],
+    );
+  }
+
+  Widget _metaText(GwTokens t, String meta) => Text(
+        meta,
+        style: GwType.ui(fontSize: 12.5, color: t.stoneDim),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      );
+
+  Widget _activityText(GwTokens t) => Text(
+        _activity,
+        style: GwType.mono(fontSize: 11.5, color: t.sageText, letterSpacing: 1),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      );
+
+  // ── Layout mobile : rangée large ──
+  Widget _rowBody(
+      BuildContext context, WidgetRef ref, GwTokens t, String meta, bool joined) {
+    return Row(
+      children: [
+        _initialTile(t),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Tuile initiale 48 px, rayon 14, Fraunces 19 w700
-              Container(
-                width: 48,
-                height: 48,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: _tint,
-                  borderRadius: BorderRadius.circular(GwTokens.rBtn),
-                ),
-                child: Text(
-                  _initial(village.name),
-                  style: GwType.display(
-                      fontSize: 19,
-                      fontWeight: FontWeight.w700,
-                      color: _onTint),
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Flexible(
-                          child: Text(
-                            village.name,
-                            style: GwType.ui(
-                                fontSize: 14.5,
-                                fontWeight: FontWeight.w600,
-                                color: t.stone),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        if (village.verified) ...[
-                          const SizedBox(width: 6),
-                          Icon(Symbols.verified,
-                              size: 15, fill: 1, color: t.goldText),
-                        ],
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      meta,
-                      style: GwType.ui(fontSize: 12.5, color: t.stoneDim),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      _activity,
-                      style: GwType.mono(
-                          fontSize: 11.5, color: t.sageText, letterSpacing: 1),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 10),
-              if (joined)
-                _joinedChip(t)
-              else
-                _JoinButton(onTap: () => _join(context, ref)),
+              _nameRow(t),
+              const SizedBox(height: 4),
+              _metaText(t, meta),
+              const SizedBox(height: 4),
+              _activityText(t),
             ],
           ),
         ),
-      ),
+        const SizedBox(width: 10),
+        if (joined)
+          _joinedChip(t)
+        else
+          _JoinButton(onTap: () => _join(context, ref)),
+      ],
+    );
+  }
+
+  // ── Layout desktop / tablette : carte verticale en grille ──
+  Widget _cardBody(
+      BuildContext context, WidgetRef ref, GwTokens t, String meta, bool joined) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            _initialTile(t),
+            const SizedBox(width: 12),
+            Expanded(child: _nameRow(t)),
+          ],
+        ),
+        const SizedBox(height: 12),
+        _metaText(t, meta),
+        const SizedBox(height: 6),
+        _activityText(t),
+        const Spacer(),
+        SizedBox(
+          width: double.infinity,
+          child: joined
+              ? Align(alignment: Alignment.centerLeft, child: _joinedChip(t))
+              : _JoinButton(
+                  fullWidth: true,
+                  onTap: () => _join(context, ref),
+                ),
+        ),
+      ],
     );
   }
 
@@ -687,10 +742,12 @@ class _VillageRow extends ConsumerWidget {
 }
 
 /// Bouton « Rejoindre » — outline or 40 px, cible tactile 44 px.
+/// En grille desktop, [fullWidth] l'étire sur toute la largeur de la carte.
 class _JoinButton extends StatelessWidget {
-  const _JoinButton({required this.onTap});
+  const _JoinButton({required this.onTap, this.fullWidth = false});
 
   final VoidCallback onTap;
+  final bool fullWidth;
 
   @override
   Widget build(BuildContext context) {
@@ -704,6 +761,7 @@ class _JoinButton extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 2),
           child: Container(
             height: 40,
+            width: fullWidth ? double.infinity : null,
             padding: const EdgeInsets.symmetric(horizontal: 16),
             alignment: Alignment.center,
             decoration: BoxDecoration(
@@ -719,6 +777,50 @@ class _JoinButton extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────
+//  Grille de découverte — cartes verticales, 2 colonnes (desktop/tablette)
+// ─────────────────────────────────────────────────────────────────
+
+class _DiscoveryGrid extends StatelessWidget {
+  const _DiscoveryGrid({required this.villages, required this.columns});
+
+  final List<VillageModel> villages;
+  final int columns;
+
+  /// Marges latérales alignées sur les rangées pleine largeur (20 px) + gap
+  /// inter-cartes. Hauteur fixe par carte pour un rythme régulier en grille.
+  static const double _hPad = 20;
+  static const double _gap = 14;
+  static const double _cardHeight = 188;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(_hPad, 0, _hPad, 12),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final total = constraints.maxWidth;
+          final cardWidth =
+              (total - _gap * (columns - 1)) / columns;
+          return Wrap(
+            spacing: _gap,
+            runSpacing: _gap,
+            children: villages
+                .map(
+                  (v) => SizedBox(
+                    width: cardWidth,
+                    height: _cardHeight,
+                    child: _VillageRow(village: v, grid: true),
+                  ),
+                )
+                .toList(),
+          );
+        },
       ),
     );
   }
