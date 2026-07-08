@@ -5,6 +5,12 @@ on:
     tags:
       - 'v*.*.*'
 
+# GITHUB_TOKEN intégré : push GHCR (packages) + création de la release (contents).
+# Plus besoin d'un PAT GHCR_TOKEN.
+permissions:
+  contents: write
+  packages: write
+
 jobs:
   test:
     name: Test Backend
@@ -112,7 +118,7 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.GHCR_TOKEN }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push Docker image
         run: |
@@ -120,6 +126,8 @@ jobs:
           ORG=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
           IMAGE="ghcr.io/${ORG}/gwangmeu-backend"
           docker build -f backend/Dockerfile backend/ \
+            --label "org.opencontainers.image.source=https://github.com/${{ github.repository }}" \
+            --label "org.opencontainers.image.version=${VERSION}" \
             -t "${IMAGE}:${VERSION}" \
             -t "${IMAGE}:latest"
           docker push "${IMAGE}:${VERSION}"
@@ -138,27 +146,45 @@ jobs:
       - name: Install Railway CLI
         run: npm install -g @railway/cli
 
+      # NOTE : `railway up` (et non `railway deploy`, réservé aux templates).
+      # Le token projet Railway (Project Settings > Tokens) est scopé
+      # projet + environnement : pas besoin de `railway link` ni de PROJECT_ID.
+      # Prérequis côté Railway : service nommé `gwangmeu-backend-prod`
+      # avec Root Directory = backend (voir docs/DEPLOIEMENT.md).
       - name: Deploy to Railway Production
-        run: railway deploy --service gwangmeu-backend-prod --detach
         env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-          RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID_PROD }}
-
-      - name: Health check Production
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN_PROD }}
         run: |
-          echo "Waiting for deployment to be ready..."
-          sleep 60
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://api.gwangmeu.com/actuator/health)
-          if [ "$STATUS" = "200" ]; then
-            echo "Production OK"
-          else
-            echo "Health check failed — HTTP $STATUS. Rolling back..."
-            railway rollback --service gwangmeu-backend-prod
+          if [ -z "$RAILWAY_TOKEN" ]; then
+            echo "::error::RAILWAY_TOKEN_PROD non configuré — impossible de déployer (voir docs/DEPLOIEMENT.md)."
             exit 1
           fi
+          railway up --service gwangmeu-backend-prod --ci
+
+      # APP_HEALTH_URL_PROD = URL complète du health check,
+      # ex. https://gwangmeu-backend-prod.up.railway.app/actuator/health
+      # (la CLI Railway n'a pas de commande rollback : en cas d'échec,
+      # rollback manuel via le dashboard Railway > Deployments > Redeploy)
+      - name: Health check Production
         env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-          RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID_PROD }}
+          HEALTH_URL: ${{ secrets.APP_HEALTH_URL_PROD }}
+        run: |
+          if [ -z "$HEALTH_URL" ]; then
+            echo "::warning::APP_HEALTH_URL_PROD non configuré — health check ignoré. Configurez-le après le premier déploiement."
+            exit 0
+          fi
+          echo "Health check : $HEALTH_URL"
+          for i in $(seq 1 30); do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$HEALTH_URL" || true)
+            if [ "$STATUS" = "200" ]; then
+              echo "Production OK (tentative $i)"
+              exit 0
+            fi
+            echo "Tentative $i/30 — HTTP $STATUS, nouvel essai dans 10 s..."
+            sleep 10
+          done
+          echo "Health check échoué après 5 minutes — rollback manuel : Railway > Deployments > (déploiement précédent) > Redeploy"
+          exit 1
 
   create-release:
     name: Create GitHub Release
@@ -175,4 +201,4 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
-          token: ${{ secrets.GHCR_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
