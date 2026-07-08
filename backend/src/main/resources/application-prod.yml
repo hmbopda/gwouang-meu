@@ -57,8 +57,12 @@ management:
       probes:
         enabled: true
   health:
+    # Neo4j sert uniquement à la synchro asynchrone du graphe généalogique
+    # (non bloquant au démarrage). Si l'instance AuraDB est en pause, son
+    # health « DOWN » ferait échouer le healthcheck Railway et bloquerait le
+    # déploiement — on le retire donc de l'agrégat de santé.
     neo4j:
-      enabled: true
+      enabled: false
     redis:
       enabled: true
     db:
