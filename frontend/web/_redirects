@@ -1,0 +1,3 @@
+# Cloudflare Pages — repli SPA : toute route profonde (GoRouter) est servie
+# par index.html en 200 (évite un 404 au rafraîchissement d'une URL profonde).
+/*    /index.html   200
