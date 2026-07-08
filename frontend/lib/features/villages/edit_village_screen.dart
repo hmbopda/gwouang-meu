@@ -1,12 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:material_symbols_icons/symbols.dart';
 
+import 'package:gwangmeu/core/theme/app_theme.dart';
 import 'package:gwangmeu/core/theme/gw_tokens.dart';
+import 'package:gwangmeu/features/villages/create_village_screen.dart'
+    show VillageFormField;
 import 'package:gwangmeu/shared/models/village_model.dart';
 import 'package:gwangmeu/features/villages/villages_notifier.dart';
 
-/// Écran d'édition village — champs modifiables via PUT /api/v1/villages/{id}
+// ═══════════════════════════════════════════════════════
+// MODIFIER UN VILLAGE — formulaire « Tissage »
+// Champs modifiables via PUT /api/v1/villages/{id}.
+// Fond t.ink, titre Fraunces, inputs inkLift rayon 14
+// (VillageFormField mutualisé), bouton or, showGwToast.
+// ═══════════════════════════════════════════════════════
+
 class EditVillageScreen extends ConsumerStatefulWidget {
   const EditVillageScreen({super.key, required this.village});
   final VillageModel village;
@@ -59,24 +69,22 @@ class _EditVillageScreenState extends ConsumerState<EditVillageScreen> {
             historicalSummary: _historyCtrl.text.trim().isEmpty ? null : _historyCtrl.text.trim(),
           );
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Village mis à jour'),
-            backgroundColor: GwTokens.sage,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          ),
-        );
+        showGwToast(context, 'Village mis à jour');
         Navigator.of(context).pop(true);
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erreur : $e'),
+            content: Text(
+              'Erreur : $e',
+              style: GwType.ui(
+                  fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white),
+            ),
             backgroundColor: GwTokens.ember,
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(GwTokens.rPill)),
           ),
         );
       }
@@ -87,172 +95,188 @@ class _EditVillageScreenState extends ConsumerState<EditVillageScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final accent = theme.colorScheme.primary;
+    final t = GwTokens.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Modifier ${widget.village.name}'),
-        actions: [
-          TextButton(
-            onPressed: _saving ? null : _save,
-            child: _saving
-                ? SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: accent),
-                  )
-                : Text('Enregistrer', style: TextStyle(color: accent, fontWeight: FontWeight.w700)),
-          ),
-        ],
-      ),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
+      backgroundColor: t.ink,
+      body: SafeArea(
+        child: Column(
           children: [
-            // Description
-            _buildField(
-              controller: _descCtrl,
-              label: 'Description',
-              hint: 'Décrivez votre village...',
-              icon: Icons.info_outline,
-              maxLines: 4,
-              maxLength: 2000,
-            ),
-            const SizedBox(height: 16),
-
-            // Cover image URL
-            _buildField(
-              controller: _coverCtrl,
-              label: 'URL image de couverture',
-              hint: 'https://...',
-              icon: Icons.image_outlined,
-              keyboardType: TextInputType.url,
-            ),
-            const SizedBox(height: 16),
-
-            // Founded year & Population (side by side)
-            Row(
-              children: [
-                Expanded(
-                  child: _buildField(
-                    controller: _foundedCtrl,
-                    label: 'Année de fondation',
-                    hint: 'ex: 1850',
-                    icon: Icons.calendar_today_outlined,
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _buildField(
-                    controller: _populationCtrl,
-                    label: 'Population estimée',
-                    hint: 'ex: 5000',
-                    icon: Icons.people_outline,
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-
-            // Historical summary
-            _buildField(
-              controller: _historyCtrl,
-              label: 'Résumé historique',
-              hint: "Racontez l'histoire de votre village...",
-              icon: Icons.auto_stories_outlined,
-              maxLines: 8,
-              maxLength: 5000,
-            ),
-            const SizedBox(height: 16),
-
-            // Preview cover
-            if (_coverCtrl.text.trim().isNotEmpty) ...[
-              Text('Aperçu couverture', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
-              const SizedBox(height: 8),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Image.network(
-                  _coverCtrl.text.trim(),
-                  height: 160,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(
-                    height: 160,
-                    decoration: BoxDecoration(
-                      color: GwTokens.ember.withAlpha(15),
-                      borderRadius: BorderRadius.circular(12),
+            const GwWeaveBand(),
+            _header(t),
+            Expanded(
+              child: Form(
+                key: _formKey,
+                child: ListView(
+                  padding: const EdgeInsets.all(20),
+                  children: [
+                    // Description
+                    VillageFormField(
+                      controller: _descCtrl,
+                      label: 'Description',
+                      hint: 'Décrivez votre village…',
+                      icon: Symbols.info,
+                      maxLines: 4,
+                      maxLength: 2000,
                     ),
-                    child: const Center(
-                      child: Text('Image invalide', style: TextStyle(color: GwTokens.ember)),
+                    const SizedBox(height: 16),
+
+                    // URL image de couverture
+                    VillageFormField(
+                      controller: _coverCtrl,
+                      label: 'URL image de couverture',
+                      hint: 'https://…',
+                      icon: Symbols.image,
+                      keyboardType: TextInputType.url,
                     ),
-                  ),
+                    const SizedBox(height: 16),
+
+                    // Année de fondation & population
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: VillageFormField(
+                            controller: _foundedCtrl,
+                            label: 'Fondation',
+                            hint: 'ex : 1850',
+                            icon: Symbols.calendar_today,
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: VillageFormField(
+                            controller: _populationCtrl,
+                            label: 'Population',
+                            hint: 'ex : 5000',
+                            icon: Symbols.group,
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Résumé historique
+                    VillageFormField(
+                      controller: _historyCtrl,
+                      label: 'Résumé historique',
+                      hint: "Racontez l'histoire de votre village…",
+                      icon: Symbols.auto_stories,
+                      maxLines: 8,
+                      maxLength: 5000,
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Aperçu de la couverture
+                    if (_coverCtrl.text.trim().isNotEmpty) ...[
+                      Padding(
+                        padding: const EdgeInsets.only(left: 2, bottom: 8),
+                        child: Text(
+                          'APERÇU COUVERTURE',
+                          style: GwType.mono(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: t.stoneDim),
+                        ),
+                      ),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(GwTokens.rBtn),
+                        child: Image.network(
+                          _coverCtrl.text.trim(),
+                          height: 160,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Container(
+                            height: 160,
+                            decoration: BoxDecoration(
+                              color: GwTokens.emberBg,
+                              borderRadius: BorderRadius.circular(GwTokens.rBtn),
+                              border: Border.all(color: GwTokens.emberLine),
+                            ),
+                            child: Center(
+                              child: Text(
+                                'Image invalide',
+                                style: GwType.ui(
+                                    fontSize: 14, color: t.emberText),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+
+                    const SizedBox(height: 40),
+                  ],
                 ),
               ),
-            ],
-
-            const SizedBox(height: 40),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildField({
-    required TextEditingController controller,
-    required String label,
-    required String hint,
-    required IconData icon,
-    int maxLines = 1,
-    int? maxLength,
-    TextInputType? keyboardType,
-    List<TextInputFormatter>? inputFormatters,
-  }) {
-    final theme = Theme.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(icon, size: 16, color: GwTokens.dark.stoneMid),
-            const SizedBox(width: 6),
-            Text(label, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
-          ],
-        ),
-        const SizedBox(height: 8),
-        TextFormField(
-          controller: controller,
-          maxLines: maxLines,
-          maxLength: maxLength,
-          keyboardType: keyboardType,
-          inputFormatters: inputFormatters,
-          style: theme.textTheme.bodyMedium,
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: TextStyle(color: GwTokens.dark.stoneDim),
-            filled: true,
-            fillColor: theme.colorScheme.surface,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: theme.colorScheme.outline.withAlpha(30)),
+  Widget _header(GwTokens t) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(8, 6, 16, 8),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: t.line)),
+      ),
+      child: Row(
+        children: [
+          SizedBox(
+            width: GwTokens.tapTarget,
+            height: GwTokens.tapTarget,
+            child: IconButton(
+              onPressed: () => Navigator.of(context).pop(),
+              icon: Icon(Symbols.arrow_back, size: 24, color: t.stone),
+              tooltip: 'Retour',
             ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: theme.colorScheme.outline.withAlpha(30)),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: theme.colorScheme.primary),
-            ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           ),
-        ),
-      ],
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              'Modifier ${widget.village.name}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: GwType.display(fontSize: 20, color: t.stone),
+            ),
+          ),
+          const SizedBox(width: 10),
+          GestureDetector(
+            onTap: _saving ? null : _save,
+            child: Container(
+              constraints: const BoxConstraints(minHeight: 44),
+              padding: const EdgeInsets.symmetric(horizontal: 18),
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: _saving
+                    ? GwTokens.gold.withValues(alpha: 0.5)
+                    : GwTokens.gold,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: _saving
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Color(0xFF0C0B0F)),
+                    )
+                  : Text(
+                      'Enregistrer',
+                      style: GwType.ui(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF0C0B0F)),
+                    ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

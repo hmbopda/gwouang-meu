@@ -8,6 +8,7 @@ import 'package:gwangmeu/core/router/route_names.dart';
 import 'package:gwangmeu/core/theme/gw_tokens.dart';
 import 'package:gwangmeu/features/feed/feed_notifier.dart';
 import 'package:gwangmeu/features/home/home_screen.dart';
+import 'package:gwangmeu/features/notifications/notifications_notifier.dart';
 import 'package:gwangmeu/features/notifications/widgets/notification_panel.dart';
 import 'package:gwangmeu/features/profile/profile_notifier.dart';
 import 'package:gwangmeu/features/villages/villages_notifier.dart';
@@ -29,7 +30,11 @@ class FeedScreen extends ConsumerWidget {
 
     final feed = feedState.when(
       loading: () => const ShimmerList(count: 5, cardHeight: 220),
-      error: (e, _) => _FeedList(posts: _demoPosts),
+      error: (e, _) => _FeedError(
+        onRetry: () => ref.read(feedNotifierProvider.notifier).refresh(),
+      ),
+      // Liste vide : jeu d'exemples pour illustrer le fil (aucune donnée réelle
+      // à afficher tant que la communauté ne publie pas).
       data: (posts) => _FeedList(posts: posts.isEmpty ? _demoPosts : posts),
     );
 
@@ -80,7 +85,7 @@ class _DesktopContextRail extends ConsumerWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(4, 20, 24, 20),
       children: [
-        // ── Encart IA ──
+        // ── Raccourci Lignées ──
         Container(
           padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
           decoration: BoxDecoration(
@@ -92,13 +97,13 @@ class _DesktopContextRail extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'MÉMOIRE · 87%',
+                'MÉMOIRE FAMILIALE',
                 style: GwType.mono(
                     fontSize: 10, letterSpacing: 1.5, color: t.sageText),
               ),
               const SizedBox(height: 10),
               Text(
-                'Un ancêtre commun avec Kwame Asante ? 3 lignées Bakoko correspondent.',
+                'Explorez votre lignée et enregistrez les récits de vos aînés.',
                 style:
                     GwType.ui(fontSize: 13.5, color: t.stone, height: 1.6),
               ),
@@ -119,7 +124,7 @@ class _DesktopContextRail extends ConsumerWidget {
                     ),
                   ),
                   child: Text(
-                    'Explorer le lien',
+                    'Ouvrir ma rivière',
                     style:
                         GwType.ui(fontSize: 13, fontWeight: FontWeight.w600),
                   ),
@@ -241,7 +246,7 @@ class _FeedHeader extends ConsumerWidget {
           ),
           _HeaderAction(
             icon: Symbols.notifications,
-            showDot: true,
+            showDot: (ref.watch(unreadCountProvider).valueOrNull ?? 0) > 0,
             onTap: () => _openNotifications(context),
           ),
           const SizedBox(width: 10),
@@ -359,11 +364,14 @@ class _FeedList extends ConsumerWidget {
             );
           }
           final post = posts[index - 2];
+          final suggestionId = post.aiSuggestionId;
           return PostCard(
             post: post,
-            // Parcours prototype : Explorer le lien → écran de vérification
-            // (fade + translateY 300ms), puis la branche rejoint la rivière.
-            onAiExplore: () => context.push(Routes.verify(post.id)),
+            // « Explorer le lien » → écran de vérification (fade + translateY
+            // 300 ms). Actif seulement si le post porte une vraie suggestion IA.
+            onAiExplore: suggestionId == null
+                ? null
+                : () => context.push(Routes.verify(suggestionId)),
             onAiDismiss: () {},
           );
         },
@@ -449,19 +457,6 @@ final _demoPosts = [
     createdAt: DateTime.now().subtract(const Duration(hours: 4)),
   ),
   PostModel(
-    id: 'demo-p4',
-    authorId: 'ai',
-    villageId: 'v1',
-    content:
-        'Kwame Asante et vous partagez probablement un ancêtre du clan Bakoko — 3 lignées correspondent.',
-    isAiSuggestion: true,
-    aiConfidence: '87%',
-    aiDescription: 'Lien familial probable détecté',
-    authorDisplayName: 'Mémoire familiale',
-    villageName: 'Bassa-Likoko',
-    createdAt: DateTime.now().subtract(const Duration(hours: 1)),
-  ),
-  PostModel(
     id: 'demo-p3',
     authorId: 'u3',
     villageId: 'v3',
@@ -474,3 +469,60 @@ final _demoPosts = [
     createdAt: DateTime.now(),
   ),
 ];
+
+// ─────────────────────────────────────────────────────────────────
+//  État d'erreur — honnête (plus de fallback silencieux vers la démo)
+// ─────────────────────────────────────────────────────────────────
+
+class _FeedError extends StatelessWidget {
+  const _FeedError({required this.onRetry});
+
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = GwTokens.of(context);
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Symbols.cloud_off, size: 48, color: t.stoneFaint),
+            const SizedBox(height: 14),
+            Text(
+              'Le fil n\'a pas pu se charger',
+              style: GwType.display(
+                  fontSize: 17, fontWeight: FontWeight.w600, color: t.stone),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Vérifiez votre connexion, puis réessayez.',
+              textAlign: TextAlign.center,
+              style: GwType.ui(fontSize: 14, color: t.stoneMid),
+            ),
+            const SizedBox(height: 18),
+            SizedBox(
+              height: GwTokens.tapTarget,
+              child: FilledButton.icon(
+                onPressed: onRetry,
+                style: FilledButton.styleFrom(
+                  backgroundColor: GwTokens.gold,
+                  foregroundColor: GwTokens.inkOnGold,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(GwTokens.rBtn),
+                  ),
+                ),
+                icon: const Icon(Symbols.refresh, size: 18),
+                label: Text(
+                  'Réessayer',
+                  style: GwType.ui(fontSize: 14, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

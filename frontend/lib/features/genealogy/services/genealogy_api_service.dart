@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:gwangmeu/core/cache/cache_service.dart';
 import 'package:gwangmeu/core/network/api_client.dart';
 import 'package:gwangmeu/features/genealogy/models/ai_suggestion.dart';
 import 'package:gwangmeu/features/genealogy/models/clan_model.dart';
@@ -18,7 +19,9 @@ class GenealogyApiService {
   Future<PersonGenealogy> getMyPerson() async {
     final t = DateTime.now();
     final response = await _api.get('/api/v1/persons/me');
-    debugPrint('[PERF] GET /persons/me : ${DateTime.now().difference(t).inMilliseconds}ms');
+    if (kDebugMode) {
+      debugPrint('[PERF] GET /persons/me : ${DateTime.now().difference(t).inMilliseconds}ms');
+    }
     return PersonGenealogy.fromJson(response['data'] as Map<String, dynamic>);
   }
 
@@ -27,7 +30,9 @@ class GenealogyApiService {
   Future<FamilyTree> getFullTree(String personId) async {
     final t = DateTime.now();
     final response = await _api.get('/api/v1/genealogy/tree/$personId');
-    debugPrint('[PERF] GET /genealogy/tree : ${DateTime.now().difference(t).inMilliseconds}ms');
+    if (kDebugMode) {
+      debugPrint('[PERF] GET /genealogy/tree : ${DateTime.now().difference(t).inMilliseconds}ms');
+    }
     return FamilyTree.fromJson(response['data'] as Map<String, dynamic>);
   }
 
@@ -291,18 +296,16 @@ class GenealogyApiService {
     return list.map((e) => AiSuggestion.fromJson(e as Map<String, dynamic>)).toList();
   }
 
+  /// Accepte (`accepted=true`) ou rejette une suggestion IA via l'endpoint
+  /// existant PUT /ai/suggestions/{id}/review. C'est l'unique voie de
+  /// confirmation — l'ancien POST /suggestions/{id}/confirm n'existe pas
+  /// côté backend.
   Future<AiSuggestion> reviewSuggestion(String suggestionId, bool accepted) async {
     final response = await _api.put(
       '/api/v1/genealogy/ai/suggestions/$suggestionId/review',
       data: {'accepted': accepted},
     );
     return AiSuggestion.fromJson(response['data'] as Map<String, dynamic>);
-  }
-
-  /// Confirme une suggestion IA — la branche rejoint la rivière.
-  /// (parcours « Suggestion IA vers Arbre », README design)
-  Future<void> confirmSuggestion(String suggestionId) async {
-    await _api.post('/api/v1/genealogy/suggestions/$suggestionId/confirm');
   }
 }
 
@@ -312,19 +315,56 @@ final genealogyApiServiceProvider = Provider<GenealogyApiService>((ref) {
   return GenealogyApiService(ref.read(apiClientProvider));
 });
 
+/// Arbre familial avec lecture stale-while-revalidate :
+/// 1. si un cache local existe, il est émis immédiatement (affichage instantané
+///    et support hors-ligne) ;
+/// 2. le réseau est ensuite interrogé en arrière-plan — succès → l'état est mis
+///    à jour et le cache réécrit ; échec → silencieux si un cache a été servi,
+///    sinon l'erreur remonte à l'UI.
+/// API publique inchangée : `ref.watch(familyTreeProvider(personId))` expose un
+/// `AsyncValue<FamilyTree>` et `ref.invalidate(...)` relance le cycle.
 final familyTreeProvider =
-    FutureProvider.autoDispose.family<FamilyTree, String>((ref, personId) async {
-  debugPrint('[TREE] familyTreeProvider called for personId=$personId');
+    StreamProvider.autoDispose.family<FamilyTree, String>((ref, personId) async* {
+  if (kDebugMode) {
+    debugPrint('[TREE] familyTreeProvider called for personId=$personId');
+  }
+  final cache = ref.watch(cacheServiceProvider);
+
+  // ── 1. Cache d'abord ──
+  FamilyTree? cachedTree;
+  final cachedJson = cache.getFamilyTreeJson(personId);
+  if (cachedJson != null) {
+    try {
+      cachedTree = FamilyTree.fromJson(cachedJson);
+      if (kDebugMode) {
+        debugPrint('[TREE] cache hit — émission immédiate pour $personId');
+      }
+      yield cachedTree;
+    } catch (e) {
+      cachedTree = null;
+      if (kDebugMode) {
+        debugPrint('[TREE] cache illisible pour $personId — $e');
+      }
+    }
+  }
+
+  // ── 2. Réseau (revalidation en arrière-plan) ──
   try {
     final tree = await ref.read(genealogyApiServiceProvider).getFullTree(personId);
-    debugPrint('[TREE] SUCCESS — subject=${tree.subject.firstName} ${tree.subject.lastName}, '
-        'father=${tree.father.length}, mother=${tree.mother.length}, '
-        'children=${tree.children.length}, siblings=${tree.siblings.length}, '
-        'unions=${tree.unions.length}');
-    return tree;
+    if (kDebugMode) {
+      debugPrint('[TREE] SUCCESS — subject=${tree.subject.firstName} ${tree.subject.lastName}, '
+          'father=${tree.father.length}, mother=${tree.mother.length}, '
+          'children=${tree.children.length}, siblings=${tree.siblings.length}, '
+          'unions=${tree.unions.length}');
+    }
+    cache.putFamilyTreeJson(personId, tree.toJson());
+    yield tree;
   } catch (e, st) {
-    debugPrint('[TREE] ERROR — $e');
-    debugPrint('[TREE] STACKTRACE — $st');
-    rethrow;
+    if (kDebugMode) {
+      debugPrint('[TREE] ERROR — $e');
+      debugPrint('[TREE] STACKTRACE — $st');
+    }
+    // Hors ligne avec cache servi : erreur silencieuse, l'arbre reste affiché.
+    if (cachedTree == null) rethrow;
   }
 });

@@ -28,6 +28,11 @@ class PostModel with _$PostModel {
     @Default(false) bool isAiSuggestion,
     String? aiConfidence,
     String? aiDescription,
+
+    /// Id de la suggestion IA associée (post « Mémoire familiale »).
+    /// `null` tant que le backend n'en fournit pas : le CTA « Explorer le
+    /// lien » reste alors inactif.
+    String? aiSuggestionId,
     DateTime? createdAt,
     String? authorDisplayName,
     String? authorAvatarUrl,

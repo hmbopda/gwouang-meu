@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -759,7 +758,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                 child: Text(
                   v.name.isNotEmpty ? v.name[0].toUpperCase() : '?',
                   style: GwType.display(
-                      fontSize: 20, color: GwTokens.dark.ink),
+                      fontSize: 20, color: GwTokens.inkOnGold),
                 ),
               ),
               const SizedBox(width: 14),
@@ -1216,12 +1215,12 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
           borderRadius: BorderRadius.circular(GwTokens.rBtn),
           child: Center(
             child: loading
-                ? SizedBox(
+                ? const SizedBox(
                     width: 22,
                     height: 22,
                     child: CircularProgressIndicator(
                       strokeWidth: 2.5,
-                      color: GwTokens.dark.ink,
+                      color: GwTokens.inkOnGold,
                     ),
                   )
                 : Row(
@@ -1232,12 +1231,12 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                         style: GwType.ui(
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
-                          color: GwTokens.dark.ink,
+                          color: GwTokens.inkOnGold,
                         ),
                       ),
                       if (icon != null) ...[
                         const SizedBox(width: 8),
-                        Icon(icon, size: 18, color: GwTokens.dark.ink),
+                        Icon(icon, size: 18, color: GwTokens.inkOnGold),
                       ],
                     ],
                   ),
@@ -1549,7 +1548,7 @@ class _SocialGrid extends StatelessWidget {
             Expanded(
               child: _SocialButton(
                 label: 'Google',
-                icon: FontAwesomeIcons.google,
+                initial: 'G',
                 brandColor: const Color(0xFFDB4437),
                 onTap: () => onTap(OAuthProvider.google),
               ),
@@ -1558,7 +1557,7 @@ class _SocialGrid extends StatelessWidget {
             Expanded(
               child: _SocialButton(
                 label: 'Facebook',
-                icon: FontAwesomeIcons.facebookF,
+                initial: 'f',
                 brandColor: const Color(0xFF1877F2),
                 onTap: () => onTap(OAuthProvider.facebook),
               ),
@@ -1571,7 +1570,7 @@ class _SocialGrid extends StatelessWidget {
             Expanded(
               child: _SocialButton(
                 label: 'Apple',
-                icon: FontAwesomeIcons.apple,
+                initial: 'A',
                 brandColor: t.stone,
                 onTap: () => onTap(OAuthProvider.apple),
               ),
@@ -1580,7 +1579,7 @@ class _SocialGrid extends StatelessWidget {
             Expanded(
               child: _SocialButton(
                 label: 'GitHub',
-                icon: FontAwesomeIcons.github,
+                initial: 'G',
                 brandColor: const Color(0xFF6E40C9),
                 onTap: () => onTap(OAuthProvider.github),
               ),
@@ -1593,7 +1592,7 @@ class _SocialGrid extends StatelessWidget {
             Expanded(
               child: _SocialButton(
                 label: 'Twitter / X',
-                icon: FontAwesomeIcons.xTwitter,
+                initial: 'X',
                 brandColor: t.stone,
                 onTap: () => onTap(OAuthProvider.twitter),
               ),
@@ -1602,7 +1601,7 @@ class _SocialGrid extends StatelessWidget {
             Expanded(
               child: _SocialButton(
                 label: 'LinkedIn',
-                icon: FontAwesomeIcons.linkedinIn,
+                initial: 'in',
                 brandColor: const Color(0xFF0A66C2),
                 onTap: () => onTap(OAuthProvider.linkedin),
               ),
@@ -1614,15 +1613,17 @@ class _SocialGrid extends StatelessWidget {
   }
 }
 
+/// Bouton social sans dépendance d'icônes de marque : pastille ronde
+/// portant l'initiale du fournisseur (Fraunces, couleur de marque) + libellé.
 class _SocialButton extends StatelessWidget {
   final String label;
-  final IconData icon;
+  final String initial;
   final Color brandColor;
   final VoidCallback onTap;
 
   const _SocialButton({
     required this.label,
-    required this.icon,
+    required this.initial,
     required this.brandColor,
     required this.onTap,
   });
@@ -1644,7 +1645,25 @@ class _SocialButton extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          FaIcon(icon, size: 15, color: brandColor),
+          Container(
+            width: 22,
+            height: 22,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: brandColor.withValues(alpha: 0.16),
+              border: Border.all(color: brandColor.withValues(alpha: 0.45)),
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              initial,
+              style: GwType.display(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: brandColor,
+                height: 1,
+              ),
+            ),
+          ),
           const SizedBox(width: 8),
           Flexible(
             child: Text(

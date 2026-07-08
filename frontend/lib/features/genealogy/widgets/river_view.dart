@@ -4,8 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
 import 'package:gwangmeu/core/theme/gw_tokens.dart';
+import 'package:gwangmeu/features/genealogy/models/ai_suggestion.dart';
 import 'package:gwangmeu/features/genealogy/models/family_tree.dart';
 import 'package:gwangmeu/features/genealogy/models/person_genealogy.dart';
+import 'package:gwangmeu/features/genealogy/verification/verification_provider.dart'
+    show suggestionConfidencePct;
 
 /// « Rivière des générations » mobile (#1d) — l'arbre navigable
 /// verticalement, génération par génération, le long d'un axe or.
@@ -17,17 +20,20 @@ class GenealogyRiverView extends StatelessWidget {
     required this.tree,
     this.onPersonTap,
     this.onVerifySuggestion,
-    this.showAiAffluent = true,
+    this.suggestion,
     this.aiConfirmed = false,
   });
 
   final FamilyTree tree;
   final void Function(PersonGenealogy person)? onPersonTap;
   final VoidCallback? onVerifySuggestion;
-  final bool showAiAffluent;
+
+  /// Suggestion IA réelle (la plus forte confidence de
+  /// `tree.pendingSuggestions`). `null` → aucun affluent affiché.
+  final AiSuggestion? suggestion;
 
   /// La suggestion a été confirmée : la branche passe de pointillée
-  /// « AFFLUENT · 87% » à pleine « BRANCHE CONFIRMÉE » (fade-up 0,5 s).
+  /// « AFFLUENT · n% » à pleine « BRANCHE CONFIRMÉE » (fade-up 0,5 s).
   final bool aiConfirmed;
 
   @override
@@ -76,10 +82,10 @@ class GenealogyRiverView extends StatelessWidget {
                       m.person.id == tree.subject.id
                           ? _subjectCard(context, m)
                           : _personCard(context, m),
-                    if (gen.isSubjectGen && showAiAffluent)
+                    if (gen.isSubjectGen && suggestion != null)
                       aiConfirmed
-                          ? _confirmedBranchCard(context)
-                          : _affluentCard(context),
+                          ? _confirmedBranchCard(context, suggestion!)
+                          : _affluentCard(context, suggestion!),
                   ],
                 ),
               ),
@@ -299,9 +305,24 @@ class GenealogyRiverView extends StatelessWidget {
     );
   }
 
-  /// Affluent IA — carte pointillée sage « AFFLUENT · 87% ».
-  Widget _affluentCard(BuildContext context) {
+  /// Personne proposée par la suggestion : personB, ou personA si personB
+  /// est le sujet de l'arbre.
+  PersonGenealogy? _suggestedPerson(AiSuggestion s) {
+    if (s.personB != null && s.personB!.id != tree.subject.id) {
+      return s.personB;
+    }
+    if (s.personA != null && s.personA!.id != tree.subject.id) {
+      return s.personA;
+    }
+    return s.personB ?? s.personA;
+  }
+
+  /// Affluent IA — carte pointillée sage « AFFLUENT · n% » (données réelles).
+  Widget _affluentCard(BuildContext context, AiSuggestion s) {
     final t = GwTokens.of(context);
+    final person = _suggestedPerson(s);
+    final firstName =
+        (person?.firstName.isNotEmpty ?? false) ? person!.firstName : 'Membre';
     return GestureDetector(
       onTap: onVerifySuggestion,
       child: CustomPaint(
@@ -322,7 +343,9 @@ class GenealogyRiverView extends StatelessWidget {
               Icon(Symbols.auto_awesome, size: 20, color: t.sageText),
               const SizedBox(height: 6),
               Text(
-                'Kwame A.',
+                firstName,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: GwType.ui(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
@@ -330,7 +353,7 @@ class GenealogyRiverView extends StatelessWidget {
               ),
               const SizedBox(height: 2),
               Text(
-                'AFFLUENT · 87%',
+                'AFFLUENT · ${suggestionConfidencePct(s)}%',
                 style: GwType.mono(
                     fontSize: 10, color: t.sageText, letterSpacing: 1),
               ),
@@ -342,8 +365,15 @@ class GenealogyRiverView extends StatelessWidget {
   }
 
   /// Branche confirmée — carte pleine sage, fade-up 0,5 s.
-  Widget _confirmedBranchCard(BuildContext context) {
+  Widget _confirmedBranchCard(BuildContext context, AiSuggestion s) {
     final t = GwTokens.of(context);
+    final person = _suggestedPerson(s);
+    final fullName = person != null
+        ? '${person.firstName} ${person.lastName}'.trim()
+        : 'Nouvelle branche';
+    final initial = (person?.firstName.isNotEmpty ?? false)
+        ? person!.firstName[0].toUpperCase()
+        : '?';
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: 1),
       duration: const Duration(milliseconds: 500),
@@ -375,7 +405,7 @@ class GenealogyRiverView extends StatelessWidget {
               ),
               alignment: Alignment.center,
               child: Text(
-                'K',
+                initial,
                 style: GwType.display(
                     fontSize: 17,
                     fontWeight: FontWeight.w700,
@@ -384,7 +414,9 @@ class GenealogyRiverView extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              'Kwame Asante',
+              fullName,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: GwType.ui(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,

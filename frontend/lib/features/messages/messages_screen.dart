@@ -177,7 +177,7 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
             style: GwType.ui(
               fontSize: 13.5,
               fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
-              color: selected ? const Color(0xFF0C0B0F) : t.stoneFaint,
+              color: selected ? GwTokens.inkOnGold : t.stoneFaint,
             ),
           ),
         ),
@@ -210,7 +210,7 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
       SnackBar(
         content: Text(
           'Ouvrez un village pour démarrer une conversation',
-          style: GwType.ui(fontSize: 14, color: GwTokens.dark.stone),
+          style: GwType.ui(fontSize: 14, color: GwTokens.of(context).stone),
         ),
       ),
     );
@@ -270,7 +270,7 @@ class _ConversationRow extends StatelessWidget {
                   style: GwType.display(
                       fontSize: 19,
                       fontWeight: FontWeight.w700,
-                      color: const Color(0xFF0C0B0F)),
+                      color: GwTokens.inkOnGold),
                 ),
               ),
               const SizedBox(width: 12),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:material_symbols_icons/symbols.dart';
 
 import 'package:gwangmeu/core/theme/gw_tokens.dart';
 import 'package:gwangmeu/shared/widgets/gwang_button.dart';
@@ -9,7 +10,7 @@ class GwangErrorWidget extends StatelessWidget {
     super.key,
     required this.message,
     this.onRetry,
-    this.icon = Icons.error_outline,
+    this.icon = Symbols.error,
   });
 
   final String message;
@@ -18,20 +19,19 @@ class GwangErrorWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = GwTokens.of(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 48, color: GwTokens.dark.stoneDim),
+            Icon(icon, size: 48, color: t.stoneDim),
             const SizedBox(height: 16),
             Text(
               message,
               textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: GwTokens.dark.stoneMid,
-                  ),
+              style: GwType.ui(fontSize: 14, color: t.stoneMid, height: 1.5),
             ),
             if (onRetry != null) ...[
               const SizedBox(height: 24),
@@ -54,7 +54,7 @@ class GwangEmptyWidget extends StatelessWidget {
   const GwangEmptyWidget({
     super.key,
     required this.message,
-    this.icon = Icons.inbox_outlined,
+    this.icon = Symbols.inbox,
     this.action,
     this.actionLabel,
   });
@@ -66,24 +66,24 @@ class GwangEmptyWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = GwTokens.of(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 56, color: GwTokens.dark.stoneDim),
+            Icon(icon, size: 56, color: t.stoneDim),
             const SizedBox(height: 16),
             Text(
               message,
               textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: GwTokens.dark.stoneMid,
-                  ),
+              style: GwType.ui(fontSize: 14, color: t.stoneMid, height: 1.5),
             ),
             if (action != null && actionLabel != null) ...[
               const SizedBox(height: 24),
-              GwangButton(label: actionLabel!, onPressed: action, fullWidth: false),
+              GwangButton(
+                  label: actionLabel!, onPressed: action, fullWidth: false),
             ],
           ],
         ),

@@ -52,12 +52,6 @@ dependencies:
   cupertino_icons: ^1.0.8
   material_symbols_icons: ^4.2785.1
 
-  # Typographies Tissage (Fraunces, Syne, JetBrains Mono)
-  google_fonts: ^6.2.1
-
-  # Social login icons (Google, Facebook, Apple, GitHub...)
-  font_awesome_flutter: ^10.7.0
-
   # Ouvrir navigateur pour OAuth (Google, Facebook, etc.)
   url_launcher: ^6.3.0
 
@@ -89,3 +83,36 @@ flutter:
   assets:
     - .env
     - assets/images/
+
+  # Typographies Tissage bundlées (subset latin, variantes statiques).
+  fonts:
+    - family: Fraunces
+      fonts:
+        - asset: assets/fonts/Fraunces-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Fraunces-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Fraunces-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/Fraunces-MediumItalic.ttf
+          weight: 500
+          style: italic
+        - asset: assets/fonts/Fraunces-SemiBoldItalic.ttf
+          weight: 600
+          style: italic
+    - family: Syne
+      fonts:
+        - asset: assets/fonts/Syne-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Syne-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Syne-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Syne-Bold.ttf
+          weight: 700
+    - family: JetBrainsMono
+      fonts:
+        - asset: assets/fonts/JetBrainsMono-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/JetBrainsMono-SemiBold.ttf
+          weight: 600

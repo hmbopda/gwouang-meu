@@ -1,3 +1,5 @@
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -5,9 +7,14 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'package:gwangmeu/core/cache/cache_service.dart';
+import 'package:gwangmeu/core/connectivity/offline_banner.dart';
+import 'package:gwangmeu/core/notifications/notification_service.dart';
 import 'package:gwangmeu/core/router/app_router.dart';
 import 'package:gwangmeu/core/theme/app_theme.dart';
 import 'package:gwangmeu/core/theme/theme_notifier.dart';
+import 'package:gwangmeu/features/genealogy/genealogy_notifier.dart';
+import 'package:gwangmeu/firebase_options.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // BootstrapApp — s'affiche INSTANTANÉMENT, init Supabase en arrière-plan
@@ -42,17 +49,28 @@ class _BootstrapAppState extends State<BootstrapApp> {
       debugPrint('[Perf] dotenv.load(): ${DateTime.now().difference(t0).inMilliseconds}ms');
     }
 
-    // ── Supabase ──
-    final t1 = DateTime.now();
-    await Supabase.initialize(
-      url: dotenv.env['SUPABASE_URL']!,
-      anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
-      authOptions: const FlutterAuthClientOptions(
-        authFlowType: AuthFlowType.pkce,
+    // ── Hive, Firebase et Supabase en PARALLÈLE ──
+    final tParallel = DateTime.now();
+    final futures = <Future>[
+      CacheService.init(),
+      Supabase.initialize(
+        url: dotenv.env['SUPABASE_URL']!,
+        anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
+        authOptions: const FlutterAuthClientOptions(
+          authFlowType: AuthFlowType.pkce,
+        ),
       ),
-    );
+    ];
+    // Firebase non supporté sur Web (pas de google-services web configuré)
+    if (!kIsWeb) {
+      futures.add(Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform));
+    }
+    await Future.wait(futures);
+    if (!kIsWeb) {
+      FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+    }
     if (kDebugMode) {
-      debugPrint('[Perf] Supabase.initialize(): ${DateTime.now().difference(t1).inMilliseconds}ms');
+      debugPrint('[Perf] Hive+Firebase+Supabase (parallèle): ${DateTime.now().difference(tParallel).inMilliseconds}ms');
       debugPrint('[Perf] Total init: ${DateTime.now().difference(widget.mainStartTime).inMilliseconds}ms');
     }
   }
@@ -169,11 +187,31 @@ class _SplashScreen extends StatelessWidget {
 // GwangMeuApp — app principale (chargée APRÈS init Supabase)
 // ─────────────────────────────────────────────────────────────────────────────
 
-class GwangMeuApp extends ConsumerWidget {
+class GwangMeuApp extends ConsumerStatefulWidget {
   const GwangMeuApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<GwangMeuApp> createState() => _GwangMeuAppState();
+}
+
+class _GwangMeuAppState extends ConsumerState<GwangMeuApp> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Notifications FCM uniquement sur mobile (non supporté sur web)
+      if (!kIsWeb) {
+        ref.read(notificationServiceProvider).init();
+      }
+      // Pré-charger la fiche personne généalogie en arrière-plan dès le
+      // démarrage. GenealogyNotifier est keepAlive : l'état préchargé est
+      // conservé et réutilisé quand l'utilisateur ouvre l'écran généalogie.
+      ref.read(genealogyNotifierProvider.future).ignore();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final router = ref.watch(routerProvider);
     final accent = ref.watch(accentColorProvider);
     final displayMode = ref.watch(displayModeProvider);
@@ -198,6 +236,7 @@ class GwangMeuApp extends ConsumerWidget {
       ],
       locale: const Locale('fr'),
       routerConfig: router,
+      builder: (context, child) => OfflineBanner(child: child ?? const SizedBox.shrink()),
     );
   }
 

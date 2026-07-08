@@ -41,30 +41,125 @@ class TreeCanvas extends ConsumerStatefulWidget {
   ConsumerState<TreeCanvas> createState() => _TreeCanvasState();
 }
 
-class _TreeCanvasState extends ConsumerState<TreeCanvas> {
+class _TreeCanvasState extends ConsumerState<TreeCanvas>
+    with SingleTickerProviderStateMixin {
   final TransformationController _transformCtrl = TransformationController();
-  String? _tooltipNodeId;
+
+  /// Tooltip courant : ValueNotifier + ValueListenableBuilder autour du seul
+  /// overlay — le hover ne rebuild ni le Stack ni les _NodeSlot.
+  final ValueNotifier<String?> _tooltipNodeId = ValueNotifier<String?>(null);
+
+  late final AnimationController _centerAnimCtrl;
+  Animation<Matrix4>? _centerAnim;
+
+  Size _viewportSize = Size.zero;
+
+  // Cache des strates (TextPainter par génération) : recalculé uniquement
+  // quand le layout ou le thème change — jamais dans paint().
+  TreeLayout? _strataLayout;
+  Brightness? _strataBrightness;
+  List<_StrataInfo> _strata = const [];
+
+  @override
+  void initState() {
+    super.initState();
+    _centerAnimCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    )..addListener(() {
+        final anim = _centerAnim;
+        if (anim != null) _transformCtrl.value = anim.value;
+      });
+
+    // Centrage initial sur le nœud sujet au premier build.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _centerOnSubject(animate: false);
+    });
+  }
 
   @override
   void dispose() {
+    _centerAnimCtrl.dispose();
     _transformCtrl.dispose();
+    _tooltipNodeId.dispose();
     super.dispose();
   }
 
   void _zoomIn() {
+    _centerAnimCtrl.stop();
     final m = _transformCtrl.value.clone();
     m.scaleByDouble(1.2, 1.2, 1.2, 1.0);
     _transformCtrl.value = m;
   }
 
   void _zoomOut() {
+    _centerAnimCtrl.stop();
     final m = _transformCtrl.value.clone();
     m.scaleByDouble(0.8, 0.8, 0.8, 1.0);
     _transformCtrl.value = m;
   }
 
-  void _resetZoom() {
-    _transformCtrl.value = Matrix4.identity();
+  void _resetZoom() => _centerOnSubject(animate: true);
+
+  /// Recentre la vue sur le nœud sujet (échelle 1), animé si demandé.
+  void _centerOnSubject({required bool animate}) {
+    final layout = ref.read(treeLayoutProvider(widget.tree));
+    if (_viewportSize == Size.zero || layout.nodes.isEmpty) return;
+
+    LayoutNode? subject;
+    for (final node in layout.nodes) {
+      if (node.isSubject) {
+        subject = node;
+        break;
+      }
+    }
+    final target = subject?.position ??
+        Offset(layout.contentWidth / 2, layout.contentHeight / 2);
+
+    final matrix = Matrix4.identity()
+      ..setTranslationRaw(
+        _viewportSize.width / 2 - target.dx,
+        _viewportSize.height / 2 - target.dy,
+        0,
+      );
+
+    if (animate) {
+      _centerAnim =
+          Matrix4Tween(begin: _transformCtrl.value.clone(), end: matrix)
+              .animate(CurvedAnimation(
+        parent: _centerAnimCtrl,
+        curve: Curves.easeInOutCubic,
+      ));
+      _centerAnimCtrl.forward(from: 0);
+    } else {
+      _transformCtrl.value = matrix;
+    }
+  }
+
+  // ── Tooltip (ValueNotifier — aucun setState) ──────────────
+
+  void _showTooltip(String id) => _tooltipNodeId.value = id;
+
+  void _hideTooltipNow() => _tooltipNodeId.value = null;
+
+  void _scheduleHideTooltip(String id) {
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (mounted && _tooltipNodeId.value == id) {
+        _tooltipNodeId.value = null;
+      }
+    });
+  }
+
+  // ── Strates : précalcul des TextPainter hors paint() ──────
+
+  List<_StrataInfo> _strataFor(TreeLayout layout, GwTokens t) {
+    if (identical(layout, _strataLayout) && t.brightness == _strataBrightness) {
+      return _strata;
+    }
+    _strataLayout = layout;
+    _strataBrightness = t.brightness;
+    _strata = _buildStrata(layout, t);
+    return _strata;
   }
 
   @override
@@ -77,168 +172,193 @@ class _TreeCanvasState extends ConsumerState<TreeCanvas> {
     final currentView =
         ref.watch(treeViewProvider.select((s) => s.currentView));
     final notifier = ref.read(treeViewProvider.notifier);
+    final strata = _strataFor(layout, t);
 
     return Container(
       color: t.ink,
-      child: Stack(
-        children: [
-          // ── Interactive pan/zoom area ──
-          InteractiveViewer(
-            transformationController: _transformCtrl,
-            constrained: false,
-            boundaryMargin: const EdgeInsets.all(200),
-            minScale: 0.3,
-            maxScale: 3.0,
-            child: SizedBox(
-              width: layout.contentWidth,
-              height: layout.contentHeight,
-              child: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  // Strates de générations — bandes douces + labels mono
-                  Positioned.fill(
-                    child: CustomPaint(painter: _StrataPainter(layout)),
-                  ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          _viewportSize = constraints.biggest;
 
-                  // Links (Bézier curves)
-                  Positioned.fill(
-                    child: CustomPaint(
-                      painter: TreeLinkPainter(
-                        links: layout.links,
-                        selectedPersonId: selectedPersonId,
-                      ),
-                    ),
-                  ),
-
-                  // Nodes — chaque _NodeSlot observe son propre isSelected/isHovered
-                  ...layout.nodes.map((node) => _NodeSlot(
-                        key: ValueKey(node.person.id),
-                        node: node,
-                        notifier: notifier,
-                        tooltipNodeId: _tooltipNodeId,
-                        onTooltipChanged: (id) =>
-                            setState(() => _tooltipNodeId = id),
-                      )),
-
-                  // Tooltip overlay
-                  if (_tooltipNodeId != null &&
-                      layout.nodeMap.containsKey(_tooltipNodeId))
-                    _buildTooltip(layout.nodeMap[_tooltipNodeId]!, notifier),
-                ],
-              ),
-            ),
-          ),
-
-          // ── Floating toolbar + action buttons (top) ──
-          Positioned(
-            top: 12,
-            left: 0,
-            right: 0,
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final compact = constraints.maxWidth < 700;
-
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    alignment: Alignment.centerLeft,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
+          return Stack(
+            children: [
+              // ── Interactive pan/zoom area ──
+              InteractiveViewer(
+                transformationController: _transformCtrl,
+                constrained: false,
+                boundaryMargin: const EdgeInsets.all(200),
+                minScale: 0.3,
+                maxScale: 3.0,
+                child: RepaintBoundary(
+                  child: SizedBox(
+                    width: layout.contentWidth,
+                    height: layout.contentHeight,
+                    child: Stack(
+                      clipBehavior: Clip.none,
                       children: [
-                        TreeToolbar(
-                          currentView: currentView,
-                          onViewChanged: notifier.changeView,
-                          compact: compact,
+                        // Strates de générations — bandes douces + labels mono
+                        Positioned.fill(
+                          child: CustomPaint(
+                            painter: _StrataPainter(
+                              strata: strata,
+                              dashColor: t.line.withValues(alpha: 0.05),
+                              faintColor: t.stoneFaint,
+                            ),
+                          ),
                         ),
-                        const SizedBox(width: 16),
-                        if (widget.onAddParent != null) ...[
-                          _ActionPill(
-                            icon: Symbols.person_add,
-                            label: 'Ajouter un parent',
-                            onTap: widget.onAddParent!,
-                            compact: compact,
+
+                        // Links (Bézier curves)
+                        Positioned.fill(
+                          child: CustomPaint(
+                            painter: TreeLinkPainter(
+                              links: layout.links,
+                              selectedPersonId: selectedPersonId,
+                              neutralColor: t.stoneFaint,
+                              unionColor: t.stone.withValues(alpha: 0.12),
+                            ),
                           ),
-                          const SizedBox(width: 8),
-                        ],
-                        if (widget.onAddUnion != null) ...[
-                          _ActionPill(
-                            icon: Symbols.favorite,
-                            label: 'Ajouter une union',
-                            onTap: widget.onAddUnion!,
-                            compact: compact,
-                            outlined: true,
-                          ),
-                          const SizedBox(width: 8),
-                        ],
-                        if (widget.onExport != null)
-                          _ActionPill(
-                            icon: Symbols.download,
-                            label: 'Exporter',
-                            onTap: widget.onExport!,
-                            compact: compact,
-                            outlined: true,
-                          ),
+                        ),
+
+                        // Nodes — chaque _NodeSlot observe son propre
+                        // isSelected/isHovered (le tooltip ne les rebuild pas)
+                        ...layout.nodes.map((node) => _NodeSlot(
+                              key: ValueKey(node.person.id),
+                              node: node,
+                              notifier: notifier,
+                              onTooltipShow: _showTooltip,
+                              onTooltipScheduleHide: _scheduleHideTooltip,
+                              onTooltipHideNow: _hideTooltipNow,
+                            )),
+
+                        // Tooltip overlay — seul ce builder écoute le hover
+                        ValueListenableBuilder<String?>(
+                          valueListenable: _tooltipNodeId,
+                          builder: (context, tooltipId, _) {
+                            final node = tooltipId == null
+                                ? null
+                                : layout.nodeMap[tooltipId];
+                            if (node == null) return const SizedBox.shrink();
+                            return _buildTooltip(node, notifier);
+                          },
+                        ),
                       ],
                     ),
                   ),
-                );
-              },
-            ),
-          ),
-
-          // ── Légende des lignées (desktop, bas gauche) ──
-          if (widget.showLegend)
-            Positioned(
-              bottom: 16,
-              left: 20,
-              child: _LineageLegend(),
-            ),
-
-          // ── Zoom controls (bottom right) ──
-          Positioned(
-            bottom: 16,
-            right: 16,
-            child: TreeZoomControls(
-              onZoomIn: _zoomIn,
-              onZoomOut: _zoomOut,
-              onReset: _resetZoom,
-            ),
-          ),
-
-          // ── Empty state ──
-          if (layout.nodes.length <= 1)
-            Center(
-              child: Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: t.inkCard,
-                  borderRadius: BorderRadius.circular(GwTokens.rCard),
-                  border: Border.all(color: t.goldLine),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Symbols.family_history,
-                        size: 48, color: t.stoneDim),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Votre rivière commence ici',
-                      style: GwType.display(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w600,
-                          color: t.stone),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Ajoutez vos parents pour faire couler la lignée',
-                      style: GwType.ui(fontSize: 13, color: t.stoneDim),
-                    ),
-                  ],
                 ),
               ),
-            ),
-        ],
+
+              // ── Floating toolbar + action buttons (top) ──
+              Positioned(
+                top: 12,
+                left: 0,
+                right: 0,
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final compact = constraints.maxWidth < 700;
+
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            TreeToolbar(
+                              currentView: currentView,
+                              onViewChanged: notifier.changeView,
+                              compact: compact,
+                            ),
+                            const SizedBox(width: 16),
+                            if (widget.onAddParent != null) ...[
+                              _ActionPill(
+                                icon: Symbols.person_add,
+                                label: 'Ajouter un parent',
+                                onTap: widget.onAddParent!,
+                                compact: compact,
+                              ),
+                              const SizedBox(width: 8),
+                            ],
+                            if (widget.onAddUnion != null) ...[
+                              _ActionPill(
+                                icon: Symbols.favorite,
+                                label: 'Ajouter une union',
+                                onTap: widget.onAddUnion!,
+                                compact: compact,
+                                outlined: true,
+                              ),
+                              const SizedBox(width: 8),
+                            ],
+                            if (widget.onExport != null)
+                              _ActionPill(
+                                icon: Symbols.download,
+                                label: 'Exporter',
+                                onTap: widget.onExport!,
+                                compact: compact,
+                                outlined: true,
+                              ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+
+              // ── Légende des lignées (desktop, bas gauche) ──
+              if (widget.showLegend)
+                Positioned(
+                  bottom: 16,
+                  left: 20,
+                  child: _LineageLegend(),
+                ),
+
+              // ── Zoom controls (bottom right) ──
+              Positioned(
+                bottom: 16,
+                right: 16,
+                child: TreeZoomControls(
+                  onZoomIn: _zoomIn,
+                  onZoomOut: _zoomOut,
+                  onReset: _resetZoom,
+                ),
+              ),
+
+              // ── Empty state ──
+              if (layout.nodes.length <= 1)
+                Center(
+                  child: Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: t.inkCard,
+                      borderRadius: BorderRadius.circular(GwTokens.rCard),
+                      border: Border.all(color: t.goldLine),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Symbols.family_history,
+                            size: 48, color: t.stoneDim),
+                        const SizedBox(height: 12),
+                        Text(
+                          'Votre rivière commence ici',
+                          style: GwType.display(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w600,
+                              color: t.stone),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Ajoutez vos parents pour faire couler la lignée',
+                          style: GwType.ui(fontSize: 13, color: t.stoneDim),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -252,14 +372,14 @@ class _TreeCanvasState extends ConsumerState<TreeCanvas> {
         onExit: (_) {
           // Defer to next frame to avoid mouse_tracker assertion on Flutter Web
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) setState(() => _tooltipNodeId = null);
+            if (mounted) _tooltipNodeId.value = null;
           });
         },
         child: TreeNodeTooltip(
           node: node,
           onViewDetails: () {
             notifier.selectPerson(node.person.id);
-            setState(() => _tooltipNodeId = null);
+            _hideTooltipNow();
             showDialog(
               context: context,
               builder: (_) => PersonDetailPopup(person: node.person),
@@ -267,12 +387,12 @@ class _TreeCanvasState extends ConsumerState<TreeCanvas> {
           },
           onAddParent: () {
             notifier.selectPerson(node.person.id);
-            setState(() => _tooltipNodeId = null);
+            _hideTooltipNow();
             widget.onAddParent?.call();
           },
           onAddChild: () {
             notifier.selectPerson(node.person.id);
-            setState(() => _tooltipNodeId = null);
+            _hideTooltipNow();
             widget.onAddChild?.call();
           },
         ),
@@ -281,7 +401,7 @@ class _TreeCanvasState extends ConsumerState<TreeCanvas> {
   }
 }
 
-/// Pilule d'action or (pleine ou contour), cible ≥ 40 px.
+/// Pilule d'action or (pleine ou contour), cible ≥ 44 px.
 class _ActionPill extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -299,10 +419,11 @@ class _ActionPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = GwTokens.of(context);
     final fg = outlined ? GwTokens.gold : const Color(0xFF0C0B0F);
 
     final pill = Material(
-      color: outlined ? GwTokens.dark.inkCard : GwTokens.gold,
+      color: outlined ? t.inkCard : GwTokens.gold,
       borderRadius: BorderRadius.circular(GwTokens.rPill),
       child: InkWell(
         onTap: onTap,
@@ -395,15 +516,17 @@ class _LineageLegend extends StatelessWidget {
 class _NodeSlot extends ConsumerWidget {
   final LayoutNode node;
   final TreeViewNotifier notifier;
-  final String? tooltipNodeId;
-  final ValueChanged<String?> onTooltipChanged;
+  final ValueChanged<String> onTooltipShow;
+  final ValueChanged<String> onTooltipScheduleHide;
+  final VoidCallback onTooltipHideNow;
 
   const _NodeSlot({
     super.key,
     required this.node,
     required this.notifier,
-    required this.tooltipNodeId,
-    required this.onTooltipChanged,
+    required this.onTooltipShow,
+    required this.onTooltipScheduleHide,
+    required this.onTooltipHideNow,
   });
 
   @override
@@ -420,75 +543,130 @@ class _NodeSlot extends ConsumerWidget {
     return Positioned(
       left: node.position.dx - width / 2,
       top: node.position.dy - 40,
-      child: TreeNodeWidget(
-        node: node,
-        isSelected: isSelected,
-        isHovered: isHovered,
-        onTap: () {
-          notifier.selectPerson(node.person.id);
-          onTooltipChanged(null);
-        },
-        onHover: (hovering) {
-          if (hovering) {
-            notifier.hoverPerson(node.person.id);
-            onTooltipChanged(node.person.id);
-          } else {
-            notifier.hoverPerson(null);
-            Future.delayed(const Duration(milliseconds: 300), () {
-              if (tooltipNodeId == node.person.id) {
-                onTooltipChanged(null);
-              }
-            });
-          }
-        },
+      child: RepaintBoundary(
+        child: TreeNodeWidget(
+          node: node,
+          isSelected: isSelected,
+          isHovered: isHovered,
+          onTap: () {
+            notifier.selectPerson(node.person.id);
+            onTooltipHideNow();
+          },
+          onHover: (hovering) {
+            if (hovering) {
+              notifier.hoverPerson(node.person.id);
+              onTooltipShow(node.person.id);
+            } else {
+              notifier.hoverPerson(null);
+              onTooltipScheduleHide(node.person.id);
+            }
+          },
+        ),
       ),
     );
   }
 }
 
+// ── Strates de générations ───────────────────────────────────
+
+/// Données précalculées d'une strate : label déjà layouté (jamais de
+/// GwType.*()/TextPainter.layout() dans paint()).
+class _StrataInfo {
+  final double top;
+  final bool isSubjectGen;
+  final bool isFirst;
+  final TextPainter label;
+
+  const _StrataInfo({
+    required this.top,
+    required this.isSubjectGen,
+    required this.isFirst,
+    required this.label,
+  });
+}
+
+List<_StrataInfo> _buildStrata(TreeLayout layout, GwTokens t) {
+  if (layout.nodes.isEmpty) return const [];
+
+  // Générations → bornes Y
+  final gens = <int, double>{};
+  int? subjectGen;
+  for (final n in layout.nodes) {
+    gens[n.generation] = n.position.dy;
+    if (n.isSubject) subjectGen = n.generation;
+  }
+  final sorted = gens.keys.toList()..sort();
+
+  final result = <_StrataInfo>[];
+  for (int i = 0; i < sorted.length; i++) {
+    final gen = sorted[i];
+    final isSubjectGen = gen == subjectGen;
+    final isFirst = i == 0;
+
+    final label = isSubjectGen
+        ? 'GÉNÉRATION ${gen + 1} · VOUS'
+        : isFirst
+            ? 'GÉNÉRATION ${gen + 1} · LES FONDATEURS'
+            : 'GÉNÉRATION ${gen + 1}';
+
+    final tp = TextPainter(
+      text: TextSpan(
+        text: label,
+        style: GwType.mono(
+          fontSize: 10,
+          letterSpacing: 2,
+          color: isSubjectGen ? t.goldText : t.stoneFaint,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+
+    result.add(_StrataInfo(
+      top: gens[gen]! - 90,
+      isSubjectGen: isSubjectGen,
+      isFirst: isFirst,
+      label: tp,
+    ));
+  }
+  return result;
+}
+
 /// Strates de générations : bandes douces, séparateurs pointillés,
 /// labels mono « GÉNÉRATION N » (or pour la génération du sujet).
+/// Reçoit toutes les couleurs en paramètre (aucun GwTokens.dark ici).
 class _StrataPainter extends CustomPainter {
-  final TreeLayout layout;
+  final List<_StrataInfo> strata;
+  final Color dashColor;
+  final Color faintColor;
 
-  _StrataPainter(this.layout);
+  const _StrataPainter({
+    required this.strata,
+    required this.dashColor,
+    required this.faintColor,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (layout.nodes.isEmpty) return;
-
-    // Générations → bornes Y
-    final gens = <int, double>{};
-    int? subjectGen;
-    for (final n in layout.nodes) {
-      gens[n.generation] = n.position.dy;
-      if (n.isSubject) subjectGen = n.generation;
-    }
-    final sorted = gens.keys.toList()..sort();
+    if (strata.isEmpty) return;
 
     final dashPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.05)
+      ..color = dashColor
       ..strokeWidth = 1;
 
-    for (int i = 0; i < sorted.length; i++) {
-      final gen = sorted[i];
-      final y = gens[gen]!;
-      final top = y - 90;
-      final isSubjectGen = gen == subjectGen;
-
+    for (final s in strata) {
       // Bande douce pour la génération du sujet + la première
-      if (isSubjectGen || i == 0) {
-        final rect = Rect.fromLTWH(0, top, size.width, 180);
+      if (s.isSubjectGen || s.isFirst) {
+        final rect = Rect.fromLTWH(0, s.top, size.width, 180);
         final gradient = LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: isSubjectGen
+          colors: s.isSubjectGen
               ? [
                   GwTokens.gold.withValues(alpha: 0.05),
                   GwTokens.gold.withValues(alpha: 0.015),
                 ]
               : [
-                  GwTokens.dark.stoneFaint.withValues(alpha: 0.05),
+                  faintColor.withValues(alpha: 0.05),
                   Colors.transparent,
                 ],
         );
@@ -496,35 +674,21 @@ class _StrataPainter extends CustomPainter {
       }
 
       // Séparateur pointillé bas de strate
-      final sepY = top + 180;
+      final sepY = s.top + 180;
       double x = 0;
       while (x < size.width) {
         canvas.drawLine(Offset(x, sepY), Offset(x + 4, sepY), dashPaint);
         x += 12;
       }
 
-      // Label mono
-      final label = isSubjectGen
-          ? 'GÉNÉRATION ${gen + 1} · VOUS'
-          : i == 0
-              ? 'GÉNÉRATION ${gen + 1} · LES FONDATEURS'
-              : 'GÉNÉRATION ${gen + 1}';
-      final tp = TextPainter(
-        text: TextSpan(
-          text: label,
-          style: GwType.mono(
-            fontSize: 10,
-            letterSpacing: 2,
-            color: isSubjectGen ? GwTokens.gold : GwTokens.dark.stoneFaint,
-          ),
-        ),
-        textDirection: TextDirection.ltr,
-      )..layout();
-      tp.paint(canvas, Offset(24, top + 14));
+      // Label mono précalculé
+      s.label.paint(canvas, Offset(24, s.top + 14));
     }
   }
 
   @override
   bool shouldRepaint(covariant _StrataPainter oldDelegate) =>
-      oldDelegate.layout != layout;
+      oldDelegate.strata != strata ||
+      oldDelegate.dashColor != dashColor ||
+      oldDelegate.faintColor != faintColor;
 }

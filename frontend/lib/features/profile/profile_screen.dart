@@ -543,10 +543,10 @@ class _VillagesGrid extends ConsumerWidget {
   const _VillagesGrid();
 
   // Teintes des tuiles (cycle) : or, azur, sauge, rose cuivré.
-  static final _accents = <Color>[
+  static const _accents = <Color>[
     GwTokens.gold,
-    GwTokens.dark.azureText,
-    GwTokens.dark.sageText,
+    GwTokens.azure,
+    GwTokens.sage,
     GwTokens.rose,
   ];
 
@@ -659,7 +659,7 @@ class _VillageTile extends StatelessWidget {
                       ? village.name[0].toUpperCase()
                       : '?',
                   style: GwType.display(
-                      fontSize: 16, color: GwTokens.dark.ink),
+                      fontSize: 16, color: GwTokens.inkOnGold),
                 ),
               ),
               const Spacer(),

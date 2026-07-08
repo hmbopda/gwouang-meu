@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'package:gwangmeu/core/theme/gw_tokens.dart';
 
@@ -246,7 +245,7 @@ void showGwToast(BuildContext context, String message,
           Flexible(
             child: Text(
               message,
-              style: GoogleFonts.syne(
+              style: GwType.ui(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
                 color: Colors.white,

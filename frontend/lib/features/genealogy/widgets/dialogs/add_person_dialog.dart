@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:material_symbols_icons/symbols.dart';
 
+import 'package:gwangmeu/core/theme/gw_tokens.dart';
 import 'package:gwangmeu/shared/models/country_model.dart';
 import 'package:gwangmeu/shared/models/language_model.dart';
 import 'package:gwangmeu/shared/models/village_model.dart';
 import 'package:gwangmeu/shared/widgets/country_village_selector.dart';
+import 'package:gwangmeu/shared/widgets/gw_dialog.dart';
 import 'package:gwangmeu/shared/widgets/person_lookup_widget.dart';
 import 'package:gwangmeu/features/geo/geo_notifier.dart';
 import 'package:gwangmeu/features/genealogy/genealogy_notifier.dart';
@@ -127,63 +130,57 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
   Widget build(BuildContext context) {
     final title = widget.isParent ? 'Ajouter un parent' : 'Ajouter un enfant';
 
-    return Dialog(
-      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxWidth: 480,
-          maxHeight: MediaQuery.of(context).size.height * 0.85,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _buildHeader(title),
-            const Divider(height: 1),
-            Flexible(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: _buildStepContent(),
-              ),
-            ),
-            const Divider(height: 1),
-            _buildActions(),
-          ],
-        ),
-      ),
+    return GwDialog(
+      title: title,
+      subtitle: _step != AddPersonStep.chooseAction ? _stepSubtitle() : null,
+      icon: widget.isParent ? Symbols.person_add : Symbols.family_restroom,
+      actions: _dialogActions(),
+      child: _buildStepContent(),
     );
   }
 
-  Widget _buildHeader(String title) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 8, 12),
-      child: Row(
-        children: [
-          Icon(
-            widget.isParent ? Icons.person_add_alt_1 : Icons.child_care,
-            color: Theme.of(context).colorScheme.primary,
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-                if (_step != AddPersonStep.chooseAction)
-                  Text(
-                    _stepSubtitle(),
-                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                  ),
-              ],
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.close),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-        ],
+  List<GwDialogAction> _dialogActions() {
+    return [
+      if (_step != AddPersonStep.chooseAction)
+        GwDialogAction(
+          label: 'Retour',
+          icon: Symbols.arrow_back,
+          onPressed: _loading ? null : _goBack,
+        ),
+      GwDialogAction(
+        label: 'Annuler',
+        onPressed: _loading ? null : () => Navigator.of(context).pop(),
       ),
-    );
+      if ((_step == AddPersonStep.selectPerson ||
+              _step == AddPersonStep.selectFromTree) &&
+          _selectedPerson != null)
+        GwDialogAction(
+          label: 'Confirmer',
+          primary: true,
+          loading: _loading,
+          onPressed: _loading ? null : _linkSelectedPerson,
+        ),
+      if (_step == AddPersonStep.createForm)
+        GwDialogAction(
+          label: 'Suivant',
+          primary: true,
+          loading: _loading,
+          onPressed: _loading ? null : _onCreateFormNext,
+        ),
+      if (_step == AddPersonStep.checkDuplicate)
+        GwDialogAction(
+          label: 'Creer quand meme',
+          primary: true,
+          onPressed: _loading ? null : _onDuplicateSkip,
+        ),
+      if (_step == AddPersonStep.selectCoParent)
+        GwDialogAction(
+          label: _selectedCoParent != null ? 'Enregistrer' : 'Sans co-parent',
+          primary: true,
+          loading: _loading,
+          onPressed: _loading ? null : _submitCreate,
+        ),
+    ];
   }
 
   String _stepSubtitle() {
@@ -229,30 +226,35 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
   }
 
   Widget _buildChooseAction() {
+    final t = GwTokens.of(context);
     return Column(
       mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (widget.isParent) ...[
-          const Text(
+          Text(
             'Quel role parental ?',
-            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+            style: GwType.ui(
+                fontSize: 14, fontWeight: FontWeight.w600, color: t.stone),
           ),
           const SizedBox(height: 12),
           Row(
             children: [
               Expanded(
-                child: _ChoiceChipCard(
-                  icon: Icons.man,
+                child: GwChoicePill(
+                  icon: Symbols.man,
                   label: 'Pere',
+                  expand: true,
                   selected: _role == 'FATHER',
                   onTap: () => setState(() => _role = 'FATHER'),
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: _ChoiceChipCard(
-                  icon: Icons.woman,
+                child: GwChoicePill(
+                  icon: Symbols.woman,
                   label: 'Mere',
+                  expand: true,
                   selected: _role == 'MOTHER',
                   onTap: () => setState(() => _role = 'MOTHER'),
                 ),
@@ -261,34 +263,35 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
           ),
           const SizedBox(height: 24),
         ],
-        const Text(
+        Text(
           'Comment souhaitez-vous proceder ?',
-          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+          style: GwType.ui(
+              fontSize: 14, fontWeight: FontWeight.w600, color: t.stone),
         ),
         const SizedBox(height: 12),
         _ActionTile(
-          icon: Icons.family_restroom,
+          icon: Symbols.family_restroom,
           title: 'Choisir dans mon arbre',
           subtitle: 'Lier une personne deja enregistree',
           onTap: () => setState(() => _step = AddPersonStep.selectFromTree),
         ),
         const SizedBox(height: 10),
         _ActionTile(
-          icon: Icons.email_outlined,
+          icon: Symbols.mail,
           title: 'Rechercher par email / telephone',
           subtitle: 'Verifier si la personne existe deja en base',
           onTap: () => setState(() => _step = AddPersonStep.lookupContact),
         ),
         const SizedBox(height: 10),
         _ActionTile(
-          icon: Icons.search,
+          icon: Symbols.search,
           title: 'Parcourir les grandes familles',
           subtitle: 'Rechercher dans les villages',
           onTap: _goToSelectClan,
         ),
         const SizedBox(height: 10),
         _ActionTile(
-          icon: Icons.person_add,
+          icon: Symbols.person_add,
           title: 'Creer une nouvelle personne',
           subtitle: 'Remplir les informations manuellement',
           onTap: () => setState(() {
@@ -301,16 +304,21 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
   }
 
   Widget _buildSelectFromTree() {
+    final t = GwTokens.of(context);
     final myPerson = ref.watch(genealogyNotifierProvider).valueOrNull;
     if (myPerson == null) {
-      return const Center(child: CircularProgressIndicator());
+      return Center(child: CircularProgressIndicator(color: t.goldText));
     }
 
     final treeAsync = ref.watch(familyTreeProvider(myPerson.id));
 
     return treeAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text('Erreur: $e')),
+      loading: () =>
+          Center(child: CircularProgressIndicator(color: t.goldText)),
+      error: (e, _) => Center(
+        child: Text('Erreur: $e',
+            style: GwType.ui(fontSize: 14, color: t.emberText)),
+      ),
       data: (tree) {
         // Collecter tous les membres de l'arbre sauf le sujet lui-même et la personne courante
         final all = <PersonGenealogy>[
@@ -341,25 +349,21 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
           return Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.people_outline, size: 48, color: Colors.grey),
+              Icon(Symbols.group, size: 44, color: t.stoneDim),
               const SizedBox(height: 12),
               Text(
                 'Aucun(e) ${_genderLabel.toLowerCase()} trouve(e) dans votre arbre.',
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.grey),
+                style: GwType.ui(fontSize: 14, color: t.stoneMid),
               ),
               const SizedBox(height: 16),
-              ElevatedButton.icon(
-                onPressed: () => setState(() {
+              _GoldButton(
+                icon: Symbols.person_add,
+                label: 'Creer manuellement',
+                onTap: () => setState(() {
                   _gender = _role == 'FATHER' ? 'MALE' : 'FEMALE';
                   _step = AddPersonStep.createForm;
                 }),
-                icon: const Icon(Icons.person_add, size: 18),
-                label: const Text('Creer manuellement'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).colorScheme.primary,
-                  foregroundColor: Colors.black,
-                ),
               ),
             ],
           );
@@ -371,12 +375,13 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
           children: [
             Text(
               'Membres de votre arbre — ${filtered.length} ${_genderLabel.toLowerCase()}(s)',
-              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+              style: GwType.ui(
+                  fontSize: 14, fontWeight: FontWeight.w600, color: t.stone),
             ),
             const SizedBox(height: 4),
             Text(
               'Selectionnez la personne a lier comme ${widget.isParent ? "parent" : "enfant"}.',
-              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+              style: GwType.ui(fontSize: 12, color: t.stoneMid),
             ),
             const SizedBox(height: 12),
             ...filtered.map((person) => _PersonTile(
@@ -422,7 +427,7 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Aucun village associe. Veuillez creer la personne manuellement.'),
-            backgroundColor: Colors.orange,
+            backgroundColor: GwTokens.ember,
           ),
         );
       }
@@ -448,40 +453,37 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
       setState(() => _searchLoading = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text('Erreur: $e'), backgroundColor: GwTokens.ember),
         );
       }
     }
   }
 
   Widget _buildSelectClan() {
+    final t = GwTokens.of(context);
     if (_searchLoading) {
-      return Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary));
+      return Center(child: CircularProgressIndicator(color: t.goldText));
     }
 
     if (_clans.isEmpty) {
       return Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.family_restroom, size: 48, color: Colors.grey),
+          Icon(Symbols.family_restroom, size: 44, color: t.stoneDim),
           const SizedBox(height: 12),
-          const Text(
+          Text(
             'Aucune grande famille trouvee dans vos villages.',
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.grey),
+            style: GwType.ui(fontSize: 14, color: t.stoneMid),
           ),
           const SizedBox(height: 16),
-          ElevatedButton.icon(
-            onPressed: () => setState(() {
+          _GoldButton(
+            icon: Symbols.person_add,
+            label: 'Creer manuellement',
+            onTap: () => setState(() {
               _gender = _role == 'FATHER' ? 'MALE' : 'FEMALE';
               _step = AddPersonStep.createForm;
             }),
-            icon: const Icon(Icons.person_add, size: 18),
-            label: const Text('Creer manuellement'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.primary,
-              foregroundColor: Colors.black,
-            ),
           ),
         ],
       );
@@ -493,16 +495,17 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
       children: [
         Text(
           'Grandes familles disponibles (${_clans.length})',
-          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+          style: GwType.ui(
+              fontSize: 14, fontWeight: FontWeight.w600, color: t.stone),
         ),
         const SizedBox(height: 4),
         Text(
           'Selectionnez la grande famille ou cliquez "Voir tous" pour afficher toutes les personnes.',
-          style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+          style: GwType.ui(fontSize: 12, color: t.stoneMid),
         ),
         const SizedBox(height: 12),
         _ActionTile(
-          icon: Icons.people_outline,
+          icon: Symbols.group,
           title: 'Voir toutes les personnes (${_genderLabel}s)',
           subtitle: 'Sans filtrer par grande famille',
           onTap: () => _loadPersonsAllVillages(),
@@ -517,13 +520,13 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
             ))),
         const SizedBox(height: 12),
         Center(
-          child: TextButton.icon(
-            onPressed: () => setState(() {
+          child: _GoldTextButton(
+            icon: Symbols.person_add,
+            label: 'Je ne trouve pas, creer manuellement',
+            onTap: () => setState(() {
               _gender = _role == 'FATHER' ? 'MALE' : 'FEMALE';
               _step = AddPersonStep.createForm;
             }),
-            icon: const Icon(Icons.person_add, size: 16),
-            label: const Text('Je ne trouve pas, creer manuellement'),
           ),
         ),
       ],
@@ -548,7 +551,7 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
       setState(() => _searchLoading = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text('Erreur: $e'), backgroundColor: GwTokens.ember),
         );
       }
     }
@@ -580,15 +583,16 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
       setState(() => _searchLoading = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text('Erreur: $e'), backgroundColor: GwTokens.ember),
         );
       }
     }
   }
 
   Widget _buildSelectPerson() {
+    final t = GwTokens.of(context);
     if (_searchLoading) {
-      return Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary));
+      return Center(child: CircularProgressIndicator(color: t.goldText));
     }
 
     final clanLabel = _selectedClan != null
@@ -599,34 +603,31 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
       return Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.person_search, size: 48, color: Colors.grey),
+          Icon(Symbols.person_search, size: 44, color: t.stoneDim),
           const SizedBox(height: 12),
           Text(
             'Aucun(e) ${_genderLabel.toLowerCase()} trouve(e) dans $clanLabel.',
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.grey),
+            style: GwType.ui(fontSize: 14, color: t.stoneMid),
           ),
           const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              OutlinedButton.icon(
-                onPressed: () => setState(() => _step = AddPersonStep.selectClan),
-                icon: const Icon(Icons.arrow_back, size: 16),
-                label: const Text('Retour'),
+              _GoldTextButton(
+                icon: Symbols.arrow_back,
+                label: 'Retour',
+                onTap: () =>
+                    setState(() => _step = AddPersonStep.selectClan),
               ),
               const SizedBox(width: 12),
-              ElevatedButton.icon(
-                onPressed: () => setState(() {
+              _GoldButton(
+                icon: Symbols.person_add,
+                label: 'Creer',
+                onTap: () => setState(() {
                   _gender = _role == 'FATHER' ? 'MALE' : 'FEMALE';
                   _step = AddPersonStep.createForm;
                 }),
-                icon: const Icon(Icons.person_add, size: 18),
-                label: const Text('Creer'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).colorScheme.primary,
-                  foregroundColor: Colors.black,
-                ),
               ),
             ],
           ),
@@ -640,12 +641,13 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
       children: [
         Text(
           '$clanLabel — ${_searchResults.length} ${_genderLabel.toLowerCase()}(s)',
-          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+          style: GwType.ui(
+              fontSize: 14, fontWeight: FontWeight.w600, color: t.stone),
         ),
         const SizedBox(height: 4),
         Text(
           'Selectionnez la personne a lier comme ${widget.isParent ? "parent" : "enfant"}.',
-          style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+          style: GwType.ui(fontSize: 12, color: t.stoneMid),
         ),
         const SizedBox(height: 12),
         ...(_searchResults.map((person) => _PersonTile(
@@ -655,13 +657,13 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
             ))),
         const SizedBox(height: 12),
         Center(
-          child: TextButton.icon(
-            onPressed: () => setState(() {
+          child: _GoldTextButton(
+            icon: Symbols.person_add,
+            label: 'Je ne trouve pas, creer manuellement',
+            onTap: () => setState(() {
               _gender = _role == 'FATHER' ? 'MALE' : 'FEMALE';
               _step = AddPersonStep.createForm;
             }),
-            icon: const Icon(Icons.person_add, size: 16),
-            label: const Text('Je ne trouve pas, creer manuellement'),
           ),
         ),
       ],
@@ -669,65 +671,103 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
   }
 
   Widget _buildCreateForm() {
+    final t = GwTokens.of(context);
     return Form(
       key: _formKey,
       child: Column(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           TextFormField(
             controller: _firstNameCtrl,
-            decoration: const InputDecoration(
-              labelText: 'Prenom *',
-              prefixIcon: Icon(Icons.person_outline),
+            style: GwType.ui(fontSize: 14, color: t.stone),
+            decoration: gwInputDecoration(
+              context,
+              label: 'Prenom *',
+              prefixIcon: Symbols.person,
             ),
             validator: (v) => (v == null || v.isEmpty) ? 'Requis' : null,
           ),
           const SizedBox(height: 12),
           TextFormField(
             controller: _lastNameCtrl,
-            decoration: const InputDecoration(
-              labelText: 'Nom *',
-              prefixIcon: Icon(Icons.badge_outlined),
+            style: GwType.ui(fontSize: 14, color: t.stone),
+            decoration: gwInputDecoration(
+              context,
+              label: 'Nom *',
+              prefixIcon: Symbols.badge,
             ),
             validator: (v) => (v == null || v.isEmpty) ? 'Requis' : null,
           ),
-          const SizedBox(height: 12),
-          DropdownButtonFormField<String>(
-            value: _gender,
-            decoration: const InputDecoration(
-              labelText: 'Genre *',
-              prefixIcon: Icon(Icons.wc_outlined),
-            ),
-            items: const [
-              DropdownMenuItem(value: 'MALE', child: Text('Homme')),
-              DropdownMenuItem(value: 'FEMALE', child: Text('Femme')),
+          const SizedBox(height: 14),
+          Text('Genre *',
+              style: GwType.ui(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: t.stoneMid)),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: GwChoicePill(
+                  icon: Symbols.man,
+                  label: 'Homme',
+                  expand: true,
+                  selected: _gender == 'MALE',
+                  onTap: () => setState(() {
+                    _gender = 'MALE';
+                    if (widget.isParent) _role = 'FATHER';
+                  }),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: GwChoicePill(
+                  icon: Symbols.woman,
+                  label: 'Femme',
+                  expand: true,
+                  selected: _gender == 'FEMALE',
+                  onTap: () => setState(() {
+                    _gender = 'FEMALE';
+                    if (widget.isParent) _role = 'MOTHER';
+                  }),
+                ),
+              ),
             ],
-            onChanged: (v) {
-              if (v == null) return;
-              setState(() {
-                _gender = v;
-                if (widget.isParent) {
-                  _role = v == 'MALE' ? 'FATHER' : 'MOTHER';
-                }
-              });
-            },
           ),
           if (widget.isParent) ...[
-            const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              value: _role,
-              decoration: const InputDecoration(
-                labelText: 'Role parental *',
-                prefixIcon: Icon(Icons.family_restroom),
-              ),
-              items: const [
-                DropdownMenuItem(value: 'FATHER', child: Text('Pere')),
-                DropdownMenuItem(value: 'MOTHER', child: Text('Mere')),
+            const SizedBox(height: 14),
+            Text('Role parental *',
+                style: GwType.ui(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: t.stoneMid)),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: GwChoicePill(
+                    icon: Symbols.man,
+                    label: 'Pere',
+                    expand: true,
+                    selected: _role == 'FATHER',
+                    onTap: () => setState(() => _role = 'FATHER'),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: GwChoicePill(
+                    icon: Symbols.woman,
+                    label: 'Mere',
+                    expand: true,
+                    selected: _role == 'MOTHER',
+                    onTap: () => setState(() => _role = 'MOTHER'),
+                  ),
+                ),
               ],
-              onChanged: (v) => setState(() => _role = v ?? _role),
             ),
           ],
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
           InkWell(
             onTap: () async {
               final picked = await showDatePicker(
@@ -738,17 +778,20 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
               );
               if (picked != null) setState(() => _birthDate = picked);
             },
+            borderRadius: BorderRadius.circular(GwTokens.rBtn),
             child: InputDecorator(
-              decoration: const InputDecoration(
-                labelText: 'Date de naissance',
-                prefixIcon: Icon(Icons.cake_outlined),
+              decoration: gwInputDecoration(
+                context,
+                label: 'Date de naissance',
+                prefixIcon: Symbols.cake,
               ),
               child: Text(
                 _birthDate != null
                     ? DateFormat('dd/MM/yyyy').format(_birthDate!)
                     : 'Selectionner une date',
-                style: TextStyle(
-                  color: _birthDate != null ? null : Colors.grey[600],
+                style: GwType.ui(
+                  fontSize: 14,
+                  color: _birthDate != null ? t.stone : t.stoneDim,
                 ),
               ),
             ),
@@ -756,17 +799,21 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
           const SizedBox(height: 12),
           TextFormField(
             controller: _clanCtrl,
-            decoration: const InputDecoration(
-              labelText: 'Clan / Grande famille',
-              prefixIcon: Icon(Icons.shield_outlined),
+            style: GwType.ui(fontSize: 14, color: t.stone),
+            decoration: gwInputDecoration(
+              context,
+              label: 'Clan / Grande famille',
+              prefixIcon: Symbols.shield,
             ),
           ),
           const SizedBox(height: 12),
           TextFormField(
             controller: _totemCtrl,
-            decoration: const InputDecoration(
-              labelText: 'Totem',
-              prefixIcon: Icon(Icons.pets_outlined),
+            style: GwType.ui(fontSize: 14, color: t.stone),
+            decoration: gwInputDecoration(
+              context,
+              label: 'Totem',
+              prefixIcon: Symbols.pets,
             ),
           ),
           const SizedBox(height: 12),
@@ -786,70 +833,70 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
           const SizedBox(height: 12),
           TextFormField(
             controller: _birthPlaceCtrl,
-            decoration: const InputDecoration(
-              labelText: 'Lieu de naissance',
-              prefixIcon: Icon(Icons.location_city_outlined),
-              hintText: 'Ex: Douala, Paris, Yaoundé...',
+            style: GwType.ui(fontSize: 14, color: t.stone),
+            decoration: gwInputDecoration(
+              context,
+              label: 'Lieu de naissance',
+              prefixIcon: Symbols.location_city,
+              hint: 'Ex: Douala, Paris, Yaoundé...',
             ),
           ),
           const SizedBox(height: 16),
           SwitchListTile(
-            title: const Text('Encore en vie ?'),
+            title: Text('Encore en vie ?',
+                style: GwType.ui(fontSize: 14, color: t.stone)),
             subtitle: Text(
               _isAlive
                   ? 'Vous pourrez lui envoyer une invitation'
                   : 'La personne est decedee',
-              style: TextStyle(
-                fontSize: 12,
-                color: Theme.of(context).textTheme.bodySmall?.color,
-              ),
+              style: GwType.ui(fontSize: 12, color: t.stoneMid),
             ),
             value: _isAlive,
-            activeThumbColor: Theme.of(context).colorScheme.primary,
+            activeThumbColor: GwTokens.gold,
             contentPadding: EdgeInsets.zero,
             onChanged: (v) => setState(() => _isAlive = v),
           ),
           if (_isAlive && _showValidationSection) ...[
             const SizedBox(height: 8),
-            Builder(builder: (context) {
-              final accent = Theme.of(context).colorScheme.primary;
-              return Container(
+            Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: accent.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: accent.withValues(alpha: 0.2)),
+                color: t.goldBg,
+                borderRadius: BorderRadius.circular(GwTokens.rBtn),
+                border: Border.all(color: t.goldLine),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.send_outlined, size: 16, color: accent),
+                      Icon(Symbols.send, size: 16, color: t.goldText),
                       const SizedBox(width: 6),
                       Text(
                         'Lien de validation',
-                        style: TextStyle(
+                        style: GwType.ui(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
-                          color: accent,
+                          color: t.goldText,
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 4),
-                  const Text(
+                  Text(
                     'Un lien de validation sera envoye a cette personne pour qu\'elle confirme son identite et cree son compte.',
-                    style: TextStyle(fontSize: 11, color: Colors.grey),
+                    style: GwType.ui(fontSize: 12, color: t.stoneMid),
                   ),
                   if (_showEmail) ...[
                     const SizedBox(height: 10),
                     TextFormField(
                       controller: _emailCtrl,
-                      decoration: const InputDecoration(
-                        labelText: 'Email *',
-                        prefixIcon: Icon(Icons.email_outlined),
-                        isDense: true,
+                      style: GwType.ui(fontSize: 14, color: t.stone),
+                      decoration: gwInputDecoration(
+                        context,
+                        label: 'Email *',
+                        prefixIcon: Symbols.mail,
+                        dense: true,
                       ),
                       keyboardType: TextInputType.emailAddress,
                       validator: (v) {
@@ -871,31 +918,14 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
                   ],
                 ],
               ),
-            );
-            }),
+            ),
           ],
           if (_isAlive && !_showValidationSection && !widget.isParent) ...[
             const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.blue.withAlpha(15),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.blue.withAlpha(40)),
-              ),
-              child: const Row(
-                children: [
-                  Icon(Icons.info_outline, size: 16, color: Colors.blue),
-                  SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Cet enfant a moins de 4 ans. Aucun email ni telephone n\'est requis. '
-                      'Les parents pourront modifier ses informations depuis leur compte.',
-                      style: TextStyle(fontSize: 11, color: Colors.blue),
-                    ),
-                  ),
-                ],
-              ),
+            const GwInfoBanner(
+              tone: GwBannerTone.azure,
+              text: 'Cet enfant a moins de 4 ans. Aucun email ni telephone n\'est requis. '
+                  'Les parents pourront modifier ses informations depuis leur compte.',
             ),
           ],
         ],
@@ -904,20 +934,27 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
   }
 
   Widget _buildLanguageDropdown() {
+    final t = GwTokens.of(context);
     final langAsync = ref.watch(
       languagesByCountryNotifierProvider(_selectedCountry?.isoCode),
     );
     return langAsync.when(
-      loading: () => const LinearProgressIndicator(),
+      loading: () => LinearProgressIndicator(
+          color: t.goldText, backgroundColor: t.inkLift),
       error: (_, __) => const SizedBox.shrink(),
       data: (languages) {
         if (languages.isEmpty) return const SizedBox.shrink();
         return DropdownButtonFormField<LanguageModel>(
-          value: _selectedLanguage,
-          decoration: const InputDecoration(
-            labelText: 'Langue maternelle',
-            prefixIcon: Icon(Icons.translate_outlined),
+          key: ValueKey(
+              'lang_${_selectedCountry?.isoCode}_${_selectedLanguage?.name}'),
+          initialValue: _selectedLanguage,
+          decoration: gwInputDecoration(
+            context,
+            label: 'Langue maternelle',
+            prefixIcon: Symbols.translate,
           ),
+          dropdownColor: t.inkCard,
+          style: GwType.ui(fontSize: 14, color: t.stone),
           isExpanded: true,
           items: languages
               .map((l) => DropdownMenuItem(
@@ -928,6 +965,7 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
                           : l.nameLocal != null
                               ? '${l.name} — ${l.nameLocal}'
                               : l.name,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ))
               .toList(),
@@ -938,18 +976,22 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
   }
 
   Widget _buildPhoneRow() {
+    final t = GwTokens.of(context);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(
           flex: 2,
           child: DropdownButtonFormField<String>(
-            value: _selectedPhoneCode,
-            decoration: const InputDecoration(
-              labelText: 'Indicatif',
-              isDense: true,
-              contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+            key: ValueKey('phonecode_$_selectedPhoneCode'),
+            initialValue: _selectedPhoneCode,
+            decoration: gwInputDecoration(
+              context,
+              label: 'Indicatif',
+              dense: true,
             ),
+            dropdownColor: t.inkCard,
+            style: GwType.ui(fontSize: 13, color: t.stone),
             isExpanded: true,
             items: _buildPhoneCodeItems(),
             onChanged: (v) => setState(() => _selectedPhoneCode = v),
@@ -960,10 +1002,12 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
           flex: 3,
           child: TextFormField(
             controller: _phoneCtrl,
-            decoration: const InputDecoration(
-              labelText: 'Téléphone',
-              prefixIcon: Icon(Icons.phone_outlined),
-              isDense: true,
+            style: GwType.ui(fontSize: 14, color: t.stone),
+            decoration: gwInputDecoration(
+              context,
+              label: 'Téléphone',
+              prefixIcon: Symbols.call,
+              dense: true,
             ),
             keyboardType: TextInputType.phone,
           ),
@@ -981,76 +1025,11 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
                 value: c.phoneCode,
                 child: Text(
                   '${c.flagEmoji ?? ''} ${c.phoneCode}',
-                  style: const TextStyle(fontSize: 13),
+                  style: GwType.ui(fontSize: 13),
                 ),
               ))
           .toList(),
       orElse: () => [],
-    );
-  }
-
-  Widget _buildActions() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Wrap(
-        alignment: WrapAlignment.end,
-        spacing: 8,
-        runSpacing: 8,
-        children: [
-          if (_step != AddPersonStep.chooseAction)
-            TextButton.icon(
-              onPressed: _loading ? null : _goBack,
-              icon: const Icon(Icons.arrow_back, size: 16),
-              label: const Text('Retour'),
-            ),
-          TextButton(
-            onPressed: _loading ? null : () => Navigator.of(context).pop(),
-            child: const Text('Annuler'),
-          ),
-          if ((_step == AddPersonStep.selectPerson || _step == AddPersonStep.selectFromTree) && _selectedPerson != null)
-            ElevatedButton(
-              onPressed: _loading ? null : _linkSelectedPerson,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Theme.of(context).colorScheme.primary,
-                foregroundColor: Colors.black,
-              ),
-              child: _loading
-                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Text('Confirmer'),
-            ),
-          if (_step == AddPersonStep.createForm)
-            ElevatedButton(
-              onPressed: _loading ? null : _onCreateFormNext,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Theme.of(context).colorScheme.primary,
-                foregroundColor: Colors.black,
-              ),
-              child: _loading
-                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Text('Suivant'),
-            ),
-          if (_step == AddPersonStep.checkDuplicate)
-            ElevatedButton(
-              onPressed: _loading ? null : _onDuplicateSkip,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Theme.of(context).colorScheme.primary,
-                foregroundColor: Colors.black,
-              ),
-              child: const Text('Creer quand meme'),
-            ),
-          if (_step == AddPersonStep.selectCoParent)
-            ElevatedButton(
-              onPressed: _loading ? null : _submitCreate,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Theme.of(context).colorScheme.primary,
-                foregroundColor: Colors.black,
-              ),
-              child: _loading
-                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                  : Text(_selectedCoParent != null ? 'Enregistrer' : 'Sans co-parent'),
-            ),
-        ],
-      ),
     );
   }
 
@@ -1108,14 +1087,14 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('$name lie(e) comme ${widget.isParent ? "parent" : "enfant"}'),
-            backgroundColor: Theme.of(context).colorScheme.primary,
+            backgroundColor: GwTokens.sage,
           ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text('Erreur: $e'), backgroundColor: GwTokens.ember),
         );
       }
     } finally {
@@ -1207,90 +1186,70 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
   }
 
   Widget _buildCheckDuplicate() {
+    final t = GwTokens.of(context);
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.orange.withAlpha(20),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.orange.withAlpha(60)),
-          ),
-          child: const Row(
-            children: [
-              Icon(Icons.warning_amber, size: 20, color: Colors.orange),
-              SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Nous avons trouve des personnes similaires. '
-                  'S\'agit-il de la meme personne ?',
-                  style: TextStyle(fontSize: 12, color: Colors.orange),
-                ),
-              ),
-            ],
-          ),
+        const GwInfoBanner(
+          tone: GwBannerTone.ember,
+          text: 'Nous avons trouve des personnes similaires. '
+              'S\'agit-il de la meme personne ?',
         ),
         const SizedBox(height: 16),
         ...(_duplicateCandidates.map((person) => Padding(
               padding: const EdgeInsets.only(bottom: 8),
-              child: InkWell(
-                onTap: () {
-                  setState(() {
-                    _existingPersonId = person.id;
-                  });
-                  _proceedAfterDuplicateCheck();
-                },
-                borderRadius: BorderRadius.circular(8),
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.grey.shade300),
-                  ),
-                  child: Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 20,
-                        backgroundColor: person.gender == 'MALE'
-                            ? Colors.blue.shade100
-                            : Colors.pink.shade100,
-                        child: Text(
-                          '${person.firstName.isNotEmpty ? person.firstName[0] : ''}${person.lastName.isNotEmpty ? person.lastName[0] : ''}'
-                              .toUpperCase(),
-                          style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            color: person.gender == 'MALE'
-                                ? Colors.blue.shade700
-                                : Colors.pink.shade700,
+              child: Material(
+                color: t.inkLift,
+                borderRadius: BorderRadius.circular(GwTokens.rBtn),
+                child: InkWell(
+                  onTap: () {
+                    setState(() {
+                      _existingPersonId = person.id;
+                    });
+                    _proceedAfterDuplicateCheck();
+                  },
+                  borderRadius: BorderRadius.circular(GwTokens.rBtn),
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(GwTokens.rBtn),
+                      border: Border.all(color: t.line),
+                    ),
+                    child: Row(
+                      children: [
+                        _GenderAvatar(person: person, radius: 20),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '${person.firstName} ${person.lastName}',
+                                style: GwType.ui(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: t.stone),
+                              ),
+                              if (person.birthDate != null)
+                                Text(
+                                  'Ne(e) le ${DateFormat('dd/MM/yyyy').format(person.birthDate!)}',
+                                  style: GwType.ui(
+                                      fontSize: 12, color: t.stoneMid),
+                                ),
+                              if (person.clan != null && person.clan!.isNotEmpty)
+                                Text(
+                                  'Clan: ${person.clan}',
+                                  style: GwType.ui(
+                                      fontSize: 12, color: t.stoneMid),
+                                ),
+                            ],
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              '${person.firstName} ${person.lastName}',
-                              style: const TextStyle(fontWeight: FontWeight.w600),
-                            ),
-                            if (person.birthDate != null)
-                              Text(
-                                'Ne(e) le ${DateFormat('dd/MM/yyyy').format(person.birthDate!)}',
-                                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                              ),
-                            if (person.clan != null && person.clan!.isNotEmpty)
-                              Text(
-                                'Clan: ${person.clan}',
-                                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                              ),
-                          ],
-                        ),
-                      ),
-                      const Icon(Icons.chevron_right, color: Colors.grey),
-                    ],
+                        Icon(Symbols.chevron_right,
+                            size: 20, color: t.stoneDim),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -1300,8 +1259,12 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
   }
 
   Widget _buildSelectCoParent() {
+    final t = GwTokens.of(context);
     if (_parentUnions.isEmpty) {
-      return const Center(child: Text('Aucune union trouvee'));
+      return Center(
+        child: Text('Aucune union trouvee',
+            style: GwType.ui(fontSize: 14, color: t.stoneMid)),
+      );
     }
 
     // Extraire les conjoints (partenaires actuels et ex)
@@ -1314,15 +1277,15 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
     }
 
     if (spouses.isEmpty) {
-      return const Column(
+      return Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.people_outline, size: 48, color: Colors.grey),
-          SizedBox(height: 12),
+          Icon(Symbols.group, size: 44, color: t.stoneDim),
+          const SizedBox(height: 12),
           Text(
             'Aucun conjoint trouve dans les unions.',
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.grey),
+            style: GwType.ui(fontSize: 14, color: t.stoneMid),
           ),
         ],
       );
@@ -1332,74 +1295,44 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.blue.withAlpha(15),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.blue.withAlpha(40)),
-          ),
-          child: const Row(
-            children: [
-              Icon(Icons.info_outline, size: 16, color: Colors.blue),
-              SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Selectionnez le co-parent de cet enfant. '
-                  'Une demande de confirmation lui sera envoyee. '
-                  'Vous pouvez aussi passer cette etape.',
-                  style: TextStyle(fontSize: 12, color: Colors.blue),
-                ),
-              ),
-            ],
-          ),
+        const GwInfoBanner(
+          tone: GwBannerTone.azure,
+          text: 'Selectionnez le co-parent de cet enfant. '
+              'Une demande de confirmation lui sera envoyee. '
+              'Vous pouvez aussi passer cette etape.',
         ),
         const SizedBox(height: 16),
-        const Text(
+        Text(
           'Conjoints',
-          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+          style: GwType.ui(
+              fontSize: 14, fontWeight: FontWeight.w600, color: t.stone),
         ),
         const SizedBox(height: 8),
-        ...(spouses.map((spouse) => Padding(
-              padding: const EdgeInsets.only(bottom: 6),
+        ...(spouses.map((spouse) {
+          final selected = _selectedCoParent?.id == spouse.id;
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: Material(
+              color: selected ? t.goldBg : t.inkLift,
+              borderRadius: BorderRadius.circular(GwTokens.rBtn),
               child: InkWell(
                 onTap: () => setState(() {
-                  _selectedCoParent = _selectedCoParent?.id == spouse.id ? null : spouse;
+                  _selectedCoParent = selected ? null : spouse;
                 }),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(GwTokens.rBtn),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(GwTokens.rBtn),
                     border: Border.all(
-                      color: _selectedCoParent?.id == spouse.id
-                          ? Theme.of(context).colorScheme.primary
-                          : Colors.grey.shade200,
-                      width: _selectedCoParent?.id == spouse.id ? 2 : 1,
+                      color: selected ? t.goldLine : t.line,
+                      width: selected ? 1.5 : 1,
                     ),
-                    color: _selectedCoParent?.id == spouse.id
-                        ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.08)
-                        : null,
                   ),
                   child: Row(
                     children: [
-                      CircleAvatar(
-                        radius: 18,
-                        backgroundColor: spouse.gender == 'MALE'
-                            ? Colors.blue.shade100
-                            : Colors.pink.shade100,
-                        child: Text(
-                          '${spouse.firstName.isNotEmpty ? spouse.firstName[0] : ''}${spouse.lastName.isNotEmpty ? spouse.lastName[0] : ''}'
-                              .toUpperCase(),
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            color: spouse.gender == 'MALE'
-                                ? Colors.blue.shade700
-                                : Colors.pink.shade700,
-                          ),
-                        ),
-                      ),
+                      _GenderAvatar(person: spouse, radius: 18),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Column(
@@ -1407,7 +1340,10 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
                           children: [
                             Text(
                               '${spouse.firstName} ${spouse.lastName}',
-                              style: const TextStyle(fontWeight: FontWeight.w600),
+                              style: GwType.ui(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: t.stone),
                             ),
                             Text(
                               _parentUnions
@@ -1418,19 +1354,22 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
                                       .isActive
                                   ? 'Conjoint(e) actuel(le)'
                                   : 'Ex-conjoint(e)',
-                              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                              style:
+                                  GwType.ui(fontSize: 12, color: t.stoneMid),
                             ),
                           ],
                         ),
                       ),
-                      if (_selectedCoParent?.id == spouse.id)
-                        Icon(Icons.check_circle,
-                            color: Theme.of(context).colorScheme.primary, size: 22),
+                      if (selected)
+                        Icon(Symbols.check_circle,
+                            fill: 1, color: t.goldText, size: 22),
                     ],
                   ),
                 ),
               ),
-            ))),
+            ),
+          );
+        })),
       ],
     );
   }
@@ -1504,14 +1443,14 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('$msg$extra'),
-            backgroundColor: Theme.of(context).colorScheme.primary,
+            backgroundColor: GwTokens.sage,
           ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text('Erreur: $e'), backgroundColor: GwTokens.ember),
         );
       }
     } finally {
@@ -1522,47 +1461,135 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
 
 // ── Helper widgets ──
 
-class _ChoiceChipCard extends StatelessWidget {
-  const _ChoiceChipCard({
-    required this.icon,
+/// Bouton or plein inline (hauteur 48, rayon 14).
+class _GoldButton extends StatelessWidget {
+  const _GoldButton({
     required this.label,
-    required this.selected,
     required this.onTap,
+    this.icon,
   });
 
-  final IconData icon;
   final String label;
-  final bool selected;
   final VoidCallback onTap;
+  final IconData? icon;
 
   @override
   Widget build(BuildContext context) {
-    final accent = Theme.of(context).colorScheme.primary;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        decoration: BoxDecoration(
-          color: selected ? accent.withValues(alpha: 0.15) : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: selected ? accent : Colors.grey.shade300,
-            width: selected ? 2 : 1,
+    const inkOnGold = Color(0xFF0C0B0F);
+    return SizedBox(
+      height: 48,
+      child: Material(
+        color: GwTokens.gold,
+        borderRadius: BorderRadius.circular(GwTokens.rBtn),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(GwTokens.rBtn),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 18),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (icon != null) ...[
+                  Icon(icon, size: 18, color: inkOnGold),
+                  const SizedBox(width: 8),
+                ],
+                Text(
+                  label,
+                  style: GwType.ui(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: inkOnGold,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
-        child: Column(
-          children: [
-            Icon(icon, size: 32, color: selected ? accent : Colors.grey),
-            const SizedBox(height: 6),
-            Text(
+      ),
+    );
+  }
+}
+
+/// Bouton texte discret or (cible ≥ 44 px).
+class _GoldTextButton extends StatelessWidget {
+  const _GoldTextButton({
+    required this.label,
+    required this.onTap,
+    this.icon,
+  });
+
+  final String label;
+  final VoidCallback onTap;
+  final IconData? icon;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = GwTokens.of(context);
+    return TextButton(
+      onPressed: onTap,
+      style: TextButton.styleFrom(
+        foregroundColor: t.goldText,
+        minimumSize: const Size(GwTokens.tapTarget, GwTokens.tapTarget),
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(GwTokens.rBtn),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[
+            Icon(icon, size: 18, color: t.goldText),
+            const SizedBox(width: 6),
+          ],
+          Flexible(
+            child: Text(
               label,
-              style: TextStyle(
-                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                color: selected ? accent : null,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: GwType.ui(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: t.goldText,
               ),
             ),
-          ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Avatar initiales : azure (homme) / rose (femme), initiales Fraunces.
+class _GenderAvatar extends StatelessWidget {
+  const _GenderAvatar({required this.person, this.radius = 18});
+
+  final PersonGenealogy person;
+  final double radius;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = GwTokens.of(context);
+    final isMale = person.gender == 'MALE';
+    final initials =
+        '${person.firstName.isNotEmpty ? person.firstName[0] : ''}${person.lastName.isNotEmpty ? person.lastName[0] : ''}'
+            .toUpperCase();
+    return Container(
+      width: radius * 2,
+      height: radius * 2,
+      decoration: BoxDecoration(
+        color: isMale ? GwTokens.azureBg : GwTokens.roseBg,
+        borderRadius: BorderRadius.circular(GwTokens.rBtn),
+        border: Border.all(
+            color: isMale ? GwTokens.azureLine : GwTokens.roseLine),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        initials,
+        style: GwType.display(
+          fontSize: radius * 0.72,
+          fontWeight: FontWeight.w700,
+          color: isMale ? t.azureText : GwTokens.rose,
         ),
       ),
     );
@@ -1584,30 +1611,49 @@ class _ActionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(10),
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: Colors.grey.shade300),
-        ),
-        child: Row(
-          children: [
-            Icon(icon, color: Theme.of(context).colorScheme.primary, size: 28),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                  Text(subtitle, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
-                ],
+    final t = GwTokens.of(context);
+    return Material(
+      color: t.inkLift,
+      borderRadius: BorderRadius.circular(GwTokens.rBtn),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(GwTokens.rBtn),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(GwTokens.rBtn),
+            border: Border.all(color: t.line),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: t.goldBg,
+                  borderRadius: BorderRadius.circular(GwTokens.rBtn),
+                ),
+                alignment: Alignment.center,
+                child: Icon(icon, color: t.goldText, size: 22),
               ),
-            ),
-            const Icon(Icons.chevron_right, color: Colors.grey),
-          ],
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title,
+                        style: GwType.ui(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: t.stone)),
+                    Text(subtitle,
+                        style: GwType.ui(fontSize: 12, color: t.stoneMid)),
+                  ],
+                ),
+              ),
+              Icon(Symbols.chevron_right, size: 20, color: t.stoneDim),
+            ],
+          ),
         ),
       ),
     );
@@ -1622,40 +1668,52 @@ class _ClanTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.grey.shade200),
-          color: Colors.grey.shade50,
-        ),
-        child: Row(
-          children: [
-            Icon(Icons.shield_outlined, size: 20, color: Theme.of(context).colorScheme.primary),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                clan.name,
-                style: const TextStyle(fontWeight: FontWeight.w600),
+    final t = GwTokens.of(context);
+    return Material(
+      color: t.inkLift,
+      borderRadius: BorderRadius.circular(GwTokens.rBtn),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(GwTokens.rBtn),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(GwTokens.rBtn),
+            border: Border.all(color: t.line),
+          ),
+          child: Row(
+            children: [
+              Icon(Symbols.shield, size: 20, color: t.goldText),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  clan.name,
+                  style: GwType.ui(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: t.stone),
+                ),
               ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(12),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                decoration: BoxDecoration(
+                  color: t.goldBg,
+                  borderRadius: BorderRadius.circular(GwTokens.rPill),
+                ),
+                child: Text(
+                  '${clan.personCount} pers.',
+                  style: GwType.mono(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.5,
+                      color: t.goldText),
+                ),
               ),
-              child: Text(
-                '${clan.personCount} pers.',
-                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
-              ),
-            ),
-            const SizedBox(width: 4),
-            const Icon(Icons.chevron_right, size: 18, color: Colors.grey),
-          ],
+              const SizedBox(width: 4),
+              Icon(Symbols.chevron_right, size: 18, color: t.stoneDim),
+            ],
+          ),
         ),
       ),
     );
@@ -1675,59 +1733,52 @@ class _PersonTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final initials =
-        '${person.firstName.isNotEmpty ? person.firstName[0] : ''}${person.lastName.isNotEmpty ? person.lastName[0] : ''}';
+    final t = GwTokens.of(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: selected ? Theme.of(context).colorScheme.primary : Colors.grey.shade200,
-              width: selected ? 2 : 1,
+      child: Material(
+        color: selected ? t.goldBg : t.inkLift,
+        borderRadius: BorderRadius.circular(GwTokens.rBtn),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(GwTokens.rBtn),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(GwTokens.rBtn),
+              border: Border.all(
+                color: selected ? t.goldLine : t.line,
+                width: selected ? 1.5 : 1,
+              ),
             ),
-            color: selected ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.08) : null,
-          ),
-          child: Row(
-            children: [
-              CircleAvatar(
-                radius: 18,
-                backgroundColor: person.gender == 'MALE'
-                    ? Colors.blue.shade100
-                    : Colors.pink.shade100,
-                child: Text(
-                  initials.toUpperCase(),
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: person.gender == 'MALE' ? Colors.blue.shade700 : Colors.pink.shade700,
+            child: Row(
+              children: [
+                _GenderAvatar(person: person, radius: 18),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${person.firstName} ${person.lastName}',
+                        style: GwType.ui(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: t.stone),
+                      ),
+                      if (person.clan != null && person.clan!.isNotEmpty)
+                        Text(
+                          'Clan: ${person.clan}',
+                          style: GwType.ui(fontSize: 12, color: t.stoneMid),
+                        ),
+                    ],
                   ),
                 ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '${person.firstName} ${person.lastName}',
-                      style: const TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    if (person.clan != null && person.clan!.isNotEmpty)
-                      Text(
-                        'Clan: ${person.clan}',
-                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                      ),
-                  ],
-                ),
-              ),
-              if (selected)
-                Icon(Icons.check_circle, color: Theme.of(context).colorScheme.primary, size: 22),
-            ],
+                if (selected)
+                  Icon(Symbols.check_circle,
+                      fill: 1, color: t.goldText, size: 22),
+              ],
+            ),
           ),
         ),
       ),

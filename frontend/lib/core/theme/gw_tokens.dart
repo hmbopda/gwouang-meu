@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 /// GwTokens — source unique des design tokens « Tissage » GWANG MEU.
 ///
@@ -116,6 +115,10 @@ class GwTokens {
   /// Texte/actions or sur thème clair (contraste AA).
   static const goldDeep = Color(0xFF9A7810);
 
+  /// Texte/icône posé sur un fond or (ou tuile teintée) — identique
+  /// sur les deux thèmes.
+  static const inkOnGold = Color(0xFF0C0B0F);
+
   // ── Sémantiques ──────────────────────────────────────────────
   /// IA / succès.
   static const sage = Color(0xFF2A7A5C);
@@ -209,13 +212,18 @@ class GwTokens {
   );
 }
 
-/// GwType — les 3 familles typographiques « Tissage », via google_fonts.
+/// GwType — les 3 familles typographiques « Tissage », bundlées dans
+/// `assets/fonts/` (subset latin, variantes statiques — aucun accès réseau).
 ///
 /// - **Fraunces** (serif) : titres, citations, récits, initiales d'avatars.
 /// - **Syne** (sans) : interface. Corps 15 px, secondaire 14 px, minimum 12 px.
 /// - **JetBrains Mono** : méta, badges, labels de section (10–12 px,
 ///   letter-spacing 1.5–2.5, MAJUSCULES).
 abstract final class GwType {
+  static const String _fraunces = 'Fraunces';
+  static const String _syne = 'Syne';
+  static const String _jetBrainsMono = 'JetBrainsMono';
+
   /// Fraunces — titres & récits.
   static TextStyle display({
     double fontSize = 22,
@@ -225,7 +233,8 @@ abstract final class GwType {
     double? height,
     double? letterSpacing,
   }) =>
-      GoogleFonts.fraunces(
+      TextStyle(
+        fontFamily: _fraunces,
         fontSize: fontSize,
         fontWeight: fontWeight,
         color: color,
@@ -241,7 +250,8 @@ abstract final class GwType {
     double? height,
     FontWeight fontWeight = FontWeight.w500,
   }) =>
-      GoogleFonts.fraunces(
+      TextStyle(
+        fontFamily: _fraunces,
         fontSize: fontSize,
         fontWeight: fontWeight,
         fontStyle: FontStyle.italic,
@@ -258,7 +268,8 @@ abstract final class GwType {
     double? letterSpacing,
     TextDecoration? decoration,
   }) =>
-      GoogleFonts.syne(
+      TextStyle(
+        fontFamily: _syne,
         fontSize: fontSize,
         fontWeight: fontWeight,
         color: color,
@@ -276,7 +287,8 @@ abstract final class GwType {
     double letterSpacing = 1.5,
     double? height,
   }) =>
-      GoogleFonts.jetBrainsMono(
+      TextStyle(
+        fontFamily: _jetBrainsMono,
         fontSize: fontSize,
         fontWeight: fontWeight,
         color: color,

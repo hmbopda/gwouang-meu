@@ -31,7 +31,7 @@ class GwangButton extends StatelessWidget {
             height: 20,
             child: CircularProgressIndicator(
               strokeWidth: 2,
-              color: Colors.black,
+              color: GwTokens.inkOnGold,
             ),
           )
         : Row(
@@ -67,7 +67,8 @@ class GwangButton extends StatelessWidget {
               side: BorderSide(color: accent),
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
               minimumSize: const Size(0, 50),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(GwTokens.rBtn)),
             ),
             child: child,
           ),
@@ -79,9 +80,11 @@ class GwangButton extends StatelessWidget {
           child: TextButton(
             onPressed: loading ? null : onPressed,
             style: TextButton.styleFrom(
-              foregroundColor: GwTokens.dark.stoneMid,
+              foregroundColor: GwTokens.of(context).stoneMid,
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
               minimumSize: const Size(0, 50),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(GwTokens.rBtn)),
             ),
             child: child,
           ),

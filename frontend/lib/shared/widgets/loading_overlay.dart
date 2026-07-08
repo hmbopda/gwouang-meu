@@ -10,16 +10,21 @@ class LoadingOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = GwTokens.of(context);
     return Container(
-      color: GwTokens.dark.ink.withAlpha(200),
+      color: t.ink.withAlpha(200),
       child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            CircularProgressIndicator(color: Theme.of(context).colorScheme.primary),
+            CircularProgressIndicator(
+                color: Theme.of(context).colorScheme.primary),
             if (message != null) ...[
               const SizedBox(height: 16),
-              Text(message!, style: Theme.of(context).textTheme.bodyMedium),
+              Text(
+                message!,
+                style: GwType.ui(fontSize: 14, color: t.stoneMid),
+              ),
             ],
           ],
         ),
@@ -35,15 +40,16 @@ class ShimmerCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = GwTokens.of(context);
     return Shimmer.fromColors(
-      baseColor: GwTokens.dark.inkCard,
-      highlightColor: GwTokens.dark.inkLift,
+      baseColor: t.inkCard,
+      highlightColor: t.inkLift,
       child: Container(
         height: height,
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         decoration: BoxDecoration(
-          color: GwTokens.dark.inkCard,
-          borderRadius: BorderRadius.circular(12),
+          color: t.inkCard,
+          borderRadius: BorderRadius.circular(GwTokens.rCard),
         ),
       ),
     );

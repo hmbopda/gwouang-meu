@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:material_symbols_icons/symbols.dart';
 
 import 'package:gwangmeu/core/router/breadcrumb_provider.dart';
 import 'package:gwangmeu/core/router/route_names.dart';
@@ -9,9 +10,9 @@ import 'package:gwangmeu/shared/models/village_model.dart';
 import 'package:gwangmeu/features/villages/villages_notifier.dart';
 
 // ═══════════════════════════════════════════════
-// MES VILLAGES — Maquette gwangmeu-village-v3
-// Rail gauche adapté mobile : sections, gems,
-// badges génération, compteurs, locks, CTA.
+// MES VILLAGES — rail adapté mobile « Tissage » :
+// bande tissée, labels mono, gems, badges génération,
+// compteurs, verrous Symbols, CTA généalogie.
 // ═══════════════════════════════════════════════
 
 class MyVillagesScreen extends ConsumerWidget {
@@ -25,22 +26,32 @@ class MyVillagesScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: c.inkDeep,
-      body: myVillagesAsync.when(
-        loading: () => Center(
-          child: CircularProgressIndicator(color: c.goldText),
-        ),
-        error: (e, _) => _buildError(context, ref),
-        data: (myVillages) {
-          // Tous les villages pour la section "Autres"
-          final allVillages = allVillagesAsync.valueOrNull ?? [];
-          final myIds = myVillages.map((v) => v.id).toSet();
-          final otherVillages = allVillages.where((v) => !myIds.contains(v.id)).toList();
+      body: SafeArea(
+        child: Column(
+          children: [
+            const GwWeaveBand(),
+            Expanded(
+              child: myVillagesAsync.when(
+                loading: () => Center(
+                  child: CircularProgressIndicator(color: c.goldText),
+                ),
+                error: (e, _) => _buildError(context, ref),
+                data: (myVillages) {
+                  // Tous les villages pour la section "Autres"
+                  final allVillages = allVillagesAsync.valueOrNull ?? [];
+                  final myIds = myVillages.map((v) => v.id).toSet();
+                  final otherVillages =
+                      allVillages.where((v) => !myIds.contains(v.id)).toList();
 
-          return _MyVillagesBody(
-            myVillages: myVillages,
-            otherVillages: otherVillages,
-          );
-        },
+                  return _MyVillagesBody(
+                    myVillages: myVillages,
+                    otherVillages: otherVillages,
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -51,22 +62,27 @@ class MyVillagesScreen extends ConsumerWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.wifi_off, size: 40, color: c.stoneDim),
+          Icon(Symbols.wifi_off, size: 40, color: c.stoneDim),
           const SizedBox(height: 12),
           Text('Impossible de charger',
-              style: TextStyle(color: c.stoneDim, fontSize: 13)),
+              style: GwType.ui(fontSize: 14, color: c.stoneDim)),
           const SizedBox(height: 12),
           GestureDetector(
             onTap: () => ref.invalidate(myVillagesNotifierProvider),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
+              constraints: const BoxConstraints(minHeight: 44),
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: c.goldBg,
-                borderRadius: BorderRadius.circular(6),
+                borderRadius: BorderRadius.circular(GwTokens.rBtn),
                 border: Border.all(color: c.goldLine),
               ),
               child: Text('Réessayer',
-                  style: TextStyle(color: c.goldText, fontSize: 12, fontWeight: FontWeight.w500)),
+                  style: GwType.ui(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: c.goldText)),
             ),
           ),
         ],
@@ -160,25 +176,29 @@ class _MyVillagesBody extends StatelessWidget {
     final statusBarH = MediaQuery.of(context).padding.top;
     return SliverAppBar(
       backgroundColor: c.inkDeep,
-      leading: IconButton(
-        icon: Icon(Icons.arrow_back, color: c.stoneMid, size: 20),
-        onPressed: () => Navigator.of(context).pop(),
+      leading: SizedBox(
+        width: GwTokens.tapTarget,
+        height: GwTokens.tapTarget,
+        child: IconButton(
+          icon: Icon(Symbols.arrow_back, color: c.stone, size: 22),
+          tooltip: 'Retour',
+          onPressed: () => Navigator.of(context).pop(),
+        ),
       ),
       pinned: true,
       expandedHeight: 100 + statusBarH,
       flexibleSpace: FlexibleSpaceBar(
         background: Container(
           color: c.inkDeep,
-          padding: EdgeInsets.fromLTRB(20, statusBarH + 44, 20, 0),
+          padding: EdgeInsets.fromLTRB(20, statusBarH + 44, 12, 0),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Expanded(
                 child: Text(
                   'MES VILLAGES',
-                  style: TextStyle(
-                    fontFamily: 'monospace',
-                    fontSize: 11,
+                  style: GwType.mono(
+                    fontSize: 12,
                     fontWeight: FontWeight.w500,
                     letterSpacing: 1.8,
                     color: c.stoneDim,
@@ -188,16 +208,18 @@ class _MyVillagesBody extends StatelessWidget {
               GestureDetector(
                 onTap: () => context.push(Routes.villages),
                 child: Container(
-                  width: 28,
-                  height: 28,
-                  decoration: BoxDecoration(
-                    color: c.goldBg,
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: c.goldLine),
-                  ),
-                  child: Center(
-                    child: Text('+',
-                        style: TextStyle(color: c.goldText, fontSize: 18, fontWeight: FontWeight.w300)),
+                  width: GwTokens.tapTarget,
+                  height: GwTokens.tapTarget,
+                  alignment: Alignment.center,
+                  child: Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: c.goldBg,
+                      borderRadius: BorderRadius.circular(GwTokens.rBtn),
+                      border: Border.all(color: c.goldLine),
+                    ),
+                    child: Icon(Symbols.add, size: 18, color: c.goldText),
                   ),
                 ),
               ),
@@ -219,11 +241,9 @@ class _MyVillagesBody extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(20, 18, 20, 8),
         child: Text(
           text.toUpperCase(),
-          style: TextStyle(
-            fontFamily: 'monospace',
-            fontSize: 9.5,
+          style: GwType.mono(
+            fontSize: 12,
             fontWeight: FontWeight.w500,
-            letterSpacing: 1.5,
             color: c.stoneFaint,
           ),
         ),
@@ -260,6 +280,7 @@ class _VillageItem extends ConsumerWidget {
         context.push(Routes.villageDetail(village.id));
       },
       child: Container(
+        constraints: const BoxConstraints(minHeight: GwTokens.tapTarget),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         decoration: BoxDecoration(
           color: isActive ? c.goldBg : Colors.transparent,
@@ -290,9 +311,9 @@ class _VillageItem extends ConsumerWidget {
             Expanded(
               child: Text(
                 village.name,
-                style: TextStyle(
-                  fontSize: 13.5,
-                  fontWeight: isActive ? FontWeight.w500 : FontWeight.w400,
+                style: GwType.ui(
+                  fontSize: 14,
+                  fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
                   color: isLocked
                       ? c.stoneDim
                       : isActive
@@ -307,16 +328,16 @@ class _VillageItem extends ConsumerWidget {
             // Generation badge
             if (genLabel != null) ...[
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
                   color: c.inkLift,
-                  borderRadius: BorderRadius.circular(3),
+                  borderRadius: BorderRadius.circular(GwTokens.rPill),
                 ),
                 child: Text(
                   genLabel!,
-                  style: TextStyle(
-                    fontFamily: 'monospace',
-                    fontSize: 9,
+                  style: GwType.mono(
+                    fontSize: 12,
+                    letterSpacing: 0.5,
                     color: c.stoneFaint,
                   ),
                 ),
@@ -326,20 +347,20 @@ class _VillageItem extends ConsumerWidget {
 
             // Count or lock
             if (isLocked)
-              const Text('🔒', style: TextStyle(fontSize: 12))
+              Icon(Symbols.lock, size: 15, color: c.stoneDim)
             else
               Text(
                 _formatCount(village.memberCount),
-                style: TextStyle(
-                  fontFamily: 'monospace',
-                  fontSize: 10.5,
+                style: GwType.mono(
+                  fontSize: 12,
+                  letterSpacing: 0.5,
                   color: c.stoneFaint,
                 ),
               ),
 
             const SizedBox(width: 4),
             if (!isLocked)
-              Icon(Icons.chevron_right, size: 16, color: c.stoneFaint),
+              Icon(Symbols.chevron_right, size: 18, color: c.stoneFaint),
           ],
         ),
       ),
@@ -368,29 +389,34 @@ class _UnlockCard extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             border: Border.all(color: c.stoneFaint, style: BorderStyle.solid),
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(16),
           ),
           child: Column(
             children: [
               Text(
                 'Complétez votre arbre\npour débloquer G4+',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w300,
+                style: GwType.ui(
+                  fontSize: 13,
                   color: c.stoneDim,
                   height: 1.65,
                 ),
               ),
               const SizedBox(height: 10),
-              Text(
-                '→ GÉNÉALOGIE',
-                style: TextStyle(
-                  fontFamily: 'monospace',
-                  fontSize: 9.5,
-                  color: c.goldLine,
-                  letterSpacing: 1,
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Symbols.arrow_forward, size: 14, color: c.goldText),
+                  const SizedBox(width: 6),
+                  Text(
+                    'GÉNÉALOGIE',
+                    style: GwType.mono(
+                      fontSize: 12,
+                      color: c.goldText,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -411,6 +437,7 @@ class _ExploreItem extends StatelessWidget {
     return GestureDetector(
       onTap: () => context.push(Routes.villages),
       child: Container(
+        constraints: const BoxConstraints(minHeight: GwTokens.tapTarget),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         child: Row(
           children: [
@@ -428,14 +455,13 @@ class _ExploreItem extends StatelessWidget {
             const SizedBox(width: 14),
             Text(
               'Explorer + de villages',
-              style: TextStyle(
-                fontSize: 13.5,
-                fontWeight: FontWeight.w400,
+              style: GwType.ui(
+                fontSize: 14,
                 color: c.stoneFaint,
               ),
             ),
             const Spacer(),
-            Icon(Icons.arrow_forward, size: 14, color: c.stoneFaint),
+            Icon(Symbols.arrow_forward, size: 16, color: c.stoneFaint),
           ],
         ),
       ),
@@ -466,16 +492,16 @@ class _EmptyState extends StatelessWidget {
               color: c.goldBg,
               border: Border.all(color: c.goldLine),
             ),
-            child: const Center(
-              child: Text('🏘', style: TextStyle(fontSize: 28)),
+            child: Center(
+              child: Icon(Symbols.holiday_village, size: 28, color: c.goldText),
             ),
           ),
           const SizedBox(height: 20),
           Text(
             "Vous n'avez rejoint aucun village",
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w400,
+            style: GwType.display(
+              fontSize: 17,
+              fontWeight: FontWeight.w600,
               color: c.stone,
             ),
             textAlign: TextAlign.center,
@@ -483,9 +509,8 @@ class _EmptyState extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             'Explorez les villages disponibles et\nrejoignez votre communauté',
-            style: TextStyle(
-              fontSize: 12.5,
-              fontWeight: FontWeight.w300,
+            style: GwType.ui(
+              fontSize: 13,
               color: c.stoneDim,
               height: 1.7,
             ),
@@ -495,18 +520,20 @@ class _EmptyState extends StatelessWidget {
           GestureDetector(
             onTap: () => context.push(Routes.villages),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 11),
+              constraints: const BoxConstraints(minHeight: GwTokens.tapTarget),
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: c.goldText,
-                borderRadius: BorderRadius.circular(6),
-                boxShadow: [BoxShadow(color: c.goldText.withAlpha(60), blurRadius: 16)],
+                color: GwTokens.gold,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [BoxShadow(color: GwTokens.gold.withAlpha(60), blurRadius: 16)],
               ),
               child: Text(
                 'Explorer les villages',
-                style: TextStyle(
-                  color: c.inkDeep,
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w600,
+                style: GwType.ui(
+                  color: const Color(0xFF0C0B0F),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
                   letterSpacing: 0.3,
                 ),
               ),

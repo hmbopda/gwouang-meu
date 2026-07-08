@@ -45,5 +45,6 @@ final myConversationsProvider =
 /// Alimente le badge ember de la bottom nav (destination Messages).
 final unreadMessagesCountProvider = Provider<int>((ref) {
   // TODO(messages): brancher sur l'API chat quand le backend expose le compteur.
-  return 3;
+  // En attendant, pas de faux badge : 0 non-lu.
+  return 0;
 });

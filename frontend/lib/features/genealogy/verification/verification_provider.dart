@@ -1,18 +1,20 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:gwangmeu/features/genealogy/genealogy_notifier.dart';
+import 'package:gwangmeu/features/genealogy/models/ai_suggestion.dart';
 import 'package:gwangmeu/features/genealogy/services/genealogy_api_service.dart';
 
 /// Parcours « Suggestion IA vers Arbre » — état de l'écran de vérification.
 ///
 /// `step` suit le prototype (0 = fil, 1 = vérification, 2 = arbre) même si
-/// la navigation réelle passe par GoRouter ; `checks` porte les 3
-/// correspondances à valider ; `linkConfirmed` bascule la branche de
-/// « AFFLUENT · 87% » à « BRANCHE CONFIRMÉE ».
+/// la navigation réelle passe par GoRouter ; `checks` porte les
+/// correspondances à valider ; `linkConfirmed` bascule la branche
+/// d'« AFFLUENT · n% » à « BRANCHE CONFIRMÉE ».
 class VerificationState {
   const VerificationState({
     this.step = 1,
-    this.checks = const [false, false, false],
+    this.checks = const [],
     this.linkConfirmed = false,
     this.submitting = false,
   });
@@ -22,7 +24,7 @@ class VerificationState {
   final bool linkConfirmed;
   final bool submitting;
 
-  bool get allChecked => checks.every((c) => c);
+  bool get allChecked => checks.isNotEmpty && checks.every((c) => c);
   int get remaining => checks.where((c) => !c).length;
 
   VerificationState copyWith({
@@ -41,7 +43,8 @@ class VerificationState {
 }
 
 class VerificationNotifier extends StateNotifier<VerificationState> {
-  VerificationNotifier(this._ref) : super(const VerificationState());
+  VerificationNotifier(this._ref, int matchCount)
+      : super(VerificationState(checks: List.filled(matchCount, false)));
 
   final Ref _ref;
 
@@ -55,8 +58,8 @@ class VerificationNotifier extends StateNotifier<VerificationState> {
   void setStep(int step) => state = state.copyWith(step: step);
 
   /// Confirme le lien : mutation optimiste (la branche rejoint la rivière
-  /// immédiatement, compteur +1), puis POST /genealogy/suggestions/{id}/confirm.
-  /// En cas d'échec API sur une vraie suggestion, l'état est annulé.
+  /// immédiatement, compteur +1), puis PUT /ai/suggestions/{id}/review
+  /// avec accepted=true. En cas d'échec API, l'état est annulé (rollback).
   Future<bool> confirm({
     required String suggestionId,
     required String personId,
@@ -70,22 +73,18 @@ class VerificationNotifier extends StateNotifier<VerificationState> {
           (set) => {...set, suggestionId},
         );
 
-    // Suggestion de démonstration : pas d'appel réseau.
-    if (suggestionId.startsWith('demo-')) {
-      state = state.copyWith(submitting: false);
-      return true;
-    }
-
     try {
       await _ref
           .read(genealogyApiServiceProvider)
-          .confirmSuggestion(suggestionId);
+          .reviewSuggestion(suggestionId, true);
       // Re-synchronise l'arbre avec le backend.
-      _ref.invalidate(familyTreeProvider(personId));
+      if (personId.isNotEmpty) {
+        _ref.invalidate(familyTreeProvider(personId));
+      }
       state = state.copyWith(submitting: false);
       return true;
     } catch (e) {
-      debugPrint('[VERIFY] confirmSuggestion failed: $e');
+      debugPrint('[VERIFY] reviewSuggestion failed: $e');
       // Rollback de la mutation optimiste
       _ref.read(confirmedSuggestionsProvider.notifier).update(
             (set) => {...set}..remove(suggestionId),
@@ -96,13 +95,16 @@ class VerificationNotifier extends StateNotifier<VerificationState> {
     }
   }
 
-  void reset() => state = const VerificationState();
+  void reset() =>
+      state = VerificationState(
+          checks: List.filled(state.checks.length, false));
 }
 
-/// État du parcours de vérification (checks, confirmation).
-final verificationProvider = StateNotifierProvider.autoDispose<
-    VerificationNotifier, VerificationState>(
-  (ref) => VerificationNotifier(ref),
+/// État du parcours de vérification (checks, confirmation),
+/// dimensionné sur le nombre de correspondances à valider.
+final verificationProvider = StateNotifierProvider.autoDispose
+    .family<VerificationNotifier, VerificationState, int>(
+  (ref, matchCount) => VerificationNotifier(ref, matchCount),
 );
 
 /// Suggestions confirmées (mutation optimiste visible dans la rivière :
@@ -110,5 +112,36 @@ final verificationProvider = StateNotifierProvider.autoDispose<
 final confirmedSuggestionsProvider =
     StateProvider<Set<String>>((_) => <String>{});
 
-/// Id de la suggestion de démonstration (Kwame Asante — prototype).
-const kDemoSuggestionId = 'demo-kwame-asante';
+/// Suggestions écartées localement (« Plus tard » / « Rejeter ») :
+/// la carte affluent est masquée sans appel réseau.
+final dismissedSuggestionsProvider =
+    StateProvider<Set<String>>((_) => <String>{});
+
+/// Résout une suggestion IA réelle depuis son id : d'abord dans
+/// `tree.pendingSuggestions` du sujet courant, sinon via
+/// GET /ai/suggestions/{personId}. Retourne `null` si introuvable.
+final suggestionByIdProvider = FutureProvider.autoDispose
+    .family<AiSuggestion?, String>((ref, suggestionId) async {
+  final person = await ref.watch(genealogyNotifierProvider.future);
+  final tree = await ref.watch(familyTreeProvider(person.id).future);
+  for (final s in tree.pendingSuggestions) {
+    if (s.id == suggestionId) return s;
+  }
+  try {
+    final pending = await ref
+        .read(genealogyApiServiceProvider)
+        .getPendingSuggestions(person.id);
+    for (final s in pending) {
+      if (s.id == suggestionId) return s;
+    }
+  } catch (e) {
+    debugPrint('[VERIFY] getPendingSuggestions failed: $e');
+  }
+  return null;
+});
+
+/// Pourcentage de confiance affichable (le backend renvoie 0.0–1.0).
+int suggestionConfidencePct(AiSuggestion s) {
+  final raw = s.confidence <= 1 ? s.confidence * 100 : s.confidence;
+  return raw.round().clamp(0, 100);
+}

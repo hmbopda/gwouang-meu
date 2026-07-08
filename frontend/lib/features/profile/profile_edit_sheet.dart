@@ -1,19 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:material_symbols_icons/symbols.dart';
 
 import 'package:gwangmeu/core/theme/gw_tokens.dart';
 import 'package:gwangmeu/shared/models/country_model.dart';
 import 'package:gwangmeu/shared/models/language_model.dart';
 import 'package:gwangmeu/shared/models/village_model.dart';
 import 'package:gwangmeu/shared/widgets/country_village_selector.dart';
-import 'package:gwangmeu/shared/widgets/gwang_button.dart';
 import 'package:gwangmeu/features/genealogy/models/person_genealogy.dart';
 import 'package:gwangmeu/features/genealogy/services/genealogy_api_service.dart';
 import 'package:gwangmeu/features/geo/geo_notifier.dart';
 import 'package:gwangmeu/features/profile/profile_notifier.dart';
 
 /// Formulaire complet d'edition du profil — ouvert en bottom sheet plein ecran.
+/// Style « Tissage » : titres Fraunces, labels JetBrains Mono MAJUSCULES,
+/// inputs inkLift rayon 14 focus or, choix en pilules goldBg/goldLine.
 class ProfileEditSheet extends ConsumerStatefulWidget {
   const ProfileEditSheet({super.key});
 
@@ -118,7 +120,6 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
     'Autre',
   ];
 
-
   @override
   void initState() {
     super.initState();
@@ -215,13 +216,15 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final t = GwTokens.of(context);
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.92,
       decoration: BoxDecoration(
-        color: Theme.of(context).scaffoldBackgroundColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        color: t.ink,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(GwTokens.rCardLg)),
+        border: Border(top: BorderSide(color: t.line)),
       ),
       child: Column(
         children: [
@@ -250,11 +253,11 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
   }
 
   // ════════════════════════════════════════════════════════════════════════════
-  // HEADER
+  // HEADER — titre Fraunces + fermer 44 px
   // ════════════════════════════════════════════════════════════════════════════
 
   Widget _buildHeader(BuildContext context) {
-    final accent = Theme.of(context).colorScheme.primary;
+    final t = GwTokens.of(context);
     return Column(
       children: [
         const SizedBox(height: 10),
@@ -262,33 +265,29 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
           width: 40,
           height: 4,
           decoration: BoxDecoration(
-            color: GwTokens.dark.stoneDim.withAlpha(80),
+            color: t.lineMid,
             borderRadius: BorderRadius.circular(2),
           ),
         ),
         Padding(
-          padding: const EdgeInsets.fromLTRB(20, 16, 12, 0),
+          padding: const EdgeInsets.fromLTRB(20, 12, 10, 0),
           child: Row(
             children: [
-              Container(
-                width: 4,
-                height: 22,
-                decoration: BoxDecoration(
-                  color: accent,
-                  borderRadius: BorderRadius.circular(2),
+              Expanded(
+                child: Text(
+                  'Modifier mon profil',
+                  style: GwType.display(fontSize: 21, color: t.stone),
                 ),
               ),
-              const SizedBox(width: 10),
-              Text(
-                'Modifier mon profil',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
-              ),
-              const Spacer(),
-              IconButton(
-                icon: const Icon(Icons.close),
-                onPressed: () => Navigator.of(context).pop(),
+              SizedBox(
+                width: GwTokens.tapTarget,
+                height: GwTokens.tapTarget,
+                child: IconButton(
+                  padding: EdgeInsets.zero,
+                  icon: Icon(Symbols.close, size: 24, color: t.stoneMid),
+                  tooltip: 'Fermer',
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
               ),
             ],
           ),
@@ -298,45 +297,45 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
   }
 
   // ════════════════════════════════════════════════════════════════════════════
-  // SECTION TABS
+  // SECTION TABS — pilules or
   // ════════════════════════════════════════════════════════════════════════════
 
   Widget _buildSectionTabs(BuildContext context) {
-    final accent = Theme.of(context).colorScheme.primary;
-    return Container(
-      height: 44,
-      margin: const EdgeInsets.only(top: 12),
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        itemCount: _sections.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
-        itemBuilder: (_, i) {
-          final active = i == _currentSection;
-          return GestureDetector(
-            onTap: () => setState(() => _currentSection = i),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: active ? accent : Colors.transparent,
-                borderRadius: BorderRadius.circular(22),
-                border: Border.all(
-                  color: active ? accent : GwTokens.dark.stoneDim.withAlpha(60),
+    final t = GwTokens.of(context);
+    return SizedBox(
+      height: GwTokens.tapTarget,
+      child: Padding(
+        padding: const EdgeInsets.only(top: 0),
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          itemCount: _sections.length,
+          separatorBuilder: (_, __) => const SizedBox(width: 8),
+          itemBuilder: (_, i) {
+            final active = i == _currentSection;
+            return GestureDetector(
+              onTap: () => setState(() => _currentSection = i),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: active ? t.goldBg : t.inkLift,
+                  borderRadius: BorderRadius.circular(GwTokens.rPill),
+                  border: Border.all(color: active ? t.goldLine : t.line),
+                ),
+                child: Text(
+                  _sections[i],
+                  style: GwType.ui(
+                    fontSize: 13,
+                    fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+                    color: active ? t.goldText : t.stoneMid,
+                  ),
                 ),
               ),
-              child: Text(
-                _sections[i],
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: active ? FontWeight.w700 : FontWeight.w500,
-                  color: active ? Colors.black : GwTokens.dark.stoneMid,
-                ),
-              ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }
@@ -372,20 +371,20 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
       key: const ValueKey('identity'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _sectionHeader(context, Icons.person_outline, 'Informations personnelles'),
+        _sectionHeader(context, Symbols.person, 'Informations personnelles'),
         const SizedBox(height: 16),
         _buildTextField(
           controller: _displayNameCtrl,
           label: 'Nom complet',
           hint: 'Ex: Jean-Pierre Mbopda',
-          icon: Icons.badge_outlined,
+          icon: Symbols.badge,
         ),
         const SizedBox(height: 14),
         _buildTextField(
           controller: _bioCtrl,
           label: 'Bio / A propos',
           hint: 'Parlez de vous en quelques mots...',
-          icon: Icons.short_text,
+          icon: Symbols.notes,
           maxLines: 3,
           maxLength: 200,
         ),
@@ -396,25 +395,28 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
   // ── 2. Parents ───────────────────────────────────────────────────────────
 
   Widget _buildParentsSection(BuildContext context) {
-    final accent = Theme.of(context).colorScheme.primary;
+    final t = GwTokens.of(context);
     return Column(
       key: const ValueKey('parents'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _sectionHeader(context, Icons.family_restroom, 'Informations parentales'),
+        _sectionHeader(context, Symbols.family_restroom, 'Informations parentales'),
         const SizedBox(height: 8),
         if (_parentsLoading)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 8),
             child: Row(
               children: [
-                SizedBox(
+                const SizedBox(
                   width: 14,
                   height: 14,
-                  child: CircularProgressIndicator(strokeWidth: 1.5, color: accent),
+                  child: CircularProgressIndicator(strokeWidth: 1.5, color: GwTokens.gold),
                 ),
                 const SizedBox(width: 8),
-                Text('Chargement des parents liés...', style: TextStyle(fontSize: 12, color: GwTokens.dark.stoneDim)),
+                Text(
+                  'Chargement des parents liés...',
+                  style: GwType.ui(fontSize: 12, color: t.stoneDim),
+                ),
               ],
             ),
           )
@@ -423,13 +425,13 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
             _selectedFather == null && _selectedMother == null
                 ? 'Sélectionnez un membre existant d\'un de vos clans ou créez une nouvelle fiche.'
                 : 'Parents liés à votre arbre généalogique. Vous pouvez modifier leurs informations.',
-            style: TextStyle(fontSize: 12, color: GwTokens.dark.stoneDim),
+            style: GwType.ui(fontSize: 12, color: t.stoneDim),
           ),
         const SizedBox(height: 16),
         _parentCard(
           context,
           title: 'Père',
-          icon: Icons.man_outlined,
+          icon: Symbols.man,
           selectedPerson: _selectedFather,
           gender: 'MALE',
           role: 'FATHER',
@@ -443,7 +445,7 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
         _parentCard(
           context,
           title: 'Mère',
-          icon: Icons.woman_outlined,
+          icon: Symbols.woman,
           selectedPerson: _selectedMother,
           gender: 'FEMALE',
           role: 'MOTHER',
@@ -468,41 +470,48 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
     required VoidCallback onCleared,
     required VoidCallback? onEdit,
   }) {
-    final accent = Theme.of(context).colorScheme.primary;
+    final t = GwTokens.of(context);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Theme.of(context).colorScheme.outline.withAlpha(30)),
+        color: t.inkCard,
+        borderRadius: BorderRadius.circular(GwTokens.rCard),
+        border: Border.all(color: t.line),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(icon, size: 18, color: accent),
+              Icon(icon, size: 18, color: t.goldText, fill: 1),
               const SizedBox(width: 8),
               Text(
-                title,
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+                title.toUpperCase(),
+                style: GwType.mono(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 2,
+                  color: t.stoneMid,
+                ),
               ),
               const Spacer(),
               if (selectedPerson != null)
                 GestureDetector(
                   onTap: onEdit,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    constraints: const BoxConstraints(minHeight: 32),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: accent.withAlpha(20),
-                      borderRadius: BorderRadius.circular(8),
+                      color: t.goldBg,
+                      borderRadius: BorderRadius.circular(GwTokens.rPill),
+                      border: Border.all(color: t.goldLine),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.edit_outlined, size: 14, color: accent),
+                        Icon(Symbols.edit, size: 14, color: t.goldText),
                         const SizedBox(width: 4),
-                        Text('Modifier', style: TextStyle(fontSize: 11, color: accent)),
+                        Text('Modifier', style: GwType.ui(fontSize: 12, color: t.goldText)),
                       ],
                     ),
                   ),
@@ -515,20 +524,13 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: accent.withAlpha(15),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: accent.withAlpha(40)),
+                color: t.goldBg,
+                borderRadius: BorderRadius.circular(GwTokens.rBtn),
+                border: Border.all(color: t.goldLine),
               ),
               child: Row(
                 children: [
-                  CircleAvatar(
-                    radius: 20,
-                    backgroundColor: accent.withAlpha(30),
-                    child: Text(
-                      selectedPerson.firstName[0].toUpperCase(),
-                      style: TextStyle(color: accent, fontWeight: FontWeight.w700),
-                    ),
-                  ),
+                  _initialAvatar(context, selectedPerson.firstName, radius: 20),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -536,17 +538,17 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
                       children: [
                         Text(
                           '${selectedPerson.firstName} ${selectedPerson.lastName}',
-                          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                          style: GwType.ui(fontSize: 14, fontWeight: FontWeight.w600, color: t.stone),
                         ),
                         if (selectedPerson.clan != null)
                           Text(
                             'Clan: ${selectedPerson.clan}',
-                            style: TextStyle(fontSize: 12, color: GwTokens.dark.stoneMid),
+                            style: GwType.ui(fontSize: 12, color: t.stoneMid),
                           ),
                       ],
                     ),
                   ),
-                  Icon(Icons.check_circle, color: accent, size: 20),
+                  Icon(Symbols.check_circle, color: t.goldText, size: 20, fill: 1),
                 ],
               ),
             ),
@@ -560,7 +562,7 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
                 Expanded(
                   child: _actionBtn(
                     context,
-                    icon: Icons.search,
+                    icon: Symbols.search,
                     label: 'Chercher dans le clan',
                     onTap: () => _showSearchParentDialog(context, gender, role, onSelected),
                   ),
@@ -569,7 +571,7 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
                 Expanded(
                   child: _actionBtn(
                     context,
-                    icon: Icons.person_add_alt_1,
+                    icon: Symbols.person_add,
                     label: 'Créer une fiche',
                     onTap: () => _startInlineCreate(role),
                   ),
@@ -583,24 +585,26 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
   }
 
   Widget _actionBtn(BuildContext context, {required IconData icon, required String label, required VoidCallback onTap}) {
-    final accent = Theme.of(context).colorScheme.primary;
+    final t = GwTokens.of(context);
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: Container(
+        constraints: const BoxConstraints(minHeight: 64),
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surfaceContainerHighest.withAlpha(40),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: Theme.of(context).colorScheme.outline.withAlpha(40)),
+          color: t.inkLift,
+          borderRadius: BorderRadius.circular(GwTokens.rBtn),
+          border: Border.all(color: t.line),
         ),
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 22, color: accent),
+            Icon(icon, size: 22, color: t.goldText),
             const SizedBox(height: 6),
             Text(
               label,
-              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+              style: GwType.ui(fontSize: 12, fontWeight: FontWeight.w600, color: t.stone),
               textAlign: TextAlign.center,
             ),
           ],
@@ -610,7 +614,6 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
   }
 
   void _showEditParentDialog(BuildContext context, PersonGenealogy parent, String role) {
-    final accent = Theme.of(context).colorScheme.primary;
     final firstNameCtrl = TextEditingController(text: parent.firstName);
     final lastNameCtrl = TextEditingController(text: parent.lastName);
     final clanCtrl = TextEditingController(text: parent.clan ?? '');
@@ -620,97 +623,112 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
       context: context,
       useRootNavigator: true,
       builder: (dCtx) => StatefulBuilder(
-        builder: (dCtx, setDState) => AlertDialog(
-          title: Row(
-            children: [
-              Icon(Icons.edit_outlined, size: 18, color: accent),
-              const SizedBox(width: 8),
-              Text(
-                role == 'FATHER' ? 'Modifier le père' : 'Modifier la mère',
-                style: TextStyle(fontSize: 16, color: accent),
-              ),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
+        builder: (dCtx, setDState) {
+          final t = GwTokens.of(dCtx);
+          return _tissageDialog(
+            dCtx,
+            icon: Symbols.edit,
+            title: role == 'FATHER' ? 'Modifier le père' : 'Modifier la mère',
             children: [
               TextField(
                 controller: firstNameCtrl,
-                decoration: const InputDecoration(labelText: 'Prénom', isDense: true),
+                style: GwType.ui(fontSize: 14, color: t.stone),
+                decoration: _decor(dCtx, label: 'Prénom', icon: Symbols.person),
               ),
               const SizedBox(height: 10),
               TextField(
                 controller: lastNameCtrl,
-                decoration: const InputDecoration(labelText: 'Nom', isDense: true),
+                style: GwType.ui(fontSize: 14, color: t.stone),
+                decoration: _decor(dCtx, label: 'Nom', icon: Symbols.badge),
               ),
               const SizedBox(height: 10),
               TextField(
                 controller: clanCtrl,
-                decoration: const InputDecoration(labelText: 'Clan', isDense: true),
+                style: GwType.ui(fontSize: 14, color: t.stone),
+                decoration: _decor(dCtx, label: 'Clan', icon: Symbols.shield),
               ),
             ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: loading ? null : () => Navigator.of(dCtx, rootNavigator: true).pop(),
-              child: const Text('Annuler'),
-            ),
-            ElevatedButton(
-              onPressed: loading
-                  ? null
-                  : () async {
-                      setDState(() => loading = true);
-                      try {
-                        final api = ref.read(genealogyApiServiceProvider);
-                        final updated = await api.updatePerson(parent.id, {
-                          'firstName': firstNameCtrl.text.trim(),
-                          'lastName': lastNameCtrl.text.trim(),
-                          if (clanCtrl.text.trim().isNotEmpty) 'clan': clanCtrl.text.trim(),
-                        });
-                        if (mounted) {
-                          setState(() {
-                            if (role == 'FATHER') _selectedFather = updated;
-                            if (role == 'MOTHER') _selectedMother = updated;
+            actions: [
+              _dialogPrimaryBtn(
+                dCtx,
+                label: 'Enregistrer',
+                icon: Symbols.check,
+                loading: loading,
+                onPressed: loading
+                    ? null
+                    : () async {
+                        setDState(() => loading = true);
+                        try {
+                          final api = ref.read(genealogyApiServiceProvider);
+                          final updated = await api.updatePerson(parent.id, {
+                            'firstName': firstNameCtrl.text.trim(),
+                            'lastName': lastNameCtrl.text.trim(),
+                            if (clanCtrl.text.trim().isNotEmpty) 'clan': clanCtrl.text.trim(),
                           });
+                          if (mounted) {
+                            setState(() {
+                              if (role == 'FATHER') _selectedFather = updated;
+                              if (role == 'MOTHER') _selectedMother = updated;
+                            });
+                          }
+                          if (dCtx.mounted) Navigator.of(dCtx, rootNavigator: true).pop();
+                        } catch (e) {
+                          if (dCtx.mounted) {
+                            ScaffoldMessenger.of(dCtx).showSnackBar(
+                              SnackBar(
+                                content: Text('Erreur: $e',
+                                    style: GwType.ui(fontSize: 14, color: Colors.white)),
+                                backgroundColor: GwTokens.ember,
+                              ),
+                            );
+                          }
+                        } finally {
+                          if (dCtx.mounted) setDState(() => loading = false);
                         }
-                        if (dCtx.mounted) Navigator.of(dCtx, rootNavigator: true).pop();
-                      } catch (e) {
-                        if (dCtx.mounted) {
-                          ScaffoldMessenger.of(dCtx).showSnackBar(
-                            SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red),
-                          );
-                        }
-                      } finally {
-                        if (dCtx.mounted) setDState(() => loading = false);
-                      }
-                    },
-              style: ElevatedButton.styleFrom(backgroundColor: accent),
-              child: loading
-                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                  : const Text('Enregistrer'),
-            ),
-          ],
-        ),
+                      },
+              ),
+              _dialogGhostBtn(
+                dCtx,
+                label: 'Annuler',
+                onPressed: loading ? null : () => Navigator.of(dCtx, rootNavigator: true).pop(),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
 
   void _showSearchParentDialog(BuildContext context, String gender, String role, ValueChanged<PersonGenealogy> onSelected) {
-    final accent = Theme.of(context).colorScheme.primary;
     if (_selectedClans.isEmpty) {
       showDialog(
         context: context,
         useRootNavigator: true,
-        builder: (_) => AlertDialog(
-          title: const Text('Clan requis'),
-          content: const Text('Veuillez d\'abord renseigner au moins un clan dans l\'onglet Origines avant de rechercher un parent.'),
+        builder: (dCtx) => _tissageDialog(
+          dCtx,
+          icon: Symbols.shield,
+          title: 'Clan requis',
+          children: [
+            Text(
+              'Veuillez d\'abord renseigner au moins un clan dans l\'onglet Origines avant de rechercher un parent.',
+              style: GwType.ui(fontSize: 14, color: GwTokens.of(dCtx).stoneMid, height: 1.5),
+            ),
+          ],
           actions: [
-            TextButton(
+            _dialogPrimaryBtn(
+              dCtx,
+              label: 'Aller aux Origines',
+              icon: Symbols.arrow_forward,
               onPressed: () {
                 Navigator.of(context, rootNavigator: true).pop();
-                setState(() => _currentSection = 3);
+                final originesIndex = _sections.indexOf('Origines');
+                if (originesIndex >= 0) setState(() => _currentSection = originesIndex);
               },
-              child: Text('Aller aux Origines', style: TextStyle(color: accent)),
+            ),
+            _dialogGhostBtn(
+              dCtx,
+              label: 'Fermer',
+              onPressed: () => Navigator.of(dCtx, rootNavigator: true).pop(),
             ),
           ],
         ),
@@ -724,18 +742,60 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
       showDialog(
         context: context,
         useRootNavigator: true,
-        builder: (_) => SimpleDialog(
-          title: const Text('Dans quel clan chercher ?'),
-          children: _selectedClans.map((clan) => SimpleDialogOption(
-            onPressed: () {
-              Navigator.of(context, rootNavigator: true).pop();
-              _openSearchDialog(context, clan, gender, onSelected);
-            },
-            child: Text(clan, style: const TextStyle(fontSize: 15)),
-          )).toList(),
+        builder: (dCtx) => _clanPickerDialog(
+          dCtx,
+          onClanPicked: (clan) {
+            Navigator.of(context, rootNavigator: true).pop();
+            _openSearchDialog(context, clan, gender, onSelected);
+          },
         ),
       );
     }
+  }
+
+  /// Dialog de choix de clan — remplace le SimpleDialog historique.
+  Widget _clanPickerDialog(BuildContext dCtx, {required ValueChanged<String> onClanPicked}) {
+    final t = GwTokens.of(dCtx);
+    return _tissageDialog(
+      dCtx,
+      icon: Symbols.shield,
+      title: 'Dans quel clan chercher ?',
+      children: [
+        for (final clan in _selectedClans) ...[
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => onClanPicked(clan),
+            child: Container(
+              constraints: const BoxConstraints(minHeight: GwTokens.tapTarget),
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              decoration: BoxDecoration(
+                color: t.inkLift,
+                borderRadius: BorderRadius.circular(GwTokens.rBtn),
+                border: Border.all(color: t.line),
+              ),
+              child: Row(
+                children: [
+                  Icon(Symbols.shield, size: 18, color: t.goldText),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(clan, style: GwType.ui(fontSize: 15, color: t.stone)),
+                  ),
+                  Icon(Symbols.chevron_right, size: 20, color: t.stoneDim),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ],
+      actions: [
+        _dialogGhostBtn(
+          dCtx,
+          label: 'Fermer',
+          onPressed: () => Navigator.of(dCtx, rootNavigator: true).pop(),
+        ),
+      ],
+    );
   }
 
   void _openSearchDialog(BuildContext context, String clan, String gender, ValueChanged<PersonGenealogy> onSelected) {
@@ -764,7 +824,7 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
   }
 
   Widget _buildInlineCreateForm(String gender, String role, ValueChanged<PersonGenealogy> onSelected) {
-    final accent = Theme.of(context).colorScheme.primary;
+    final t = GwTokens.of(context);
     final title = gender == 'MALE' ? 'Nouvelle fiche Pere' : 'Nouvelle fiche Mere';
     return Form(
       key: _createFormKey,
@@ -774,73 +834,99 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
           Row(
             children: [
               Icon(
-                gender == 'MALE' ? Icons.man_outlined : Icons.woman_outlined,
+                gender == 'MALE' ? Symbols.man : Symbols.woman,
                 size: 16,
-                color: accent,
+                color: t.goldText,
               ),
               const SizedBox(width: 6),
-              Text(title, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: accent)),
-              const Spacer(),
+              Expanded(
+                child: Text(
+                  title.toUpperCase(),
+                  style: GwType.mono(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 1.5,
+                    color: t.goldText,
+                  ),
+                ),
+              ),
               GestureDetector(
                 onTap: _createLoading ? null : () => setState(() => _creatingParentFor = null),
-                child: const Icon(Icons.close, size: 18, color: Colors.grey),
+                child: SizedBox(
+                  width: 36,
+                  height: 36,
+                  child: Icon(Symbols.close, size: 18, color: t.stoneDim),
+                ),
               ),
             ],
           ),
           const SizedBox(height: 12),
           TextFormField(
             controller: _createFirstNameCtrl,
-            decoration: const InputDecoration(
-              labelText: 'Prenom *',
-              prefixIcon: Icon(Icons.person_outline),
-              isDense: true,
-            ),
+            style: GwType.ui(fontSize: 14, color: t.stone),
+            decoration: _decor(context, label: 'Prenom *', icon: Symbols.person),
             validator: (v) => (v == null || v.isEmpty) ? 'Requis' : null,
           ),
           const SizedBox(height: 10),
           TextFormField(
             controller: _createLastNameCtrl,
-            decoration: const InputDecoration(
-              labelText: 'Nom *',
-              prefixIcon: Icon(Icons.badge_outlined),
-              isDense: true,
-            ),
+            style: GwType.ui(fontSize: 14, color: t.stone),
+            decoration: _decor(context, label: 'Nom *', icon: Symbols.badge),
             validator: (v) => (v == null || v.isEmpty) ? 'Requis' : null,
           ),
           const SizedBox(height: 10),
           TextFormField(
             controller: _createClanCtrl,
-            decoration: const InputDecoration(
-              labelText: 'Clan',
-              prefixIcon: Icon(Icons.shield_outlined),
-              isDense: true,
-            ),
+            style: GwType.ui(fontSize: 14, color: t.stone),
+            decoration: _decor(context, label: 'Clan', icon: Symbols.shield),
           ),
           const SizedBox(height: 10),
-          SwitchListTile(
-            title: const Text('Encore en vie ?', style: TextStyle(fontSize: 14)),
-            subtitle: Text(
-              _createIsAlive
-                  ? 'Un lien de validation sera envoye'
-                  : 'La personne est decedee',
-              style: const TextStyle(fontSize: 11, color: Colors.grey),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: BoxDecoration(
+              color: t.inkLift,
+              borderRadius: BorderRadius.circular(GwTokens.rBtn),
+              border: Border.all(color: t.line),
             ),
-            value: _createIsAlive,
-            activeThumbColor: accent,
-            contentPadding: EdgeInsets.zero,
-            dense: true,
-            onChanged: (v) => setState(() => _createIsAlive = v),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Encore en vie ?',
+                        style: GwType.ui(fontSize: 14, fontWeight: FontWeight.w600, color: t.stone),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        _createIsAlive
+                            ? 'Un lien de validation sera envoye'
+                            : 'La personne est decedee',
+                        style: GwType.ui(fontSize: 12, color: t.stoneDim),
+                      ),
+                    ],
+                  ),
+                ),
+                Switch(
+                  value: _createIsAlive,
+                  activeThumbColor: GwTokens.gold,
+                  activeTrackColor: t.goldBg,
+                  onChanged: (v) => setState(() => _createIsAlive = v),
+                ),
+              ],
+            ),
           ),
           if (_createIsAlive) ...[
             const SizedBox(height: 8),
             TextFormField(
               controller: _createEmailCtrl,
-              decoration: const InputDecoration(
-                labelText: 'Email *',
-                prefixIcon: Icon(Icons.email_outlined),
-                isDense: true,
-                helperText: 'Pour envoyer le lien d\'invitation',
-                helperStyle: TextStyle(fontSize: 10),
+              style: GwType.ui(fontSize: 14, color: t.stone),
+              decoration: _decor(
+                context,
+                label: 'Email *',
+                icon: Symbols.mail,
+                helper: 'Pour envoyer le lien d\'invitation',
               ),
               keyboardType: TextInputType.emailAddress,
               validator: (v) {
@@ -855,22 +941,20 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
           Row(
             children: [
               Expanded(
-                child: OutlinedButton(
+                child: _secondaryBtn(
+                  context,
+                  label: 'Annuler',
                   onPressed: _createLoading ? null : () => setState(() => _creatingParentFor = null),
-                  child: const Text('Annuler', style: TextStyle(fontSize: 13)),
                 ),
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: ElevatedButton(
+                child: _primaryBtn(
+                  context,
+                  label: 'Creer',
+                  icon: Symbols.check,
+                  loading: _createLoading,
                   onPressed: _createLoading ? null : () => _submitInlineCreate(gender, role, onSelected),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: accent,
-                    foregroundColor: Colors.black,
-                  ),
-                  child: _createLoading
-                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                      : const Text('Creer', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
                 ),
               ),
             ],
@@ -903,9 +987,7 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red),
-        );
+        _showSnack('Erreur: $e', GwTokens.ember);
       }
     } finally {
       if (mounted) setState(() => _createLoading = false);
@@ -915,67 +997,48 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
   // ── 3. Famille ───────────────────────────────────────────────────────────
 
   Widget _buildFamilySection(BuildContext context) {
-    final accent = Theme.of(context).colorScheme.primary;
     return Column(
       key: const ValueKey('family'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _sectionHeader(context, Icons.favorite_outline, 'Situation familiale'),
+        _sectionHeader(context, Symbols.favorite, 'Situation familiale'),
         const SizedBox(height: 16),
-        _buildDropdown(
+        _buildPillChoice(
           label: 'Situation maritale',
-          icon: Icons.favorite_border,
+          icon: Symbols.favorite,
           value: _maritalStatus,
-          items: _maritalOptions,
+          options: _maritalOptions,
           onChanged: (v) => setState(() => _maritalStatus = v),
         ),
-        const SizedBox(height: 14),
-        _buildDropdown(
+        const SizedBox(height: 18),
+        _buildPillChoice(
           label: 'Regime matrimonial',
-          icon: Icons.gavel_outlined,
+          icon: Symbols.gavel,
           value: _matrimonialRegime,
-          items: _regimeOptions,
+          options: _regimeOptions,
           onChanged: (v) => setState(() => _matrimonialRegime = v),
         ),
-        const SizedBox(height: 14),
-        TextFormField(
+        const SizedBox(height: 18),
+        _buildTextField(
           controller: _childrenCountCtrl,
+          label: 'Nombre d\'enfants',
+          hint: '0',
+          icon: Symbols.child_care,
           keyboardType: TextInputType.number,
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-          style: const TextStyle(fontSize: 14),
           onChanged: (_) => setState(() {
             // Ajuste _currentSection si l'onglet Enfants disparait
             if (_currentSection >= _sections.length) {
               _currentSection = _sections.length - 1;
             }
           }),
-          decoration: InputDecoration(
-            labelText: 'Nombre d\'enfants',
-            hintText: '0',
-            prefixIcon: const Icon(Icons.child_care_outlined, size: 18),
-            filled: true,
-            fillColor: Theme.of(context).colorScheme.surfaceContainerHighest.withAlpha(40),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Theme.of(context).colorScheme.outline.withAlpha(40)),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Theme.of(context).colorScheme.outline.withAlpha(40)),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: accent, width: 1.5),
-            ),
-          ),
         ),
-        const SizedBox(height: 14),
-        _buildDropdown(
+        const SizedBox(height: 18),
+        _buildPillChoice(
           label: 'Regime alimentaire',
-          icon: Icons.restaurant_outlined,
+          icon: Symbols.restaurant,
           value: _diet,
-          items: _dietOptions,
+          options: _dietOptions,
           onChanged: (v) => setState(() => _diet = v),
         ),
       ],
@@ -985,7 +1048,7 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
   // ── 3b. Enfants ─────────────────────────────────────────────────────────
 
   Widget _buildChildrenSection(BuildContext context) {
-    final accent = Theme.of(context).colorScheme.primary;
+    final t = GwTokens.of(context);
     final declared = int.tryParse(_childrenCountCtrl.text.trim()) ?? 0;
     final linked = _children.length;
     // Afficher le plus grand des deux : liés ou déclarés
@@ -994,20 +1057,23 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
       key: const ValueKey('children'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _sectionHeader(context, Icons.child_care, 'Mes enfants'),
+        _sectionHeader(context, Symbols.child_care, 'Mes enfants'),
         const SizedBox(height: 8),
         if (_childrenLoading)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 8),
             child: Row(
               children: [
-                SizedBox(
+                const SizedBox(
                   width: 14,
                   height: 14,
-                  child: CircularProgressIndicator(strokeWidth: 1.5, color: accent),
+                  child: CircularProgressIndicator(strokeWidth: 1.5, color: GwTokens.gold),
                 ),
                 const SizedBox(width: 8),
-                Text('Chargement des enfants liés...', style: TextStyle(fontSize: 12, color: GwTokens.dark.stoneDim)),
+                Text(
+                  'Chargement des enfants liés...',
+                  style: GwType.ui(fontSize: 12, color: t.stoneDim),
+                ),
               ],
             ),
           )
@@ -1016,7 +1082,7 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
             displayed == 0
                 ? 'Aucun enfant déclaré. Ajoutez leurs fiches pour les lier à votre arbre.'
                 : '$displayed enfant${displayed > 1 ? 's' : ''} (${linked > 0 ? '$linked lié${linked > 1 ? 's' : ''} à votre arbre' : 'aucun lié encore'}).',
-            style: TextStyle(fontSize: 12, color: GwTokens.dark.stoneDim),
+            style: GwType.ui(fontSize: 12, color: t.stoneDim),
           ),
         const SizedBox(height: 16),
         // Liste des enfants deja lies
@@ -1034,7 +1100,7 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
               Expanded(
                 child: _actionBtn(
                   context,
-                  icon: Icons.search,
+                  icon: Symbols.search,
                   label: 'Chercher existant',
                   onTap: () => _showSearchChildDialog(context),
                 ),
@@ -1043,7 +1109,7 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
               Expanded(
                 child: _actionBtn(
                   context,
-                  icon: Icons.person_add_alt_1,
+                  icon: Symbols.person_add,
                   label: 'Creer une fiche',
                   onTap: _startInlineChildCreate,
                 ),
@@ -1056,19 +1122,19 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: accent.withAlpha(10),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: accent.withAlpha(30)),
+              color: t.goldBg,
+              borderRadius: BorderRadius.circular(GwTokens.rBtn),
+              border: Border.all(color: t.goldLine),
             ),
             child: Row(
               children: [
-                Icon(Icons.info_outline, size: 16, color: accent),
+                Icon(Symbols.info, size: 16, color: t.goldText),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     '${_children.length} enfant${_children.length > 1 ? 's' : ''} ajoute${_children.length > 1 ? 's' : ''}. '
                     'Ils seront lies a votre arbre genealogique.',
-                    style: const TextStyle(fontSize: 11, color: Colors.grey),
+                    style: GwType.ui(fontSize: 12, color: t.stoneMid),
                   ),
                 ),
               ],
@@ -1080,24 +1146,17 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
   }
 
   Widget _childCard(BuildContext context, PersonGenealogy child, int index) {
-    final accent = Theme.of(context).colorScheme.primary;
+    final t = GwTokens.of(context);
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: accent.withAlpha(15),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: accent.withAlpha(40)),
+        color: t.inkCard,
+        borderRadius: BorderRadius.circular(GwTokens.rCard),
+        border: Border.all(color: t.goldLine),
       ),
       child: Row(
         children: [
-          CircleAvatar(
-            radius: 18,
-            backgroundColor: accent.withAlpha(30),
-            child: Text(
-              child.firstName[0].toUpperCase(),
-              style: TextStyle(color: accent, fontWeight: FontWeight.w700, fontSize: 14),
-            ),
-          ),
+          _initialAvatar(context, child.firstName, radius: 18),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -1105,11 +1164,11 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
               children: [
                 Text(
                   '${child.firstName} ${child.lastName}',
-                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                  style: GwType.ui(fontSize: 14, fontWeight: FontWeight.w600, color: t.stone),
                 ),
                 Text(
                   child.gender == 'MALE' ? 'Fils' : 'Fille',
-                  style: TextStyle(fontSize: 12, color: GwTokens.dark.stoneMid),
+                  style: GwType.ui(fontSize: 12, color: t.stoneMid),
                 ),
               ],
             ),
@@ -1117,12 +1176,14 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
           GestureDetector(
             onTap: () => setState(() => _children.removeAt(index)),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              width: 36,
+              height: 36,
               decoration: BoxDecoration(
-                color: GwTokens.ember.withAlpha(20),
-                borderRadius: BorderRadius.circular(8),
+                color: GwTokens.emberBg,
+                borderRadius: BorderRadius.circular(GwTokens.rBtn - 4),
+                border: Border.all(color: GwTokens.emberLine),
               ),
-              child: const Icon(Icons.close, size: 14, color: GwTokens.ember),
+              child: Icon(Symbols.close, size: 16, color: t.emberText),
             ),
           ),
         ],
@@ -1142,7 +1203,7 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
   }
 
   Widget _buildInlineChildCreateForm() {
-    final accent = Theme.of(context).colorScheme.primary;
+    final t = GwTokens.of(context);
     return Form(
       key: _createChildFormKey,
       child: Column(
@@ -1150,107 +1211,105 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
         children: [
           Row(
             children: [
-              Icon(Icons.child_care, size: 16, color: accent),
+              Icon(Symbols.child_care, size: 16, color: t.goldText),
               const SizedBox(width: 6),
-              Text('Nouvel enfant', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: accent)),
-              const Spacer(),
+              Expanded(
+                child: Text(
+                  'NOUVEL ENFANT',
+                  style: GwType.mono(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 1.5,
+                    color: t.goldText,
+                  ),
+                ),
+              ),
               GestureDetector(
                 onTap: _createChildLoading ? null : () => setState(() => _creatingChild = false),
-                child: const Icon(Icons.close, size: 18, color: Colors.grey),
+                child: SizedBox(
+                  width: 36,
+                  height: 36,
+                  child: Icon(Symbols.close, size: 18, color: t.stoneDim),
+                ),
               ),
             ],
           ),
           const SizedBox(height: 12),
           TextFormField(
             controller: _createChildFirstNameCtrl,
-            decoration: const InputDecoration(
-              labelText: 'Prenom *',
-              prefixIcon: Icon(Icons.person_outline),
-              isDense: true,
-            ),
+            style: GwType.ui(fontSize: 14, color: t.stone),
+            decoration: _decor(context, label: 'Prenom *', icon: Symbols.person),
             validator: (v) => (v == null || v.isEmpty) ? 'Requis' : null,
           ),
           const SizedBox(height: 10),
           TextFormField(
             controller: _createChildLastNameCtrl,
-            decoration: const InputDecoration(
-              labelText: 'Nom *',
-              prefixIcon: Icon(Icons.badge_outlined),
-              isDense: true,
-            ),
+            style: GwType.ui(fontSize: 14, color: t.stone),
+            decoration: _decor(context, label: 'Nom *', icon: Symbols.badge),
             validator: (v) => (v == null || v.isEmpty) ? 'Requis' : null,
           ),
           const SizedBox(height: 10),
           TextFormField(
             controller: _createChildClanCtrl,
-            decoration: const InputDecoration(
-              labelText: 'Clan',
-              prefixIcon: Icon(Icons.shield_outlined),
-              isDense: true,
-            ),
+            style: GwType.ui(fontSize: 14, color: t.stone),
+            decoration: _decor(context, label: 'Clan', icon: Symbols.shield),
           ),
           const SizedBox(height: 10),
-          // Date de naissance
-          GestureDetector(
+          // Date de naissance — champ datepicker stylé
+          _buildDateField(
+            context,
+            label: 'Date de naissance',
+            value: _createChildBirthDate,
             onTap: () async {
-              final picked = await showDatePicker(
-                context: context,
+              final picked = await _pickDate(
+                context,
                 initialDate: _createChildBirthDate ?? DateTime(2000),
                 firstDate: DateTime(1900),
                 lastDate: DateTime.now(),
-                locale: const Locale('fr'),
               );
               if (picked != null) setState(() => _createChildBirthDate = picked);
             },
-            child: AbsorbPointer(
-              child: TextFormField(
-                decoration: InputDecoration(
-                  labelText: 'Date de naissance',
-                  prefixIcon: const Icon(Icons.cake_outlined),
-                  isDense: true,
-                  hintText: _createChildBirthDate != null
-                      ? '${_createChildBirthDate!.day.toString().padLeft(2, '0')}/${_createChildBirthDate!.month.toString().padLeft(2, '0')}/${_createChildBirthDate!.year}'
-                      : 'JJ/MM/AAAA',
-                ),
-                controller: TextEditingController(
-                  text: _createChildBirthDate != null
-                      ? '${_createChildBirthDate!.day.toString().padLeft(2, '0')}/${_createChildBirthDate!.month.toString().padLeft(2, '0')}/${_createChildBirthDate!.year}'
-                      : '',
-                ),
-              ),
-            ),
           ),
           const SizedBox(height: 10),
           // Email
           TextFormField(
             controller: _createChildEmailCtrl,
-            decoration: const InputDecoration(
-              labelText: 'Email',
-              prefixIcon: Icon(Icons.email_outlined),
-              isDense: true,
-              helperText: 'Pour la deduplication et l\'invitation',
-              helperStyle: TextStyle(fontSize: 10),
+            style: GwType.ui(fontSize: 14, color: t.stone),
+            decoration: _decor(
+              context,
+              label: 'Email',
+              icon: Symbols.mail,
+              helper: 'Pour la deduplication et l\'invitation',
             ),
             keyboardType: TextInputType.emailAddress,
           ),
-          const SizedBox(height: 10),
-          // Genre
-          Row(
+          const SizedBox(height: 14),
+          // Genre — pilules
+          Text(
+            'GENRE',
+            style: GwType.mono(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 2,
+              color: t.stoneDim,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
             children: [
-              const Text('Genre :', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
-              const SizedBox(width: 12),
-              ChoiceChip(
-                label: const Text('Fils'),
-                selected: _createChildGender == 'MALE',
-                onSelected: (_) => setState(() => _createChildGender = 'MALE'),
-                selectedColor: accent.withAlpha(40),
+              _pill(
+                context,
+                label: 'Fils',
+                active: _createChildGender == 'MALE',
+                onTap: () => setState(() => _createChildGender = 'MALE'),
               ),
-              const SizedBox(width: 8),
-              ChoiceChip(
-                label: const Text('Fille'),
-                selected: _createChildGender == 'FEMALE',
-                onSelected: (_) => setState(() => _createChildGender = 'FEMALE'),
-                selectedColor: accent.withAlpha(40),
+              _pill(
+                context,
+                label: 'Fille',
+                active: _createChildGender == 'FEMALE',
+                onTap: () => setState(() => _createChildGender = 'FEMALE'),
               ),
             ],
           ),
@@ -1258,22 +1317,20 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
           Row(
             children: [
               Expanded(
-                child: OutlinedButton(
+                child: _secondaryBtn(
+                  context,
+                  label: 'Annuler',
                   onPressed: _createChildLoading ? null : () => setState(() => _creatingChild = false),
-                  child: const Text('Annuler', style: TextStyle(fontSize: 13)),
                 ),
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: ElevatedButton(
+                child: _primaryBtn(
+                  context,
+                  label: 'Creer',
+                  icon: Symbols.check,
+                  loading: _createChildLoading,
                   onPressed: _createChildLoading ? null : _submitInlineChildCreate,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: accent,
-                    foregroundColor: Colors.black,
-                  ),
-                  child: _createChildLoading
-                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                      : const Text('Creer', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
                 ),
               ),
             ],
@@ -1313,18 +1370,11 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
             _childrenCountCtrl.text = _children.length.toString();
           }
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${child.firstName} ajoute(e) et lie(e) a votre arbre'),
-            backgroundColor: const Color(0xFFC8A020),
-          ),
-        );
+        _showSnack('${child.firstName} ajoute(e) et lie(e) a votre arbre', GwTokens.sage);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red),
-        );
+        _showSnack('Erreur: $e', GwTokens.ember);
       }
     } finally {
       if (mounted) setState(() => _createChildLoading = false);
@@ -1332,22 +1382,35 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
   }
 
   void _showSearchChildDialog(BuildContext context) {
-    final accent = Theme.of(context).colorScheme.primary;
     if (_selectedClans.isEmpty) {
       showDialog(
         context: context,
         useRootNavigator: true,
-        builder: (_) => AlertDialog(
-          title: const Text('Clan requis'),
-          content: const Text('Veuillez d\'abord renseigner au moins un clan dans l\'onglet Origines.'),
+        builder: (dCtx) => _tissageDialog(
+          dCtx,
+          icon: Symbols.shield,
+          title: 'Clan requis',
+          children: [
+            Text(
+              'Veuillez d\'abord renseigner au moins un clan dans l\'onglet Origines.',
+              style: GwType.ui(fontSize: 14, color: GwTokens.of(dCtx).stoneMid, height: 1.5),
+            ),
+          ],
           actions: [
-            TextButton(
+            _dialogPrimaryBtn(
+              dCtx,
+              label: 'Aller aux Origines',
+              icon: Symbols.arrow_forward,
               onPressed: () {
                 Navigator.of(context, rootNavigator: true).pop();
                 final originesIndex = _sections.indexOf('Origines');
                 if (originesIndex >= 0) setState(() => _currentSection = originesIndex);
               },
-              child: Text('Aller aux Origines', style: TextStyle(color: accent)),
+            ),
+            _dialogGhostBtn(
+              dCtx,
+              label: 'Fermer',
+              onPressed: () => Navigator.of(dCtx, rootNavigator: true).pop(),
             ),
           ],
         ),
@@ -1361,15 +1424,12 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
       showDialog(
         context: context,
         useRootNavigator: true,
-        builder: (_) => SimpleDialog(
-          title: const Text('Dans quel clan chercher ?'),
-          children: _selectedClans.map((c) => SimpleDialogOption(
-            onPressed: () {
-              Navigator.of(context, rootNavigator: true).pop();
-              _openSearchChildDialog(context, c);
-            },
-            child: Text(c, style: const TextStyle(fontSize: 15)),
-          )).toList(),
+        builder: (dCtx) => _clanPickerDialog(
+          dCtx,
+          onClanPicked: (c) {
+            Navigator.of(context, rootNavigator: true).pop();
+            _openSearchChildDialog(context, c);
+          },
         ),
       );
     }
@@ -1395,8 +1455,13 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
             if (context.mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('${person.firstName} lie(e) comme enfant'),
-                  backgroundColor: const Color(0xFFC8A020),
+                  content: Text(
+                    '${person.firstName} lie(e) comme enfant',
+                    style: GwType.ui(fontSize: 14, color: Colors.white),
+                  ),
+                  backgroundColor: GwTokens.sage,
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(GwTokens.rBtn)),
                 ),
               );
             }
@@ -1404,7 +1469,15 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
             debugPrint('Erreur linkParentChild enfant existant: $e');
             if (context.mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Erreur liaison: $e'), backgroundColor: Colors.red),
+                SnackBar(
+                  content: Text(
+                    'Erreur liaison: $e',
+                    style: GwType.ui(fontSize: 14, color: Colors.white),
+                  ),
+                  backgroundColor: GwTokens.ember,
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(GwTokens.rBtn)),
+                ),
               );
             }
           }
@@ -1445,7 +1518,7 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
       key: const ValueKey('origins'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _sectionHeader(context, Icons.public, 'Origines & Culture'),
+        _sectionHeader(context, Symbols.public, 'Origines & Culture'),
         const SizedBox(height: 16),
 
         CountryVillageSelector(
@@ -1465,64 +1538,82 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
 
         // Langue maternelle (visible seulement si un pays est selectionne)
         if (_selectedCountryIso != null) ...[
-          const SizedBox(height: 14),
-          _buildLanguageDropdown(context),
+          const SizedBox(height: 18),
+          _buildLanguagePills(context),
         ],
-        const SizedBox(height: 14),
+        const SizedBox(height: 18),
         _buildTextField(
           controller: _tribeCtrl,
           label: 'Ethnie / Tribu',
           hint: 'Ex: Bassa',
-          icon: Icons.groups_outlined,
+          icon: Symbols.groups,
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 18),
         _buildClanMultiSelect(context),
       ],
     );
   }
 
   Widget _buildClanMultiSelect(BuildContext context) {
-    final accent = Theme.of(context).colorScheme.primary;
+    final t = GwTokens.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            Icon(Icons.account_tree_outlined, size: 18, color: accent),
+            Icon(Symbols.account_tree, size: 16, color: t.goldText),
             const SizedBox(width: 8),
             Text(
-              'Clans',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+              'CLANS',
+              style: GwType.mono(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 2,
+                color: t.stoneDim,
+              ),
             ),
           ],
         ),
-        const SizedBox(height: 8),
-        // Chips des clans selectionnes
+        const SizedBox(height: 10),
+        // Pilules des clans selectionnes
         if (_selectedClans.isNotEmpty)
           Wrap(
             spacing: 8,
-            runSpacing: 6,
-            children: _selectedClans.map((clan) => Chip(
-              label: Text(clan, style: const TextStyle(fontSize: 13)),
-              deleteIcon: const Icon(Icons.close, size: 16),
-              onDeleted: () => setState(() => _selectedClans.remove(clan)),
-              backgroundColor: accent.withAlpha(20),
-              side: BorderSide(color: accent.withAlpha(60)),
+            runSpacing: 8,
+            children: _selectedClans.map((clan) => Container(
+              constraints: const BoxConstraints(minHeight: 40),
+              padding: const EdgeInsets.only(left: 14, right: 6),
+              decoration: BoxDecoration(
+                color: t.goldBg,
+                borderRadius: BorderRadius.circular(GwTokens.rPill),
+                border: Border.all(color: t.goldLine),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(clan, style: GwType.ui(fontSize: 13, fontWeight: FontWeight.w600, color: t.goldText)),
+                  const SizedBox(width: 4),
+                  GestureDetector(
+                    onTap: () => setState(() => _selectedClans.remove(clan)),
+                    child: SizedBox(
+                      width: 30,
+                      height: 40,
+                      child: Icon(Symbols.close, size: 16, color: t.goldText),
+                    ),
+                  ),
+                ],
+              ),
             )).toList(),
           ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 10),
         // Champ de saisie + bouton ajouter
         Row(
           children: [
             Expanded(
               child: TextField(
                 controller: _clanInputCtrl,
-                decoration: InputDecoration(
-                  hintText: 'Ex: Bakoko',
-                  isDense: true,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                ),
+                style: GwType.ui(fontSize: 14, color: t.stone),
+                decoration: _decor(context, label: 'Ajouter un clan', hint: 'Ex: Bakoko'),
                 onSubmitted: (_) => _addClan(),
               ),
             ),
@@ -1531,12 +1622,13 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
               behavior: HitTestBehavior.opaque,
               onTap: _addClan,
               child: Container(
-                padding: const EdgeInsets.all(10),
+                width: GwTokens.tapTarget,
+                height: GwTokens.tapTarget,
                 decoration: BoxDecoration(
-                  color: accent,
-                  borderRadius: BorderRadius.circular(10),
+                  color: GwTokens.gold,
+                  borderRadius: BorderRadius.circular(GwTokens.rBtn),
                 ),
-                child: const Icon(Icons.add, size: 20, color: Colors.black),
+                child: const Icon(Symbols.add, size: 22, color: Colors.black),
               ),
             ),
           ],
@@ -1558,22 +1650,26 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
     });
   }
 
-  Widget _buildLanguageDropdown(BuildContext context) {
+  Widget _buildLanguagePills(BuildContext context) {
+    final t = GwTokens.of(context);
     final languagesAsync = ref.watch(languagesByCountryNotifierProvider(_selectedCountryIso));
 
     return languagesAsync.when(
       loading: () => const Padding(
         padding: EdgeInsets.symmetric(vertical: 8),
-        child: LinearProgressIndicator(),
+        child: LinearProgressIndicator(color: GwTokens.gold),
       ),
-      error: (_, __) => const Text('Impossible de charger les langues'),
+      error: (_, __) => Text(
+        'Impossible de charger les langues',
+        style: GwType.ui(fontSize: 13, color: t.emberText),
+      ),
       data: (languages) {
         if (languages.isEmpty) {
           return Padding(
-            padding: EdgeInsets.symmetric(vertical: 8),
+            padding: const EdgeInsets.symmetric(vertical: 8),
             child: Text(
               'Aucune langue enregistree pour ce pays',
-              style: TextStyle(color: GwTokens.dark.stoneDim, fontSize: 13),
+              style: GwType.ui(fontSize: 13, color: t.stoneDim),
             ),
           );
         }
@@ -1587,13 +1683,41 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
             }
           }
         }
-        return _buildDropdownTyped<LanguageModel>(
-          label: 'Langue maternelle',
-          icon: Icons.record_voice_over_outlined,
-          value: _selectedLanguage,
-          items: languages,
-          itemLabel: (l) => l.official ? '${l.name} (officielle)' : l.name,
-          onChanged: (v) => setState(() => _selectedLanguage = v),
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Symbols.record_voice_over, size: 16, color: t.goldText),
+                const SizedBox(width: 8),
+                Text(
+                  'LANGUE MATERNELLE',
+                  style: GwType.mono(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 2,
+                    color: t.stoneDim,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: languages.map((l) {
+                final label = l.official ? '${l.name} (officielle)' : l.name;
+                final active = _selectedLanguage == l ||
+                    (_selectedLanguage != null && _selectedLanguage!.name == l.name);
+                return _pill(
+                  context,
+                  label: label,
+                  active: active,
+                  onTap: () => setState(() => _selectedLanguage = l),
+                );
+              }).toList(),
+            ),
+          ],
         );
       },
     );
@@ -1606,34 +1730,34 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
       key: const ValueKey('residence'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _sectionHeader(context, Icons.work_outline, 'Residence & Vie professionnelle'),
+        _sectionHeader(context, Symbols.work, 'Residence & Vie professionnelle'),
         const SizedBox(height: 16),
         _buildTextField(
           controller: _residenceCityCtrl,
           label: 'Ville de residence',
           hint: 'Ex: Paris',
-          icon: Icons.location_city_outlined,
+          icon: Symbols.location_city,
         ),
         const SizedBox(height: 14),
         _buildTextField(
           controller: _residenceCountryCtrl,
           label: 'Pays de residence',
           hint: 'Ex: France',
-          icon: Icons.map_outlined,
+          icon: Symbols.map,
         ),
         const SizedBox(height: 14),
         _buildTextField(
           controller: _professionCtrl,
           label: 'Profession / Metier',
           hint: 'Ex: Ingenieur logiciel',
-          icon: Icons.engineering_outlined,
+          icon: Symbols.engineering,
         ),
         const SizedBox(height: 14),
         _buildTextField(
           controller: _employerCtrl,
           label: 'Employeur / Entreprise',
           hint: 'Ex: Nom de l\'entreprise',
-          icon: Icons.business_outlined,
+          icon: Symbols.domain,
         ),
       ],
     );
@@ -1644,34 +1768,33 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
   // ════════════════════════════════════════════════════════════════════════════
 
   Widget _buildBottomBar(BuildContext context) {
+    final t = GwTokens.of(context);
     final isLast = _currentSection == _sections.length - 1;
     final isFirst = _currentSection == 0;
 
     return Container(
       padding: EdgeInsets.fromLTRB(20, 12, 20, 12 + MediaQuery.of(context).padding.bottom),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        border: Border(
-          top: BorderSide(color: Theme.of(context).colorScheme.outline.withAlpha(30)),
-        ),
+        color: t.inkCard,
+        border: Border(top: BorderSide(color: t.line)),
       ),
       child: Row(
         children: [
           if (!isFirst)
             Expanded(
-              child: GwangButton(
+              child: _secondaryBtn(
+                context,
                 label: 'Precedent',
-                variant: GwangButtonVariant.outline,
-                icon: Icons.arrow_back,
+                icon: Symbols.arrow_back,
                 onPressed: () => setState(() => _currentSection--),
               ),
             ),
           if (!isFirst) const SizedBox(width: 12),
           Expanded(
-            flex: isFirst ? 1 : 1,
-            child: GwangButton(
+            child: _primaryBtn(
+              context,
               label: isLast ? 'Enregistrer' : 'Suivant',
-              icon: isLast ? Icons.check : Icons.arrow_forward,
+              icon: isLast ? Symbols.check : Symbols.arrow_forward,
               onPressed: isLast ? _handleSave : () => setState(() => _currentSection++),
             ),
           ),
@@ -1685,7 +1808,6 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
   // ════════════════════════════════════════════════════════════════════════════
 
   Future<void> _handleSave() async {
-    final accent = Theme.of(context).colorScheme.primary;
     final data = <String, dynamic>{
       // Identite (camelCase pour matcher le backend Spring Boot)
       if (_displayNameCtrl.text.trim().isNotEmpty)
@@ -1768,42 +1890,31 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
 
     final profileState = ref.read(profileNotifierProvider);
     if (profileState.hasError) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Erreur lors de la mise a jour du profil'),
-          backgroundColor: GwTokens.ember,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        ),
-      );
+      _showSnack('Erreur lors de la mise a jour du profil', GwTokens.ember);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Profil mis a jour'),
-          backgroundColor: accent,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        ),
-      );
+      _showSnack('Profil mis a jour', GwTokens.sage);
       Navigator.of(context).pop();
     }
   }
 
   // ════════════════════════════════════════════════════════════════════════════
-  // SHARED WIDGETS
+  // SHARED WIDGETS — style « Tissage »
   // ════════════════════════════════════════════════════════════════════════════
 
+  /// Header de section : tuile or + label JetBrains Mono MAJUSCULES.
   Widget _sectionHeader(BuildContext context, IconData icon, String title) {
-    final accent = Theme.of(context).colorScheme.primary;
+    final t = GwTokens.of(context);
     return Row(
       children: [
         Container(
-          padding: const EdgeInsets.all(10),
+          width: 40,
+          height: 40,
           decoration: BoxDecoration(
-            color: accent.withAlpha(20),
+            color: t.goldBg,
             borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: t.goldLine),
           ),
-          child: Icon(icon, size: 20, color: accent),
+          child: Icon(icon, size: 20, color: t.goldText, fill: 1),
         ),
         const SizedBox(width: 12),
         Expanded(
@@ -1811,18 +1922,68 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                title,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                title.toUpperCase(),
+                style: GwType.mono(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 2,
+                  color: t.goldText,
+                ),
               ),
-              const SizedBox(height: 2),
+              const SizedBox(height: 3),
               Text(
                 'Tous les champs sont optionnels',
-                style: TextStyle(fontSize: 12, color: GwTokens.dark.stoneDim),
+                style: GwType.ui(fontSize: 12, color: t.stoneDim),
               ),
             ],
           ),
         ),
       ],
+    );
+  }
+
+  /// Décoration commune des inputs — inkLift, rayon 14, focus or.
+  InputDecoration _decor(
+    BuildContext context, {
+    required String label,
+    String? hint,
+    IconData? icon,
+    String? helper,
+  }) {
+    final t = GwTokens.of(context);
+    return InputDecoration(
+      labelText: label,
+      hintText: hint,
+      helperText: helper,
+      labelStyle: GwType.ui(fontSize: 13, color: t.stoneDim),
+      hintStyle: GwType.ui(fontSize: 13, color: t.stoneFaint),
+      helperStyle: GwType.ui(fontSize: 12, color: t.stoneFaint),
+      counterStyle: GwType.mono(fontSize: 12, letterSpacing: 0.5, color: t.stoneFaint),
+      errorStyle: GwType.ui(fontSize: 12, color: t.emberText),
+      prefixIcon: icon != null ? Icon(icon, size: 18, color: t.stoneDim) : null,
+      filled: true,
+      fillColor: t.inkLift,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(GwTokens.rBtn),
+        borderSide: BorderSide(color: t.line),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(GwTokens.rBtn),
+        borderSide: BorderSide(color: t.line),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(GwTokens.rBtn),
+        borderSide: const BorderSide(color: GwTokens.gold, width: 1.5),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(GwTokens.rBtn),
+        borderSide: const BorderSide(color: GwTokens.ember),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(GwTokens.rBtn),
+        borderSide: const BorderSide(color: GwTokens.ember, width: 1.5),
+      ),
     );
   }
 
@@ -1835,110 +1996,433 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
     int? maxLength,
     TextInputType? keyboardType,
     List<TextInputFormatter>? inputFormatters,
+    ValueChanged<String>? onChanged,
   }) {
-    final accent = Theme.of(context).colorScheme.primary;
+    final t = GwTokens.of(context);
     return TextFormField(
       controller: controller,
       maxLines: maxLines,
       maxLength: maxLength,
       keyboardType: keyboardType,
       inputFormatters: inputFormatters,
-      style: const TextStyle(fontSize: 14),
-      decoration: InputDecoration(
-        labelText: label,
-        hintText: hint,
-        prefixIcon: Icon(icon, size: 18),
-        filled: true,
-        fillColor: Theme.of(context).colorScheme.surfaceContainerHighest.withAlpha(40),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Theme.of(context).colorScheme.outline.withAlpha(40)),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Theme.of(context).colorScheme.outline.withAlpha(40)),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: accent, width: 1.5),
-        ),
-      ),
+      onChanged: onChanged,
+      style: GwType.ui(fontSize: 14, color: t.stone),
+      decoration: _decor(context, label: label, hint: hint, icon: icon),
     );
   }
 
-  Widget _buildDropdown({
+  /// Groupe de choix en pilules goldBg/goldLine (remplace les dropdowns).
+  Widget _buildPillChoice({
     required String label,
     required IconData icon,
     required String? value,
-    required List<String> items,
+    required List<String> options,
     required ValueChanged<String?> onChanged,
   }) {
-    final accent = Theme.of(context).colorScheme.primary;
-    return DropdownButtonFormField<String>(
-      initialValue: value,
-      decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: Icon(icon, size: 18),
-        filled: true,
-        fillColor: Theme.of(context).colorScheme.surfaceContainerHighest.withAlpha(40),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Theme.of(context).colorScheme.outline.withAlpha(40)),
+    final t = GwTokens.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(icon, size: 16, color: t.goldText),
+            const SizedBox(width: 8),
+            Text(
+              label.toUpperCase(),
+              style: GwType.mono(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 2,
+                color: t.stoneDim,
+              ),
+            ),
+          ],
         ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Theme.of(context).colorScheme.outline.withAlpha(40)),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: options.map((option) {
+            return _pill(
+              context,
+              label: option,
+              active: value == option,
+              onTap: () => onChanged(option),
+            );
+          }).toList(),
         ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: accent, width: 1.5),
-        ),
-      ),
-      items: items.map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontSize: 14)))).toList(),
-      onChanged: onChanged,
-      isExpanded: true,
-      icon: const Icon(Icons.keyboard_arrow_down, size: 20),
+      ],
     );
   }
 
-  Widget _buildDropdownTyped<T>({
+  /// Pilule sélectionnable — active : goldBg/goldLine, inactive : inkLift.
+  Widget _pill(
+    BuildContext context, {
     required String label,
-    required IconData icon,
-    required T? value,
-    required List<T> items,
-    required String Function(T) itemLabel,
-    required ValueChanged<T?> onChanged,
+    required bool active,
+    required VoidCallback onTap,
   }) {
-    final accent = Theme.of(context).colorScheme.primary;
-    return DropdownButtonFormField<T>(
-      initialValue: items.contains(value) ? value : null,
-      decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: Icon(icon, size: 18),
-        filled: true,
-        fillColor: Theme.of(context).colorScheme.surfaceContainerHighest.withAlpha(40),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Theme.of(context).colorScheme.outline.withAlpha(40)),
+    final t = GwTokens.of(context);
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        constraints: const BoxConstraints(minHeight: GwTokens.tapTarget),
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: active ? t.goldBg : t.inkLift,
+          borderRadius: BorderRadius.circular(GwTokens.rPill),
+          border: Border.all(color: active ? t.goldLine : t.line),
         ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Theme.of(context).colorScheme.outline.withAlpha(40)),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: accent, width: 1.5),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (active) ...[
+              Icon(Symbols.check, size: 15, color: t.goldText, fill: 1),
+              const SizedBox(width: 6),
+            ],
+            Text(
+              label,
+              style: GwType.ui(
+                fontSize: 13,
+                fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+                color: active ? t.goldText : t.stoneMid,
+              ),
+            ),
+          ],
         ),
       ),
-      items: items.map((e) => DropdownMenuItem(value: e, child: Text(itemLabel(e), style: const TextStyle(fontSize: 14)))).toList(),
-      onChanged: onChanged,
-      isExpanded: true,
-      icon: const Icon(Icons.keyboard_arrow_down, size: 20),
     );
   }
+
+  /// Champ date stylé — ouvre un datepicker thémé or.
+  Widget _buildDateField(
+    BuildContext context, {
+    required String label,
+    required DateTime? value,
+    required VoidCallback onTap,
+  }) {
+    final t = GwTokens.of(context);
+    final text = value != null
+        ? '${value.day.toString().padLeft(2, '0')}/${value.month.toString().padLeft(2, '0')}/${value.year}'
+        : 'JJ/MM/AAAA';
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 52),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: t.inkLift,
+          borderRadius: BorderRadius.circular(GwTokens.rBtn),
+          border: Border.all(color: t.line),
+        ),
+        child: Row(
+          children: [
+            Icon(Symbols.cake, size: 18, color: t.stoneDim),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label, style: GwType.ui(fontSize: 12, color: t.stoneDim)),
+                  const SizedBox(height: 2),
+                  Text(
+                    text,
+                    style: GwType.ui(
+                      fontSize: 14,
+                      color: value != null ? t.stone : t.stoneFaint,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Symbols.calendar_month, size: 18, color: t.goldText),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Datepicker thémé « Tissage » (accent or, fond inkCard, rayon 20).
+  Future<DateTime?> _pickDate(
+    BuildContext context, {
+    required DateTime initialDate,
+    required DateTime firstDate,
+    required DateTime lastDate,
+  }) {
+    return showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: firstDate,
+      lastDate: lastDate,
+      locale: const Locale('fr'),
+      builder: (dCtx, child) {
+        final t = GwTokens.of(dCtx);
+        return Theme(
+          data: Theme.of(dCtx).copyWith(
+            colorScheme: Theme.of(dCtx).colorScheme.copyWith(
+                  primary: GwTokens.gold,
+                  onPrimary: Colors.black,
+                  surface: t.inkCard,
+                  onSurface: t.stone,
+                ),
+            datePickerTheme: DatePickerThemeData(
+              backgroundColor: t.inkCard,
+              surfaceTintColor: Colors.transparent,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(GwTokens.rCardLg),
+              ),
+              headerHeadlineStyle: GwType.display(fontSize: 24, color: t.stone),
+              weekdayStyle: GwType.mono(fontSize: 11, color: t.stoneDim),
+              dayStyle: GwType.ui(fontSize: 14),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+  }
+
+  /// Avatar à initiale Fraunces sur fond or.
+  Widget _initialAvatar(BuildContext context, String name, {double radius = 20}) {
+    final t = GwTokens.of(context);
+    return Container(
+      width: radius * 2,
+      height: radius * 2,
+      decoration: BoxDecoration(
+        color: t.goldBg,
+        shape: BoxShape.circle,
+        border: Border.all(color: t.goldLine),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        name.isNotEmpty ? name[0].toUpperCase() : '?',
+        style: GwType.display(fontSize: radius * 0.85, color: t.goldText),
+      ),
+    );
+  }
+
+  /// Bouton primaire or plein — 50 px, rayon 14.
+  Widget _primaryBtn(
+    BuildContext context, {
+    required String label,
+    required VoidCallback? onPressed,
+    IconData? icon,
+    bool loading = false,
+  }) {
+    return SizedBox(
+      height: 50,
+      child: FilledButton(
+        onPressed: loading ? null : onPressed,
+        style: FilledButton.styleFrom(
+          backgroundColor: GwTokens.gold,
+          foregroundColor: Colors.black,
+          disabledBackgroundColor: GwTokens.gold.withAlpha(110),
+          disabledForegroundColor: Colors.black54,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(GwTokens.rBtn),
+          ),
+          textStyle: GwType.ui(fontSize: 14, fontWeight: FontWeight.w700),
+        ),
+        child: loading
+            ? const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
+              )
+            : Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (icon != null) ...[
+                    Icon(icon, size: 18),
+                    const SizedBox(width: 8),
+                  ],
+                  Flexible(child: Text(label, overflow: TextOverflow.ellipsis)),
+                ],
+              ),
+      ),
+    );
+  }
+
+  /// Bouton secondaire — inkLift, bordure, 50 px, rayon 14.
+  Widget _secondaryBtn(
+    BuildContext context, {
+    required String label,
+    required VoidCallback? onPressed,
+    IconData? icon,
+  }) {
+    final t = GwTokens.of(context);
+    return SizedBox(
+      height: 50,
+      child: OutlinedButton(
+        onPressed: onPressed,
+        style: OutlinedButton.styleFrom(
+          backgroundColor: t.inkLift,
+          foregroundColor: t.stone,
+          side: BorderSide(color: t.lineMid),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(GwTokens.rBtn),
+          ),
+          textStyle: GwType.ui(fontSize: 14, fontWeight: FontWeight.w600),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (icon != null) ...[
+              Icon(icon, size: 18),
+              const SizedBox(width: 8),
+            ],
+            Flexible(child: Text(label, overflow: TextOverflow.ellipsis)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Snackbar stylée.
+  void _showSnack(String message, Color bg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message, style: GwType.ui(fontSize: 14, color: Colors.white)),
+        backgroundColor: bg,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(GwTokens.rBtn)),
+      ),
+    );
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════════════════
+// DIALOGS « TISSAGE » — specs GwDialog appliquées inline :
+// fond inkCard rayon 20, titre Fraunces, actions or/ember 50 px.
+// ════════════════════════════════════════════════════════════════════════════════
+
+Widget _tissageDialog(
+  BuildContext context, {
+  required IconData icon,
+  required String title,
+  required List<Widget> children,
+  required List<Widget> actions,
+}) {
+  final t = GwTokens.of(context);
+  return Dialog(
+    backgroundColor: t.inkCard,
+    surfaceTintColor: Colors.transparent,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(GwTokens.rCardLg),
+      side: BorderSide(color: t.line),
+    ),
+    insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+    child: ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 440),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(22, 22, 22, 18),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: t.goldBg,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: t.goldLine),
+                  ),
+                  child: Icon(icon, size: 22, color: t.goldText, fill: 1),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(title, style: GwType.display(fontSize: 18, color: t.stone)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            ...children,
+            const SizedBox(height: 18),
+            for (var i = 0; i < actions.length; i++) ...[
+              if (i > 0) const SizedBox(height: 10),
+              actions[i],
+            ],
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+Widget _dialogPrimaryBtn(
+  BuildContext context, {
+  required String label,
+  required VoidCallback? onPressed,
+  IconData? icon,
+  bool loading = false,
+}) {
+  return SizedBox(
+    width: double.infinity,
+    height: 50,
+    child: FilledButton(
+      onPressed: loading ? null : onPressed,
+      style: FilledButton.styleFrom(
+        backgroundColor: GwTokens.gold,
+        foregroundColor: Colors.black,
+        disabledBackgroundColor: GwTokens.gold.withAlpha(110),
+        disabledForegroundColor: Colors.black54,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(GwTokens.rBtn),
+        ),
+        textStyle: GwType.ui(fontSize: 15, fontWeight: FontWeight.w700),
+      ),
+      child: loading
+          ? const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
+            )
+          : Row(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (icon != null) ...[
+                  Icon(icon, size: 18),
+                  const SizedBox(width: 8),
+                ],
+                Flexible(child: Text(label, overflow: TextOverflow.ellipsis)),
+              ],
+            ),
+    ),
+  );
+}
+
+Widget _dialogGhostBtn(
+  BuildContext context, {
+  required String label,
+  required VoidCallback? onPressed,
+}) {
+  final t = GwTokens.of(context);
+  return SizedBox(
+    width: double.infinity,
+    height: 46,
+    child: TextButton(
+      onPressed: onPressed,
+      style: TextButton.styleFrom(
+        foregroundColor: t.stoneMid,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(GwTokens.rBtn),
+        ),
+        textStyle: GwType.ui(fontSize: 14, fontWeight: FontWeight.w600),
+      ),
+      child: Text(label),
+    ),
+  );
 }
 
 /// Ouvre le formulaire de modification du profil en bottom sheet.
@@ -2006,91 +2490,180 @@ class _SearchParentDialogState extends ConsumerState<_SearchParentDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final accent = Theme.of(context).colorScheme.primary;
+    final t = GwTokens.of(context);
     final title = widget.gender.isEmpty
         ? 'Rechercher un enfant'
         : widget.gender == 'MALE'
             ? 'Rechercher un pere'
             : 'Rechercher une mere';
 
-    return AlertDialog(
-      title: Row(
-        children: [
-          Icon(Icons.search, color: accent),
-          const SizedBox(width: 8),
-          Text(title, style: const TextStyle(fontSize: 16)),
-        ],
+    return Dialog(
+      backgroundColor: t.inkCard,
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(GwTokens.rCardLg),
+        side: BorderSide(color: t.line),
       ),
-      content: SizedBox(
-        width: 400,
-        height: 400,
-        child: Column(
-          children: [
-            TextField(
-              controller: _searchCtrl,
-              decoration: InputDecoration(
-                hintText: 'Rechercher par nom...',
-                prefixIcon: const Icon(Icons.person_search, size: 20),
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.search, size: 20),
-                  onPressed: () => _search(_searchCtrl.text.trim()),
-                ),
-                isDense: true,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 440),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(22, 22, 22, 14),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Titre Fraunces + tuile or
+              Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: t.goldBg,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: t.goldLine),
+                    ),
+                    child: Icon(Symbols.search, size: 22, color: t.goldText, fill: 1),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(title, style: GwType.display(fontSize: 18, color: t.stone)),
+                  ),
+                ],
               ),
-              onSubmitted: (v) => _search(v.trim()),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Clan: ${widget.clan}',
-              style: TextStyle(fontSize: 12, color: GwTokens.dark.stoneDim),
-            ),
-            const SizedBox(height: 8),
-            Expanded(
-              child: _loading
-                  ? Center(child: CircularProgressIndicator(color: accent))
-                  : _results.isEmpty
-                      ? Center(
-                          child: Text(
-                            'Aucun membre trouve dans ce clan',
-                            style: TextStyle(color: GwTokens.dark.stoneDim, fontSize: 13),
-                          ),
-                        )
-                      : ListView.separated(
-                          itemCount: _results.length,
-                          separatorBuilder: (_, __) => const Divider(height: 1),
-                          itemBuilder: (_, i) {
-                            final p = _results[i];
-                            return ListTile(
-                              leading: CircleAvatar(
-                                backgroundColor: accent.withAlpha(30),
-                                child: Text(
-                                  p.firstName[0].toUpperCase(),
-                                  style: TextStyle(color: accent, fontWeight: FontWeight.w700),
-                                ),
-                              ),
-                              title: Text('${p.firstName} ${p.lastName}'),
-                              subtitle: Text(
-                                [
-                                  if (p.clan != null) 'Clan: ${p.clan}',
-                                  if (p.birthDate != null) 'Ne(e): ${p.birthDate!.year}',
-                                ].join(' - '),
-                                style: const TextStyle(fontSize: 12),
-                              ),
-                              trailing: Icon(Icons.add_circle_outline, color: accent),
-                              onTap: () => widget.onSelected(p),
-                            );
-                          },
+              const SizedBox(height: 16),
+              SizedBox(
+                height: 400,
+                child: Column(
+                  children: [
+                    TextField(
+                      controller: _searchCtrl,
+                      style: GwType.ui(fontSize: 14, color: t.stone),
+                      decoration: InputDecoration(
+                        hintText: 'Rechercher par nom...',
+                        hintStyle: GwType.ui(fontSize: 13, color: t.stoneFaint),
+                        prefixIcon: Icon(Symbols.person_search, size: 20, color: t.stoneDim),
+                        suffixIcon: IconButton(
+                          icon: Icon(Symbols.search, size: 20, color: t.goldText),
+                          tooltip: 'Rechercher',
+                          onPressed: () => _search(_searchCtrl.text.trim()),
                         ),
-            ),
-          ],
+                        filled: true,
+                        fillColor: t.inkLift,
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(GwTokens.rBtn),
+                          borderSide: BorderSide(color: t.line),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(GwTokens.rBtn),
+                          borderSide: BorderSide(color: t.line),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(GwTokens.rBtn),
+                          borderSide: const BorderSide(color: GwTokens.gold, width: 1.5),
+                        ),
+                      ),
+                      onSubmitted: (v) => _search(v.trim()),
+                    ),
+                    const SizedBox(height: 10),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'CLAN · ${widget.clan.toUpperCase()}',
+                        style: GwType.mono(
+                          fontSize: 11,
+                          letterSpacing: 1.5,
+                          color: t.stoneDim,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Expanded(
+                      child: _loading
+                          ? const Center(
+                              child: CircularProgressIndicator(color: GwTokens.gold),
+                            )
+                          : _results.isEmpty
+                              ? Center(
+                                  child: Text(
+                                    'Aucun membre trouve dans ce clan',
+                                    style: GwType.ui(fontSize: 13, color: t.stoneDim),
+                                  ),
+                                )
+                              : ListView.separated(
+                                  itemCount: _results.length,
+                                  separatorBuilder: (_, __) => Divider(height: 1, color: t.line),
+                                  itemBuilder: (_, i) {
+                                    final p = _results[i];
+                                    return InkWell(
+                                      borderRadius: BorderRadius.circular(GwTokens.rBtn),
+                                      onTap: () => widget.onSelected(p),
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+                                        child: Row(
+                                          children: [
+                                            Container(
+                                              width: 40,
+                                              height: 40,
+                                              decoration: BoxDecoration(
+                                                color: t.goldBg,
+                                                shape: BoxShape.circle,
+                                                border: Border.all(color: t.goldLine),
+                                              ),
+                                              alignment: Alignment.center,
+                                              child: Text(
+                                                p.firstName[0].toUpperCase(),
+                                                style: GwType.display(fontSize: 16, color: t.goldText),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 12),
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    '${p.firstName} ${p.lastName}',
+                                                    style: GwType.ui(
+                                                      fontSize: 14,
+                                                      fontWeight: FontWeight.w600,
+                                                      color: t.stone,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 2),
+                                                  Text(
+                                                    [
+                                                      if (p.clan != null) 'Clan: ${p.clan}',
+                                                      if (p.birthDate != null) 'Ne(e): ${p.birthDate!.year}',
+                                                    ].join(' - '),
+                                                    style: GwType.ui(fontSize: 12, color: t.stoneMid),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            Icon(Symbols.add_circle, size: 22, color: t.goldText),
+                                          ],
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+              _dialogGhostBtn(
+                context,
+                label: 'Fermer',
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ],
+          ),
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Fermer'),
-        ),
-      ],
     );
   }
 }

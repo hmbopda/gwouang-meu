@@ -6,11 +6,25 @@ import 'package:gwangmeu/features/genealogy/state/tree_view_state.dart';
 /// Liens « Tissage » (#2c) : courbes bézier douces 2 px, opacité 30–45 %,
 /// colorées par lignée (or Mbopda, rose Ngo Bassa). Unions en pointillé
 /// discret, suggestions IA en tirets sage.
+///
+/// Les couleurs dépendantes du thème sont injectées par le widget appelant
+/// (jamais de `GwTokens.of`/`GwTokens.dark` dans le painter).
 class TreeLinkPainter extends CustomPainter {
   final List<LayoutLink> links;
   final String? selectedPersonId;
 
-  TreeLinkPainter({required this.links, this.selectedPersonId});
+  /// Couleur neutre (filiation sans lignée, fratrie) — `stoneFaint` du thème.
+  final Color neutralColor;
+
+  /// Couleur du pointillé d'union — `stone` translucide du thème.
+  final Color unionColor;
+
+  TreeLinkPainter({
+    required this.links,
+    this.selectedPersonId,
+    required this.neutralColor,
+    required this.unionColor,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -29,7 +43,7 @@ class TreeLinkPainter extends CustomPainter {
   }
 
   void _drawFiliation(Canvas canvas, LayoutLink link) {
-    final base = link.color ?? GwTokens.dark.stoneFaint;
+    final base = link.color ?? neutralColor;
     final paint = Paint()
       ..color = base.withValues(alpha: link.highlight ? 0.65 : 0.38)
       ..strokeWidth = link.highlight ? 2.5 : 2
@@ -51,7 +65,7 @@ class TreeLinkPainter extends CustomPainter {
   /// Union : pointillé discret entre conjoints (plus de cœur orange).
   void _drawUnion(Canvas canvas, LayoutLink link) {
     final paint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.12)
+      ..color = unionColor
       ..strokeWidth = 1.5
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
@@ -73,7 +87,7 @@ class TreeLinkPainter extends CustomPainter {
 
   void _drawSiblings(Canvas canvas, LayoutLink link) {
     final paint = Paint()
-      ..color = GwTokens.dark.stoneFaint.withValues(alpha: 0.3)
+      ..color = neutralColor.withValues(alpha: 0.3)
       ..strokeWidth = 1.5
       ..style = PaintingStyle.stroke;
 
@@ -130,6 +144,8 @@ class TreeLinkPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant TreeLinkPainter oldDelegate) {
     return oldDelegate.links != links ||
-        oldDelegate.selectedPersonId != selectedPersonId;
+        oldDelegate.selectedPersonId != selectedPersonId ||
+        oldDelegate.neutralColor != neutralColor ||
+        oldDelegate.unionColor != unionColor;
   }
 }

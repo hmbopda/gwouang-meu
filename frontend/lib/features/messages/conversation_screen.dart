@@ -125,7 +125,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
               style: GwType.display(
                   fontSize: 17,
                   fontWeight: FontWeight.w700,
-                  color: const Color(0xFF0C0B0F)),
+                  color: GwTokens.inkOnGold),
             ),
           ),
           const SizedBox(width: 12),
@@ -419,8 +419,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                       SnackBar(
                         content: Text(
                           'Traduction en Bassa — bientôt disponible',
-                          style: GwType.ui(
-                              fontSize: 14, color: GwTokens.dark.stone),
+                          style: GwType.ui(fontSize: 14, color: t.stone),
                         ),
                       ),
                     );
@@ -503,8 +502,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                         SnackBar(
                           content: Text(
                             'Messages vocaux — bientôt disponibles',
-                            style: GwType.ui(
-                                fontSize: 14, color: GwTokens.dark.stone),
+                            style: GwType.ui(fontSize: 14, color: t.stone),
                           ),
                         ),
                       ),
@@ -515,7 +513,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                 child: Icon(
                   _hasText ? Symbols.send : Symbols.mic,
                   size: 20,
-                  color: const Color(0xFF0C0B0F),
+                  color: GwTokens.inkOnGold,
                 ),
               ),
             ),

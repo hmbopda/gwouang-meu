@@ -9,6 +9,7 @@ import 'package:gwangmeu/core/theme/gw_tokens.dart';
 import 'package:gwangmeu/features/genealogy/verification/verification_provider.dart';
 import 'package:gwangmeu/features/home/home_screen.dart';
 import 'package:gwangmeu/features/genealogy/genealogy_notifier.dart';
+import 'package:gwangmeu/features/genealogy/models/ai_suggestion.dart';
 import 'package:gwangmeu/features/genealogy/models/family_tree.dart';
 import 'package:gwangmeu/features/genealogy/services/genealogy_api_service.dart';
 import 'package:gwangmeu/features/genealogy/state/tree_view_state.dart';
@@ -86,9 +87,12 @@ class _MobileLayout extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final t = GwTokens.of(context);
     final mode = ref.watch(riverModeProvider);
+    // Suggestion IA réelle (plus forte confidence, hors « Plus tard »).
+    final suggestion = _bestSuggestion(
+        tree, ref.watch(dismissedSuggestionsProvider));
     // Mutation optimiste : la branche confirmée compte immédiatement (+1).
-    final aiConfirmed =
-        ref.watch(confirmedSuggestionsProvider).isNotEmpty;
+    final aiConfirmed = suggestion != null &&
+        ref.watch(confirmedSuggestionsProvider).contains(suggestion.id);
     final memberCount = _memberCount(tree) + (aiConfirmed ? 1 : 0);
 
     return Column(
@@ -177,13 +181,15 @@ class _MobileLayout extends ConsumerWidget {
           child: switch (mode) {
             RiverMode.river => GenealogyRiverView(
                 tree: tree,
+                suggestion: suggestion,
                 aiConfirmed: aiConfirmed,
                 onPersonTap: (p) => showDialog(
                   context: context,
                   builder: (_) => PersonDetailPopup(person: p),
                 ),
-                onVerifySuggestion: () =>
-                    context.push(Routes.verify(kDemoSuggestionId)),
+                onVerifySuggestion: suggestion == null
+                    ? null
+                    : () => context.push(Routes.verify(suggestion.id)),
               ),
             RiverMode.tree => TreeCanvas(
                 tree: tree,
@@ -376,8 +382,11 @@ class _DesktopLayout extends ConsumerWidget {
     final t = GwTokens.of(context);
     final selectedId =
         ref.watch(treeViewProvider.select((s) => s.selectedPersonId));
-    final aiConfirmed =
-        ref.watch(confirmedSuggestionsProvider).isNotEmpty;
+    // Suggestion IA réelle (plus forte confidence, hors « Plus tard »).
+    final suggestion = _bestSuggestion(
+        tree, ref.watch(dismissedSuggestionsProvider));
+    final aiConfirmed = suggestion != null &&
+        ref.watch(confirmedSuggestionsProvider).contains(suggestion.id);
     final memberCount = _memberCount(tree) + (aiConfirmed ? 1 : 0);
 
     return Column(
@@ -448,10 +457,17 @@ class _DesktopLayout extends ConsumerWidget {
               selectedId == null
                   ? GenealogyStoryPanel(
                       tree: tree,
+                      suggestion: suggestion,
                       suggestionConfirmed: aiConfirmed,
-                      onVerifySuggestion: () =>
-                          context.push(Routes.verify(kDemoSuggestionId)),
-                      onDismissSuggestion: () {},
+                      onVerifySuggestion: suggestion == null
+                          ? null
+                          : () =>
+                              context.push(Routes.verify(suggestion.id)),
+                      onDismissSuggestion: suggestion == null
+                          ? null
+                          : () => ref
+                              .read(dismissedSuggestionsProvider.notifier)
+                              .update((s) => {...s, suggestion.id}),
                     )
                   : GenealogyRightPanel(tree: tree, personId: personId),
             ],
@@ -628,6 +644,17 @@ class _ListMode extends StatelessWidget {
 }
 
 // ── Helpers ─────────────────────────────────────────────────
+
+/// Suggestion IA à afficher : la plus forte confidence parmi
+/// `tree.pendingSuggestions`, en excluant celles écartées (« Plus tard »).
+AiSuggestion? _bestSuggestion(FamilyTree tree, Set<String> dismissed) {
+  AiSuggestion? best;
+  for (final s in tree.pendingSuggestions) {
+    if (dismissed.contains(s.id)) continue;
+    if (best == null || s.confidence > best.confidence) best = s;
+  }
+  return best;
+}
 
 int _memberCount(FamilyTree tree) {
   return 1 +

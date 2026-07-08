@@ -501,6 +501,7 @@ class _PostCardState extends State<PostCard> {
   }
 
   Widget _liveBadge() {
+    final t = GwTokens.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
       decoration: BoxDecoration(
@@ -518,7 +519,7 @@ class _PostCardState extends State<PostCard> {
             style: GwType.mono(
               fontSize: 10,
               fontWeight: FontWeight.w600,
-              color: GwTokens.dark.emberText,
+              color: t.emberText,
             ),
           ),
         ],
@@ -690,7 +691,7 @@ class _PulsingDotState extends State<_PulsingDot>
         width: 7,
         height: 7,
         decoration: BoxDecoration(
-            color: GwTokens.dark.emberText, shape: BoxShape.circle),
+            color: GwTokens.of(context).emberText, shape: BoxShape.circle),
       ),
     );
   }

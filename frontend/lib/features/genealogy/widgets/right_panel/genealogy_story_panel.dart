@@ -1,16 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
+import 'package:gwangmeu/core/theme/app_theme.dart';
 import 'package:gwangmeu/core/theme/gw_tokens.dart';
+import 'package:gwangmeu/features/genealogy/models/ai_suggestion.dart';
 import 'package:gwangmeu/features/genealogy/models/family_tree.dart';
+import 'package:gwangmeu/features/genealogy/models/person_genealogy.dart';
+import 'package:gwangmeu/features/genealogy/verification/verification_provider.dart'
+    show suggestionConfidencePct;
 
 /// Panneau droit « Récit » (#2c) — la lignée se raconte au lieu de se lister :
-/// extrait Fraunces italique, lecteur audio, affluent IA proposé,
+/// extrait Fraunces italique, récits audio (état honnête tant qu'aucun
+/// enregistrement n'existe), affluent IA réel s'il y en a un,
 /// progression « X / N récits ».
 class GenealogyStoryPanel extends StatelessWidget {
   const GenealogyStoryPanel({
     super.key,
     required this.tree,
+    this.suggestion,
     this.onVerifySuggestion,
     this.onDismissSuggestion,
     this.suggestionConfirmed = false,
@@ -18,8 +25,14 @@ class GenealogyStoryPanel extends StatelessWidget {
 
   final FamilyTree tree;
 
+  /// Suggestion IA réelle (la plus forte confidence de
+  /// `tree.pendingSuggestions`). `null` → la section affluent est absente.
+  final AiSuggestion? suggestion;
+
   /// CTA « Vérifier ensemble » de l'affluent IA.
   final VoidCallback? onVerifySuggestion;
+
+  /// « Plus tard » — masque la carte (état local côté écran parent).
   final VoidCallback? onDismissSuggestion;
 
   /// L'affluent a rejoint la rivière (mutation optimiste confirmée).
@@ -105,94 +118,15 @@ class GenealogyStoryPanel extends StatelessWidget {
                       height: 1.7),
                 ),
                 const SizedBox(height: 12),
-                _audioPlayer(t),
-                const SizedBox(height: 22),
+                _noRecordingState(context, t),
 
-                // ── Affluent proposé / branche confirmée ──
-                if (suggestionConfirmed) ...[
-                  _sectionLabel(t, 'BRANCHE CONFIRMÉE', color: t.sageText),
-                  const SizedBox(height: 10),
-                  Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: GwTokens.sage.withValues(alpha: 0.1),
-                      border: Border.all(color: GwTokens.sageLine),
-                      borderRadius: BorderRadius.circular(GwTokens.rBtn),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(Symbols.check_circle,
-                            size: 20, color: t.sageText, fill: 1),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            'Kwame Asante a rejoint la rivière — '
-                            'il en sera informé.',
-                            style: GwType.ui(
-                                fontSize: 13,
-                                color: t.stoneMid,
-                                height: 1.5),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ] else ...[
-                  _sectionLabel(t, 'AFFLUENT PROPOSÉ · 87%',
-                      color: t.sageText),
-                  const SizedBox(height: 10),
-                  Text(
-                    'Kwame Asante partage 3 lignées Bakoko avec vous. '
-                    'Vérifiez ensemble, puis la branche rejoindra la rivière.',
-                    style: GwType.ui(
-                        fontSize: 13.5, color: t.stoneMid, height: 1.65),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: SizedBox(
-                          height: 46,
-                          child: FilledButton(
-                            onPressed: onVerifySuggestion,
-                            style: FilledButton.styleFrom(
-                              backgroundColor: GwTokens.sage,
-                              foregroundColor: const Color(0xFFF0EBE1),
-                              shape: RoundedRectangleBorder(
-                                borderRadius:
-                                    BorderRadius.circular(GwTokens.rBtn),
-                              ),
-                            ),
-                            child: Text(
-                              'Vérifier ensemble',
-                              style: GwType.ui(
-                                  fontSize: 13.5,
-                                  fontWeight: FontWeight.w600),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      SizedBox(
-                        height: 46,
-                        child: TextButton(
-                          onPressed: onDismissSuggestion,
-                          style: TextButton.styleFrom(
-                            backgroundColor: t.inkCard,
-                            foregroundColor: t.stoneFaint,
-                            padding:
-                                const EdgeInsets.symmetric(horizontal: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius:
-                                  BorderRadius.circular(GwTokens.rBtn),
-                            ),
-                          ),
-                          child: Text('Plus tard',
-                              style: GwType.ui(fontSize: 13.5)),
-                        ),
-                      ),
-                    ],
-                  ),
+                // ── Affluent proposé / branche confirmée (données réelles) ──
+                if (suggestion != null) ...[
+                  const SizedBox(height: 22),
+                  if (suggestionConfirmed)
+                    ..._confirmedSection(t, suggestion!)
+                  else
+                    ..._proposalSection(context, t, suggestion!),
                 ],
                 const SizedBox(height: 22),
 
@@ -241,6 +175,111 @@ class GenealogyStoryPanel extends StatelessWidget {
     );
   }
 
+  /// Personne proposée par la suggestion : personB, ou personA si personB
+  /// est le sujet de l'arbre.
+  PersonGenealogy? _suggestedPerson(AiSuggestion s) {
+    if (s.personB != null && s.personB!.id != tree.subject.id) {
+      return s.personB;
+    }
+    if (s.personA != null && s.personA!.id != tree.subject.id) {
+      return s.personA;
+    }
+    return s.personB ?? s.personA;
+  }
+
+  String _suggestedName(AiSuggestion s) {
+    final p = _suggestedPerson(s);
+    if (p == null) return 'Un membre';
+    return '${p.firstName} ${p.lastName}'.trim();
+  }
+
+  List<Widget> _confirmedSection(GwTokens t, AiSuggestion s) {
+    return [
+      _sectionLabel(t, 'BRANCHE CONFIRMÉE', color: t.sageText),
+      const SizedBox(height: 10),
+      Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: GwTokens.sage.withValues(alpha: 0.1),
+          border: Border.all(color: GwTokens.sageLine),
+          borderRadius: BorderRadius.circular(GwTokens.rBtn),
+        ),
+        child: Row(
+          children: [
+            Icon(Symbols.check_circle, size: 20, color: t.sageText, fill: 1),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                '${_suggestedName(s)} a rejoint la rivière — '
+                'il en sera informé.',
+                style: GwType.ui(
+                    fontSize: 13, color: t.stoneMid, height: 1.5),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ];
+  }
+
+  List<Widget> _proposalSection(
+      BuildContext context, GwTokens t, AiSuggestion s) {
+    final reason = s.reasons.isNotEmpty
+        ? s.reasons.first
+        : 'Un lien familial possible a été détecté.';
+    return [
+      _sectionLabel(t, 'AFFLUENT PROPOSÉ · ${suggestionConfidencePct(s)}%',
+          color: t.sageText),
+      const SizedBox(height: 10),
+      Text(
+        '${_suggestedName(s)} — $reason '
+        'Vérifiez ensemble, puis la branche rejoindra la rivière.',
+        style: GwType.ui(fontSize: 13.5, color: t.stoneMid, height: 1.65),
+      ),
+      const SizedBox(height: 12),
+      Row(
+        children: [
+          Expanded(
+            child: SizedBox(
+              height: 46,
+              child: FilledButton(
+                onPressed: onVerifySuggestion,
+                style: FilledButton.styleFrom(
+                  backgroundColor: GwTokens.sage,
+                  foregroundColor: const Color(0xFFF0EBE1),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(GwTokens.rBtn),
+                  ),
+                ),
+                child: Text(
+                  'Vérifier ensemble',
+                  style: GwType.ui(
+                      fontSize: 13.5, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          SizedBox(
+            height: 46,
+            child: TextButton(
+              onPressed: onDismissSuggestion,
+              style: TextButton.styleFrom(
+                backgroundColor: t.inkCard,
+                foregroundColor: t.stoneFaint,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(GwTokens.rBtn),
+                ),
+              ),
+              child: Text('Plus tard', style: GwType.ui(fontSize: 13.5)),
+            ),
+          ),
+        ],
+      ),
+    ];
+  }
+
   int _memberCount() {
     return 1 +
         tree.father.length +
@@ -260,55 +299,46 @@ class GenealogyStoryPanel extends StatelessWidget {
     );
   }
 
-  Widget _audioPlayer(GwTokens t) {
+  /// État honnête : aucun récit n'a encore été enregistré — pas de faux
+  /// lecteur audio.
+  Widget _noRecordingState(BuildContext context, GwTokens t) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       decoration: BoxDecoration(
         color: t.inkCard,
         borderRadius: BorderRadius.circular(GwTokens.rBtn),
       ),
       child: Row(
         children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: t.goldBg,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(Symbols.play_arrow, size: 20, color: t.goldText),
-          ),
+          Icon(Symbols.mic_off, size: 20, color: t.stoneFaint),
           const SizedBox(width: 12),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Récit de la lignée',
-                  style: GwType.ui(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: t.stone),
-                ),
-                const SizedBox(height: 6),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(2),
-                  child: SizedBox(
-                    height: 4,
-                    child: LinearProgressIndicator(
-                      value: 0,
-                      backgroundColor: t.inkLift,
-                      valueColor:
-                          const AlwaysStoppedAnimation(GwTokens.gold),
-                    ),
-                  ),
-                ),
-              ],
+            child: Text(
+              'Aucun récit enregistré pour l\'instant',
+              style: GwType.ui(fontSize: 13, color: t.stoneMid, height: 1.4),
             ),
           ),
-          const SizedBox(width: 12),
-          Text('—:—',
-              style: GwType.mono(fontSize: 11, color: t.stoneFaint)),
+          const SizedBox(width: 10),
+          SizedBox(
+            height: 44,
+            child: TextButton.icon(
+              onPressed: () => showGwToast(
+                  context, 'Enregistrement des récits — bientôt disponible'),
+              style: TextButton.styleFrom(
+                foregroundColor: t.goldText,
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(GwTokens.rBtn),
+                ),
+              ),
+              icon: Icon(Symbols.mic, size: 18, color: t.goldText),
+              label: Text(
+                'Enregistrer un récit',
+                style: GwType.ui(
+                    fontSize: 12.5, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ),
         ],
       ),
     );

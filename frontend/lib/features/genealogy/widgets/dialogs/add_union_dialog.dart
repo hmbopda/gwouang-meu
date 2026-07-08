@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:material_symbols_icons/symbols.dart';
 
+import 'package:gwangmeu/core/theme/gw_tokens.dart';
 import 'package:gwangmeu/shared/models/country_model.dart';
 import 'package:gwangmeu/shared/models/language_model.dart';
 import 'package:gwangmeu/shared/models/village_model.dart';
 import 'package:gwangmeu/shared/widgets/country_village_selector.dart';
+import 'package:gwangmeu/shared/widgets/gw_dialog.dart';
 import 'package:gwangmeu/shared/widgets/person_lookup_widget.dart';
 import 'package:gwangmeu/features/geo/geo_notifier.dart';
 import 'package:gwangmeu/features/genealogy/models/family_tree.dart';
@@ -136,67 +139,39 @@ class _AddUnionDialogState extends ConsumerState<AddUnionDialog> {
     final canSubmit = _unionTypes.isNotEmpty &&
         (_spouseMode == 'create' ? true : _selectedSpouse != null);
 
-    return AlertDialog(
-      title: Row(
-        children: [
-          Icon(Icons.favorite, color: Theme.of(context).colorScheme.primary),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Ajouter une union',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-                Text(
-                  'Pour ${widget.person.firstName} ${widget.person.lastName}',
-                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                ),
-                if (_currentUnionCount > 0)
-                  Text(
-                    '$_currentUnionCount union(s) active(s) — rang ${_currentUnionCount + 1}',
-                    style: TextStyle(
-                        fontSize: 11,
-                        color: Colors.orange[700],
-                        fontWeight: FontWeight.w600),
-                  ),
-              ],
-            ),
-          ),
-        ],
-      ),
-      content: SizedBox(
-        width: 520,
-        child: SingleChildScrollView(
-          child: Form(
-            key: _formKey,
-            child: _buildForm(),
-          ),
-        ),
-      ),
+    final subtitleParts = [
+      'Pour ${widget.person.firstName} ${widget.person.lastName}',
+      if (_currentUnionCount > 0)
+        '$_currentUnionCount union(s) active(s) — rang ${_currentUnionCount + 1}',
+    ];
+
+    return GwDialog(
+      title: 'Ajouter une union',
+      subtitle: subtitleParts.join('\n'),
+      icon: Symbols.favorite,
+      maxWidth: 560,
       actions: [
-        TextButton(
+        GwDialogAction(
+          label: 'Annuler',
           onPressed: _loading ? null : () => Navigator.of(context).pop(),
-          child: const Text('Annuler'),
         ),
-        ElevatedButton.icon(
+        GwDialogAction(
+          label: 'Créer l\'union',
+          icon: Symbols.favorite,
+          primary: true,
+          loading: _loading,
           onPressed: (_loading || !canSubmit) ? null : _submit,
-          icon: _loading
-              ? const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2))
-              : const Icon(Icons.favorite, size: 16),
-          label: const Text('Créer l\'union'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Theme.of(context).colorScheme.primary,
-            foregroundColor: Colors.black,
-          ),
         ),
       ],
+      child: Form(
+        key: _formKey,
+        child: _buildForm(),
+      ),
     );
   }
 
   Widget _buildForm() {
+    final t = GwTokens.of(context);
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -204,7 +179,8 @@ class _AddUnionDialogState extends ConsumerState<AddUnionDialog> {
         // ── Sélection du conjoint ──
         Text(
           'Choisir l\'$_spouseLabel',
-          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+          style: GwType.ui(
+              fontSize: 14, fontWeight: FontWeight.w600, color: t.stone),
         ),
         const SizedBox(height: 8),
 
@@ -212,27 +188,30 @@ class _AddUnionDialogState extends ConsumerState<AddUnionDialog> {
         Row(
           children: [
             Expanded(
-              child: _ToggleCard(
-                icon: Icons.search,
-                label: 'Rechercher\n(email/tel)',
+              child: GwChoicePill(
+                icon: Symbols.search,
+                label: 'Rechercher',
+                expand: true,
                 selected: _spouseMode == 'lookup',
                 onTap: () => setState(() => _spouseMode = 'lookup'),
               ),
             ),
             const SizedBox(width: 6),
             Expanded(
-              child: _ToggleCard(
-                icon: Icons.person_search,
+              child: GwChoicePill(
+                icon: Symbols.person_search,
                 label: 'Dans l\'arbre',
+                expand: true,
                 selected: _spouseMode == 'existing',
                 onTap: () => setState(() => _spouseMode = 'existing'),
               ),
             ),
             const SizedBox(width: 6),
             Expanded(
-              child: _ToggleCard(
-                icon: Icons.person_add,
-                label: 'Creer nouvelle',
+              child: GwChoicePill(
+                icon: Symbols.person_add,
+                label: 'Creer',
+                expand: true,
                 selected: _spouseMode == 'create',
                 onTap: () => setState(() => _spouseMode = 'create'),
               ),
@@ -253,7 +232,7 @@ class _AddUnionDialogState extends ConsumerState<AddUnionDialog> {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text('${person.firstName} ${person.lastName} selectionne(e)'),
-                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  backgroundColor: GwTokens.sage,
                 ),
               );
             },
@@ -269,28 +248,11 @@ class _AddUnionDialogState extends ConsumerState<AddUnionDialog> {
           _buildNewSpouseForm(),
         ] else ...[
           if (_spouseCandidates.isEmpty)
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.orange.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                    color: Colors.orange.withValues(alpha: 0.3)),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.info_outline,
-                      size: 16, color: Colors.orange),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Aucun(e) $_spouseLabel disponible dans l\'arbre. Utilisez la recherche ou creez une nouvelle personne.',
-                      style: const TextStyle(
-                          fontSize: 12, color: Colors.orange),
-                    ),
-                  ),
-                ],
-              ),
+            GwInfoBanner(
+              tone: GwBannerTone.ember,
+              icon: Symbols.info,
+              text:
+                  'Aucun(e) $_spouseLabel disponible dans l\'arbre. Utilisez la recherche ou creez une nouvelle personne.',
             )
           else
             ..._spouseCandidates.map((p) => _SpouseTile(
@@ -302,44 +264,47 @@ class _AddUnionDialogState extends ConsumerState<AddUnionDialog> {
         ],
 
         const SizedBox(height: 20),
-        const Divider(),
+        Container(height: 1, color: t.line),
         const SizedBox(height: 12),
 
         // ── Type d'union ──
-        const Text(
+        Text(
           'Détails de l\'union',
-          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+          style: GwType.ui(
+              fontSize: 14, fontWeight: FontWeight.w600, color: t.stone),
         ),
         const SizedBox(height: 12),
 
-        // Multi-select union types
-        ..._unionTypeOptions.entries.map((e) => CheckboxListTile(
-              value: _unionTypes.contains(e.key),
-              title: Text(e.value, style: const TextStyle(fontSize: 13)),
-              dense: true,
-              contentPadding: EdgeInsets.zero,
-              controlAffinity: ListTileControlAffinity.leading,
-              activeColor: Theme.of(context).colorScheme.primary,
-              onChanged: (checked) {
-                setState(() {
-                  if (checked == true) {
-                    _unionTypes.add(e.key);
-                  } else {
-                    _unionTypes.remove(e.key);
-                  }
-                  if (e.key == 'DOT') {
-                    _isDotPaid = _unionTypes.contains('DOT');
-                  }
-                });
-              },
-            )),
+        // Multi-select union types (pilules or)
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: _unionTypeOptions.entries
+              .map((e) => GwChoicePill(
+                    label: e.value,
+                    selected: _unionTypes.contains(e.key),
+                    onTap: () {
+                      setState(() {
+                        if (_unionTypes.contains(e.key)) {
+                          _unionTypes.remove(e.key);
+                        } else {
+                          _unionTypes.add(e.key);
+                        }
+                        if (e.key == 'DOT') {
+                          _isDotPaid = _unionTypes.contains('DOT');
+                        }
+                      });
+                    },
+                  ))
+              .toList(),
+        ),
         if (_unionTypes.isEmpty)
-          const Padding(
-            padding: EdgeInsets.only(bottom: 4),
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
             child: Text('Sélectionnez au moins un type',
-                style: TextStyle(color: Colors.red, fontSize: 11)),
+                style: GwType.ui(fontSize: 12, color: t.emberText)),
           ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 14),
 
         // Date de début
         GestureDetector(
@@ -347,10 +312,12 @@ class _AddUnionDialogState extends ConsumerState<AddUnionDialog> {
           child: AbsorbPointer(
             child: TextFormField(
               controller: _startDateCtrl,
-              decoration: const InputDecoration(
-                labelText: 'Date de l\'union',
-                prefixIcon: Icon(Icons.calendar_today_outlined),
-                hintText: 'JJ/MM/AAAA',
+              style: GwType.ui(fontSize: 14, color: t.stone),
+              decoration: gwInputDecoration(
+                context,
+                label: 'Date de l\'union',
+                prefixIcon: Symbols.calendar_today,
+                hint: 'JJ/MM/AAAA',
               ),
             ),
           ),
@@ -359,16 +326,16 @@ class _AddUnionDialogState extends ConsumerState<AddUnionDialog> {
 
         // ── Dot ──
         SwitchListTile(
-          title: const Text('Dot payée ?'),
+          title: Text('Dot payée ?',
+              style: GwType.ui(fontSize: 14, color: t.stone)),
           subtitle: Text(
             _isDotPaid
                 ? 'Les détails de la dot seront enregistrés'
                 : 'La dot n\'a pas encore été versée',
-            style: TextStyle(
-                fontSize: 12, color: Theme.of(context).textTheme.bodySmall?.color),
+            style: GwType.ui(fontSize: 12, color: t.stoneMid),
           ),
           value: _isDotPaid,
-          activeThumbColor: Theme.of(context).colorScheme.primary,
+          activeThumbColor: GwTokens.gold,
           contentPadding: EdgeInsets.zero,
           onChanged: (v) => setState(() => _isDotPaid = v),
         ),
@@ -378,10 +345,9 @@ class _AddUnionDialogState extends ConsumerState<AddUnionDialog> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2)),
+              color: t.goldBg,
+              borderRadius: BorderRadius.circular(GwTokens.rBtn),
+              border: Border.all(color: t.goldLine),
             ),
             child: Column(
               children: [
@@ -390,11 +356,13 @@ class _AddUnionDialogState extends ConsumerState<AddUnionDialog> {
                   child: AbsorbPointer(
                     child: TextFormField(
                       controller: _dotDateCtrl,
-                      decoration: const InputDecoration(
-                        labelText: 'Date de la dot',
-                        prefixIcon: Icon(Icons.event_outlined),
-                        hintText: 'JJ/MM/AAAA',
-                        isDense: true,
+                      style: GwType.ui(fontSize: 14, color: t.stone),
+                      decoration: gwInputDecoration(
+                        context,
+                        label: 'Date de la dot',
+                        prefixIcon: Symbols.event,
+                        hint: 'JJ/MM/AAAA',
+                        dense: true,
                       ),
                     ),
                   ),
@@ -402,11 +370,13 @@ class _AddUnionDialogState extends ConsumerState<AddUnionDialog> {
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _dotDescriptionCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Description de la dot',
-                    prefixIcon: Icon(Icons.description_outlined),
-                    hintText: 'Ex: 10 chèvres, bijoux...',
-                    isDense: true,
+                  style: GwType.ui(fontSize: 14, color: t.stone),
+                  decoration: gwInputDecoration(
+                    context,
+                    label: 'Description de la dot',
+                    prefixIcon: Symbols.description,
+                    hint: 'Ex: 10 chèvres, bijoux...',
+                    dense: true,
                   ),
                   maxLines: 2,
                 ),
@@ -418,29 +388,11 @@ class _AddUnionDialogState extends ConsumerState<AddUnionDialog> {
         // ── Info rang polygamie ──
         if (_currentUnionCount > 0) ...[
           const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.blue.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(8),
-              border:
-                  Border.all(color: Colors.blue.withValues(alpha: 0.2)),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.info_outline,
-                    size: 16, color: Colors.blue),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Cette union sera enregistrée au rang ${_currentUnionCount + 1}. '
-                    '${widget.person.firstName} a déjà $_currentUnionCount union(s) active(s).',
-                    style:
-                        const TextStyle(fontSize: 11, color: Colors.blue),
-                  ),
-                ),
-              ],
-            ),
+          GwInfoBanner(
+            tone: GwBannerTone.azure,
+            text:
+                'Cette union sera enregistrée au rang ${_currentUnionCount + 1}. '
+                '${widget.person.firstName} a déjà $_currentUnionCount union(s) active(s).',
           ),
         ],
       ],
@@ -449,19 +401,20 @@ class _AddUnionDialogState extends ConsumerState<AddUnionDialog> {
 
   /// Formulaire complet pour créer un nouveau conjoint
   Widget _buildNewSpouseForm() {
+    final t = GwTokens.of(context);
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(GwTokens.rCard),
+        border: Border.all(color: t.line),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             'Informations de l\'$_spouseLabel',
-            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+            style: GwType.ui(
+                fontSize: 13, fontWeight: FontWeight.w600, color: t.stone),
           ),
           const SizedBox(height: 12),
 
@@ -471,10 +424,12 @@ class _AddUnionDialogState extends ConsumerState<AddUnionDialog> {
               Expanded(
                 child: TextFormField(
                   controller: _spouseFirstNameCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Prénom *',
-                    prefixIcon: Icon(Icons.person_outline),
-                    isDense: true,
+                  style: GwType.ui(fontSize: 14, color: t.stone),
+                  decoration: gwInputDecoration(
+                    context,
+                    label: 'Prénom *',
+                    prefixIcon: Symbols.person,
+                    dense: true,
                   ),
                   validator: (v) => (v == null || v.isEmpty) ? 'Requis' : null,
                 ),
@@ -483,10 +438,12 @@ class _AddUnionDialogState extends ConsumerState<AddUnionDialog> {
               Expanded(
                 child: TextFormField(
                   controller: _spouseLastNameCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Nom *',
-                    prefixIcon: Icon(Icons.badge_outlined),
-                    isDense: true,
+                  style: GwType.ui(fontSize: 14, color: t.stone),
+                  decoration: gwInputDecoration(
+                    context,
+                    label: 'Nom *',
+                    prefixIcon: Symbols.badge,
+                    dense: true,
                   ),
                   validator: (v) => (v == null || v.isEmpty) ? 'Requis' : null,
                 ),
@@ -501,10 +458,12 @@ class _AddUnionDialogState extends ConsumerState<AddUnionDialog> {
               padding: const EdgeInsets.only(bottom: 10),
               child: TextFormField(
                 controller: _spouseMaidenNameCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Nom de jeune fille',
-                  prefixIcon: Icon(Icons.person_outline),
-                  isDense: true,
+                style: GwType.ui(fontSize: 14, color: t.stone),
+                decoration: gwInputDecoration(
+                  context,
+                  label: 'Nom de jeune fille',
+                  prefixIcon: Symbols.person,
+                  dense: true,
                 ),
               ),
             ),
@@ -515,10 +474,12 @@ class _AddUnionDialogState extends ConsumerState<AddUnionDialog> {
               Expanded(
                 child: TextFormField(
                   controller: _spouseClanCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Clan',
-                    prefixIcon: Icon(Icons.groups_outlined),
-                    isDense: true,
+                  style: GwType.ui(fontSize: 14, color: t.stone),
+                  decoration: gwInputDecoration(
+                    context,
+                    label: 'Clan',
+                    prefixIcon: Symbols.groups,
+                    dense: true,
                   ),
                 ),
               ),
@@ -526,10 +487,12 @@ class _AddUnionDialogState extends ConsumerState<AddUnionDialog> {
               Expanded(
                 child: TextFormField(
                   controller: _spouseTotemCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Totem',
-                    prefixIcon: Icon(Icons.pets_outlined),
-                    isDense: true,
+                  style: GwType.ui(fontSize: 14, color: t.stone),
+                  decoration: gwInputDecoration(
+                    context,
+                    label: 'Totem',
+                    prefixIcon: Symbols.pets,
+                    dense: true,
                   ),
                 ),
               ),
@@ -543,11 +506,13 @@ class _AddUnionDialogState extends ConsumerState<AddUnionDialog> {
             child: AbsorbPointer(
               child: TextFormField(
                 controller: _spouseBirthDateCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Date de naissance',
-                  prefixIcon: Icon(Icons.cake_outlined),
-                  hintText: 'JJ/MM/AAAA',
-                  isDense: true,
+                style: GwType.ui(fontSize: 14, color: t.stone),
+                decoration: gwInputDecoration(
+                  context,
+                  label: 'Date de naissance',
+                  prefixIcon: Symbols.cake,
+                  hint: 'JJ/MM/AAAA',
+                  dense: true,
                 ),
               ),
             ),
@@ -557,11 +522,13 @@ class _AddUnionDialogState extends ConsumerState<AddUnionDialog> {
           // Lieu de naissance (texte libre)
           TextFormField(
             controller: _spouseBirthPlaceCtrl,
-            decoration: const InputDecoration(
-              labelText: 'Lieu de naissance',
-              prefixIcon: Icon(Icons.location_city_outlined),
-              hintText: 'Ex: Douala, Paris...',
-              isDense: true,
+            style: GwType.ui(fontSize: 14, color: t.stone),
+            decoration: gwInputDecoration(
+              context,
+              label: 'Lieu de naissance',
+              prefixIcon: Symbols.location_city,
+              hint: 'Ex: Douala, Paris...',
+              dense: true,
             ),
           ),
           const SizedBox(height: 10),
@@ -589,10 +556,12 @@ class _AddUnionDialogState extends ConsumerState<AddUnionDialog> {
               Expanded(
                 child: TextFormField(
                   controller: _spouseReligionCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Religion',
-                    prefixIcon: Icon(Icons.church_outlined),
-                    isDense: true,
+                  style: GwType.ui(fontSize: 14, color: t.stone),
+                  decoration: gwInputDecoration(
+                    context,
+                    label: 'Religion',
+                    prefixIcon: Symbols.church,
+                    dense: true,
                   ),
                 ),
               ),
@@ -606,10 +575,12 @@ class _AddUnionDialogState extends ConsumerState<AddUnionDialog> {
               Expanded(
                 child: TextFormField(
                   controller: _spouseProfessionCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Profession',
-                    prefixIcon: Icon(Icons.work_outline),
-                    isDense: true,
+                  style: GwType.ui(fontSize: 14, color: t.stone),
+                  decoration: gwInputDecoration(
+                    context,
+                    label: 'Profession',
+                    prefixIcon: Symbols.work,
+                    dense: true,
                   ),
                 ),
               ),
@@ -617,11 +588,13 @@ class _AddUnionDialogState extends ConsumerState<AddUnionDialog> {
               Expanded(
                 child: TextFormField(
                   controller: _spouseResidenceCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Lieu de résidence',
-                    prefixIcon: Icon(Icons.home_outlined),
-                    hintText: 'Ex: Paris, Douala...',
-                    isDense: true,
+                  style: GwType.ui(fontSize: 14, color: t.stone),
+                  decoration: gwInputDecoration(
+                    context,
+                    label: 'Lieu de résidence',
+                    prefixIcon: Symbols.home,
+                    hint: 'Ex: Paris, Douala...',
+                    dense: true,
                   ),
                 ),
               ),
@@ -631,9 +604,10 @@ class _AddUnionDialogState extends ConsumerState<AddUnionDialog> {
 
           // Vivant(e) ?
           SwitchListTile(
-            title: Text('${_isMale ? 'Elle' : 'Il'} est en vie ?'),
+            title: Text('${_isMale ? 'Elle' : 'Il'} est en vie ?',
+                style: GwType.ui(fontSize: 14, color: t.stone)),
             value: _spouseIsAlive,
-            activeThumbColor: Theme.of(context).colorScheme.primary,
+            activeThumbColor: GwTokens.gold,
             dense: true,
             contentPadding: EdgeInsets.zero,
             onChanged: (v) => setState(() {
@@ -644,14 +618,14 @@ class _AddUnionDialogState extends ConsumerState<AddUnionDialog> {
 
           // Contact + invitation (seulement si vivant)
           if (_spouseIsAlive) ...[
-            const Divider(),
-            const SizedBox(height: 4),
+            Container(height: 1, color: t.line),
+            const SizedBox(height: 10),
             Text(
               'Contact (pour invitation)',
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
+              style: GwType.ui(
                 fontSize: 12,
-                color: Colors.grey[700],
+                fontWeight: FontWeight.w600,
+                color: t.stoneMid,
               ),
             ),
             const SizedBox(height: 8),
@@ -663,10 +637,12 @@ class _AddUnionDialogState extends ConsumerState<AddUnionDialog> {
                   child: TextFormField(
                     controller: _spouseEmailCtrl,
                     keyboardType: TextInputType.emailAddress,
-                    decoration: const InputDecoration(
-                      labelText: 'Email',
-                      prefixIcon: Icon(Icons.email_outlined),
-                      isDense: true,
+                    style: GwType.ui(fontSize: 14, color: t.stone),
+                    decoration: gwInputDecoration(
+                      context,
+                      label: 'Email',
+                      prefixIcon: Symbols.mail,
+                      dense: true,
                     ),
                     validator: (v) {
                       if (v != null && v.isNotEmpty && !v.contains('@')) {
@@ -684,10 +660,12 @@ class _AddUnionDialogState extends ConsumerState<AddUnionDialog> {
                   child: TextFormField(
                     controller: _spousePhoneCtrl,
                     keyboardType: TextInputType.phone,
-                    decoration: const InputDecoration(
-                      labelText: 'Téléphone',
-                      prefixIcon: Icon(Icons.phone_outlined),
-                      isDense: true,
+                    style: GwType.ui(fontSize: 14, color: t.stone),
+                    decoration: gwInputDecoration(
+                      context,
+                      label: 'Téléphone',
+                      prefixIcon: Symbols.call,
+                      dense: true,
                     ),
                   ),
                 ),
@@ -698,15 +676,16 @@ class _AddUnionDialogState extends ConsumerState<AddUnionDialog> {
             // Toggle invitation
             CheckboxListTile(
               value: _sendInvitation,
-              title: const Text(
+              title: Text(
                 'Envoyer une invitation par email',
-                style: TextStyle(fontSize: 13),
+                style: GwType.ui(fontSize: 13, color: t.stone),
               ),
               subtitle: Text(
                 'Un email sera envoyé pour créer son compte et confirmer le lien',
-                style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                style: GwType.ui(fontSize: 12, color: t.stoneMid),
               ),
-              activeColor: Theme.of(context).colorScheme.primary,
+              activeColor: GwTokens.gold,
+              checkColor: const Color(0xFF0C0B0F),
               dense: true,
               contentPadding: EdgeInsets.zero,
               controlAffinity: ListTileControlAffinity.leading,
@@ -719,21 +698,28 @@ class _AddUnionDialogState extends ConsumerState<AddUnionDialog> {
   }
 
   Widget _buildSpouseLanguageDropdown() {
+    final t = GwTokens.of(context);
     final langAsync = ref.watch(
       languagesByCountryNotifierProvider(_spouseCountry?.isoCode),
     );
     return langAsync.when(
-      loading: () => const LinearProgressIndicator(),
+      loading: () => LinearProgressIndicator(
+          color: t.goldText, backgroundColor: t.inkLift),
       error: (_, __) => const SizedBox.shrink(),
       data: (languages) {
         if (languages.isEmpty) return const SizedBox.shrink();
         return DropdownButtonFormField<LanguageModel>(
-          value: _spouseLanguage,
-          decoration: const InputDecoration(
-            labelText: 'Langue maternelle',
-            prefixIcon: Icon(Icons.translate),
-            isDense: true,
+          key: ValueKey(
+              'spouselang_${_spouseCountry?.isoCode}_${_spouseLanguage?.name}'),
+          initialValue: _spouseLanguage,
+          decoration: gwInputDecoration(
+            context,
+            label: 'Langue maternelle',
+            prefixIcon: Symbols.translate,
+            dense: true,
           ),
+          dropdownColor: t.inkCard,
+          style: GwType.ui(fontSize: 14, color: t.stone),
           isExpanded: true,
           items: languages
               .map((l) => DropdownMenuItem(
@@ -892,7 +878,7 @@ class _AddUnionDialogState extends ConsumerState<AddUnionDialog> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(msg),
-            backgroundColor: Theme.of(context).colorScheme.primary,
+            backgroundColor: GwTokens.sage,
           ),
         );
       }
@@ -901,7 +887,7 @@ class _AddUnionDialogState extends ConsumerState<AddUnionDialog> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Erreur: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: GwTokens.ember,
           ),
         );
       }
@@ -912,58 +898,6 @@ class _AddUnionDialogState extends ConsumerState<AddUnionDialog> {
 }
 
 // ── Helper widgets ──
-
-class _ToggleCard extends StatelessWidget {
-  const _ToggleCard({
-    required this.icon,
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final accent = Theme.of(context).colorScheme.primary;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(10),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-        decoration: BoxDecoration(
-          color: selected
-              ? accent.withValues(alpha: 0.12)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: selected ? accent : Colors.grey.shade300,
-            width: selected ? 2 : 1,
-          ),
-        ),
-        child: Column(
-          children: [
-            Icon(icon,
-                size: 24, color: selected ? accent : Colors.grey),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                color: selected ? accent : null,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
 
 class _SpouseTile extends StatelessWidget {
   const _SpouseTile({
@@ -978,67 +912,76 @@ class _SpouseTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = GwTokens.of(context);
+    final isMale = person.gender == 'MALE';
     final initials =
         '${person.firstName.isNotEmpty ? person.firstName[0] : ''}${person.lastName.isNotEmpty ? person.lastName[0] : ''}'
             .toUpperCase();
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: selected ? Theme.of(context).colorScheme.primary : Colors.grey.shade200,
-              width: selected ? 2 : 1,
+      child: Material(
+        color: selected ? t.goldBg : t.inkLift,
+        borderRadius: BorderRadius.circular(GwTokens.rBtn),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(GwTokens.rBtn),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(GwTokens.rBtn),
+              border: Border.all(
+                color: selected ? t.goldLine : t.line,
+                width: selected ? 1.5 : 1,
+              ),
             ),
-            color: selected
-                ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.08)
-                : null,
-          ),
-          child: Row(
-            children: [
-              CircleAvatar(
-                radius: 18,
-                backgroundColor: person.gender == 'MALE'
-                    ? Colors.blue.shade100
-                    : Colors.pink.shade100,
-                child: Text(
-                  initials,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: person.gender == 'MALE'
-                        ? Colors.blue.shade700
-                        : Colors.pink.shade700,
+            child: Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: isMale ? GwTokens.azureBg : GwTokens.roseBg,
+                    borderRadius: BorderRadius.circular(GwTokens.rBtn),
+                    border: Border.all(
+                        color:
+                            isMale ? GwTokens.azureLine : GwTokens.roseLine),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    initials,
+                    style: GwType.display(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: isMale ? t.azureText : GwTokens.rose,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '${person.firstName} ${person.lastName}',
-                      style: const TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    if (person.clan != null && person.clan!.isNotEmpty)
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       Text(
-                        'Clan: ${person.clan}',
-                        style:
-                            TextStyle(fontSize: 12, color: Colors.grey[600]),
+                        '${person.firstName} ${person.lastName}',
+                        style: GwType.ui(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: t.stone),
                       ),
-                  ],
+                      if (person.clan != null && person.clan!.isNotEmpty)
+                        Text(
+                          'Clan: ${person.clan}',
+                          style: GwType.ui(fontSize: 12, color: t.stoneMid),
+                        ),
+                    ],
+                  ),
                 ),
-              ),
-              if (selected)
-                Icon(Icons.check_circle,
-                    color: Theme.of(context).colorScheme.primary, size: 22),
-            ],
+                if (selected)
+                  Icon(Symbols.check_circle,
+                      fill: 1, color: t.goldText, size: 22),
+              ],
+            ),
           ),
         ),
       ),

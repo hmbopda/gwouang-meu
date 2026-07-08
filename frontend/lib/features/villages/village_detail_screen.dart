@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:material_symbols_icons/symbols.dart';
 
 import 'package:gwangmeu/core/router/breadcrumb_provider.dart';
+import 'package:gwangmeu/core/theme/app_theme.dart';
 import 'package:gwangmeu/core/router/route_names.dart';
 import 'package:gwangmeu/shared/models/post_model.dart';
 import 'package:gwangmeu/shared/models/village_member_model.dart';

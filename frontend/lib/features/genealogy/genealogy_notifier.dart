@@ -5,7 +5,10 @@ import 'package:gwangmeu/features/genealogy/services/genealogy_api_service.dart'
 
 part 'genealogy_notifier.g.dart';
 
-@riverpod
+/// keepAlive : la fiche personne du sujet est réutilisée partout
+/// (généalogie, profil, notifications) et préchargée au démarrage
+/// dans app.dart — un provider autoDispose jetterait cet état.
+@Riverpod(keepAlive: true)
 class GenealogyNotifier extends _$GenealogyNotifier {
   @override
   Future<PersonGenealogy> build() async {
