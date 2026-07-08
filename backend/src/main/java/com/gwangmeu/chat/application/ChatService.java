@@ -18,6 +18,12 @@ public interface ChatService {
 
     List<ChatGroup> getGroupsByVillage(UUID villageId);
 
+    /**
+     * Groupes de FAMILLE d'un clan. En crée un par défaut (« Famille {clan} »)
+     * s'il n'en existe aucun, et s'assure que l'utilisateur en est membre.
+     */
+    List<ChatGroup> getOrCreateFamilyGroups(String clan, UUID userId);
+
     ChatGroupMember joinGroup(UUID groupId, UUID userId);
 
     void leaveGroup(UUID groupId, UUID userId);

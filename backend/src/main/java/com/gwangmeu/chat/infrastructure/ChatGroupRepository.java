@@ -13,6 +13,9 @@ public interface ChatGroupRepository extends JpaRepository<ChatGroup, UUID> {
 
     List<ChatGroup> findByVillageIdOrderByCreatedAtAsc(UUID villageId);
 
+    /** Groupes de FAMILLE rattachés à un clan (insensible à la casse). */
+    List<ChatGroup> findByFamilyClanIgnoreCaseOrderByCreatedAtAsc(String familyClan);
+
     /**
      * Trouve un groupe DIRECT entre deux utilisateurs dans un village.
      * Cherche dans les deux sens : créé par userId1 ou userId2,

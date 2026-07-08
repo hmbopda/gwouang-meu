@@ -1,22 +1,53 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:gwangmeu/features/chat/chat_notifier.dart';
+import 'package:gwangmeu/features/genealogy/genealogy_notifier.dart';
 import 'package:gwangmeu/features/villages/villages_notifier.dart';
 import 'package:gwangmeu/shared/models/chat_group_model.dart';
 
-/// Une conversation de la liste Messages (#3a) :
-/// groupe de discussion + village d'appartenance.
+/// Portée d'une conversation dans la liste Messages.
+enum ConversationKind { village, family, direct }
+
+/// Une conversation de la liste Messages (#3a) : groupe de discussion +
+/// libellé de portée (village, famille) + type.
 class Conversation {
-  const Conversation({required this.group, required this.villageName});
+  const Conversation({
+    required this.group,
+    required this.scopeLabel,
+    required this.kind,
+  });
 
   final ChatGroupModel group;
-  final String villageName;
 
-  bool get isDirect =>
-      group.type.toUpperCase() == 'DM' || group.type.toUpperCase() == 'DIRECT';
+  /// Libellé mono affiché sous l'aperçu : nom du village ou « Famille … ».
+  final String scopeLabel;
+
+  final ConversationKind kind;
+
+  bool get isDirect => kind == ConversationKind.direct;
+  bool get isFamily => kind == ConversationKind.family;
 }
 
-/// Toutes les conversations de l'utilisateur, agrégées sur ses villages.
+ConversationKind _kindOfGroup(ChatGroupModel g) {
+  switch (g.type.toUpperCase()) {
+    case 'DM':
+    case 'DIRECT':
+      return ConversationKind.direct;
+    case 'FAMILY':
+      return ConversationKind.family;
+    default:
+      return ConversationKind.village;
+  }
+}
+
+int _byRecent(Conversation a, Conversation b) {
+  final da = a.group.createdAt ?? DateTime(2000);
+  final db = b.group.createdAt ?? DateTime(2000);
+  return db.compareTo(da);
+}
+
+/// Conversations de villages (groupes + directs), agrégées sur les villages
+/// de l'utilisateur.
 final myConversationsProvider =
     FutureProvider.autoDispose<List<Conversation>>((ref) async {
   final villages = await ref.watch(myVillagesNotifierProvider.future);
@@ -25,20 +56,45 @@ final myConversationsProvider =
   for (final village in villages) {
     try {
       final groups = await ref.watch(chatGroupsProvider(village.id).future);
-      conversations.addAll(
-        groups.map((g) => Conversation(group: g, villageName: village.name)),
-      );
+      conversations.addAll(groups.map((g) => Conversation(
+            group: g,
+            scopeLabel: village.name,
+            kind: _kindOfGroup(g),
+          )));
     } catch (_) {
       // Un village sans chat ne bloque pas la liste.
     }
   }
 
-  conversations.sort((a, b) {
-    final da = a.group.createdAt ?? DateTime(2000);
-    final db = b.group.createdAt ?? DateTime(2000);
-    return db.compareTo(da);
-  });
+  conversations.sort(_byRecent);
   return conversations;
+});
+
+/// Discussions de FAMILLE de l'utilisateur, dérivées de son clan (généalogie).
+/// Le backend crée la discussion « Famille {clan} » à la demande.
+final myFamilyConversationsProvider =
+    FutureProvider.autoDispose<List<Conversation>>((ref) async {
+  final person = await ref.watch(genealogyNotifierProvider.future);
+  final clan = person.clan?.trim() ?? '';
+  if (clan.isEmpty) return const [];
+
+  final groups = await ref.watch(familyChatGroupsProvider(clan).future);
+  final conversations = groups
+      .map((g) => Conversation(
+            group: g,
+            scopeLabel: 'Famille ${g.familyClan ?? clan}',
+            kind: ConversationKind.family,
+          ))
+      .toList()
+    ..sort(_byRecent);
+  return conversations;
+});
+
+/// Le clan de l'utilisateur, s'il est renseigné (pour l'état vide « Famille »).
+final myClanProvider = FutureProvider.autoDispose<String?>((ref) async {
+  final person = await ref.watch(genealogyNotifierProvider.future);
+  final clan = person.clan?.trim();
+  return (clan == null || clan.isEmpty) ? null : clan;
 });
 
 /// Nombre de messages non lus toutes conversations confondues.

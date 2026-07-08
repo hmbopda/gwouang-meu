@@ -18,6 +18,20 @@ Future<List<ChatGroupModel>> chatGroups(ChatGroupsRef ref, String villageId) asy
       .toList();
 }
 
+/// Discussions de FAMILLE d'un clan (créées à la demande côté backend).
+@riverpod
+Future<List<ChatGroupModel>> familyChatGroups(
+    FamilyChatGroupsRef ref, String clan) async {
+  final client = ref.read(apiClientProvider);
+  final json = await client
+      .get('/api/v1/chat/groups/family/${Uri.encodeComponent(clan)}');
+  final data = json['data'];
+  final list = data is List ? data : <dynamic>[];
+  return list
+      .map((e) => ChatGroupModel.fromJson(e as Map<String, dynamic>))
+      .toList();
+}
+
 /// Messages d'un groupe — pull-to-refresh (léger, pas de polling auto)
 @riverpod
 class ChatMessagesNotifier extends _$ChatMessagesNotifier {

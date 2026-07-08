@@ -8,6 +8,7 @@ import java.util.UUID;
 public record ChatGroupDto(
         UUID id,
         UUID villageId,
+        String familyClan,
         String name,
         String description,
         ChatGroup.GroupType type,

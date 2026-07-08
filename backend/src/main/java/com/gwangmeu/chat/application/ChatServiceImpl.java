@@ -116,6 +116,50 @@ class ChatServiceImpl implements ChatService {
     }
 
     @Override
+    public List<ChatGroup> getOrCreateFamilyGroups(String clan, UUID userId) {
+        String normalized = clan == null ? "" : clan.trim();
+        if (normalized.isEmpty()) {
+            return List.of();
+        }
+
+        List<ChatGroup> groups =
+                groupRepository.findByFamilyClanIgnoreCaseOrderByCreatedAtAsc(normalized);
+
+        // Aucune discussion de famille pour ce clan → en créer une par défaut.
+        if (groups.isEmpty()) {
+            ChatGroup group = ChatGroup.builder()
+                    .villageId(null)
+                    .familyClan(normalized)
+                    .name("Famille " + normalized)
+                    .description("Discussion de la famille " + normalized)
+                    .type(ChatGroup.GroupType.FAMILY)
+                    .createdBy(userId)
+                    .build();
+            ChatGroup saved = groupRepository.save(group);
+            memberRepository.save(ChatGroupMember.builder()
+                    .groupId(saved.getId())
+                    .userId(userId)
+                    .role(ChatGroupMember.MemberRole.ADMIN)
+                    .build());
+            messageRepository.save(ChatMessage.builder()
+                    .groupId(saved.getId())
+                    .senderId(userId)
+                    .content("Bienvenue dans la discussion de la famille "
+                            + normalized + ".")
+                    .type(ChatMessage.MessageType.SYSTEM)
+                    .build());
+            log.info("Family chat group created for clan {}", normalized);
+            return List.of(saved);
+        }
+
+        // Groupes existants → s'assurer que l'utilisateur en est membre.
+        for (ChatGroup g : groups) {
+            addMemberIfAbsent(g.getId(), userId);
+        }
+        return groups;
+    }
+
+    @Override
     public ChatGroupMember joinGroup(UUID groupId, UUID userId) {
         if (memberRepository.existsByGroupIdAndUserId(groupId, userId)) {
             throw new IllegalStateException("Utilisateur déjà membre de ce groupe");

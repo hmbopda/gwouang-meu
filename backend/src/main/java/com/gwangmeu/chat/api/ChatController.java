@@ -75,6 +75,17 @@ public class ChatController {
         return ResponseEntity.ok(ApiResponse.ok(dtos));
     }
 
+    @GetMapping("/groups/family/{clan}")
+    @Operation(summary = "Discussions de famille d'un clan (créées à la demande)")
+    public ResponseEntity<ApiResponse<List<ChatGroupDto>>> getFamilyGroups(
+            @PathVariable String clan,
+            @CurrentUser Jwt jwt) {
+        UUID userId = resolveUserId(jwt);
+        List<ChatGroupDto> dtos = chatService.getOrCreateFamilyGroups(clan, userId)
+                .stream().map(this::toGroupDto).toList();
+        return ResponseEntity.ok(ApiResponse.ok(dtos));
+    }
+
     @PostMapping("/groups/{groupId}/join")
     @Operation(summary = "Rejoindre un groupe")
     public ResponseEntity<ApiResponse<Void>> joinGroup(
@@ -155,8 +166,9 @@ public class ChatController {
     private ChatGroupDto toGroupDto(ChatGroup g) {
         int memberCount = chatService.getGroupMembers(g.getId()).size();
         return new ChatGroupDto(
-                g.getId(), g.getVillageId(), g.getName(), g.getDescription(),
-                g.getType(), memberCount, g.getCreatedBy(), g.getCreatedAt());
+                g.getId(), g.getVillageId(), g.getFamilyClan(), g.getName(),
+                g.getDescription(), g.getType(), memberCount, g.getCreatedBy(),
+                g.getCreatedAt());
     }
 
     private List<ChatMessageDto> enrichMessages(List<ChatMessage> messages) {

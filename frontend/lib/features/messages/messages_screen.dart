@@ -7,11 +7,12 @@ import 'package:material_symbols_icons/symbols.dart';
 import 'package:gwangmeu/core/router/route_names.dart';
 import 'package:gwangmeu/core/theme/gw_tokens.dart';
 import 'package:gwangmeu/features/messages/messages_providers.dart';
-import 'package:gwangmeu/shared/models/chat_group_model.dart';
 
 /// Messages — liste des conversations (#3a).
-/// Destination de premier niveau : aperçu, heure mono, badge non-lu ember,
-/// tag mono (village · type), segmenté Villages / Directs.
+/// Destination de premier niveau : aperçu, heure mono, tag mono
+/// (portée · type), segmenté **Villages / Famille / Directs**.
+enum _MsgTab { villages, family, directs }
+
 class MessagesScreen extends ConsumerStatefulWidget {
   const MessagesScreen({super.key});
 
@@ -20,13 +21,12 @@ class MessagesScreen extends ConsumerStatefulWidget {
 }
 
 class _MessagesScreenState extends ConsumerState<MessagesScreen> {
-  bool _directs = false;
+  _MsgTab _tab = _MsgTab.villages;
   String _query = '';
 
   @override
   Widget build(BuildContext context) {
     final t = GwTokens.of(context);
-    final conversationsAsync = ref.watch(myConversationsProvider);
 
     return Scaffold(
       body: SafeArea(
@@ -80,7 +80,7 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
               ),
             ),
 
-            // ── Segmenté Villages / Directs ──
+            // ── Segmenté Villages / Famille / Directs ──
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
               child: Container(
@@ -91,10 +91,9 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
                 ),
                 child: Row(
                   children: [
-                    _segment('Villages', !_directs,
-                        () => setState(() => _directs = false)),
-                    _segment('Directs', _directs,
-                        () => setState(() => _directs = true)),
+                    _segment('Villages', _MsgTab.villages),
+                    _segment('Famille', _MsgTab.family),
+                    _segment('Directs', _MsgTab.directs),
                   ],
                 ),
               ),
@@ -102,56 +101,9 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
 
             // ── Liste ──
             Expanded(
-              child: conversationsAsync.when(
-                loading: () => Center(
-                    child: CircularProgressIndicator(color: t.goldText)),
-                error: (e, _) => _emptyState(t,
-                    'Impossible de charger vos conversations.\nTirez pour réessayer.'),
-                data: (conversations) {
-                  var list = conversations
-                      .where((c) => c.isDirect == _directs)
-                      .toList();
-                  if (_query.isNotEmpty) {
-                    final q = _query.toLowerCase();
-                    list = list
-                        .where((c) =>
-                            c.group.name.toLowerCase().contains(q) ||
-                            c.villageName.toLowerCase().contains(q))
-                        .toList();
-                  }
-                  if (list.isEmpty) {
-                    return RefreshIndicator(
-                      color: t.goldText,
-                      onRefresh: () =>
-                          ref.refresh(myConversationsProvider.future),
-                      child: ListView(
-                        children: [
-                          SizedBox(
-                              height:
-                                  MediaQuery.sizeOf(context).height * 0.25),
-                          _emptyState(
-                              t,
-                              _directs
-                                  ? 'Aucun message direct pour le moment'
-                                  : 'Rejoignez un village pour rejoindre ses conversations'),
-                        ],
-                      ),
-                    );
-                  }
-                  return RefreshIndicator(
-                    color: t.goldText,
-                    onRefresh: () =>
-                        ref.refresh(myConversationsProvider.future),
-                    child: ListView.separated(
-                      padding: const EdgeInsets.fromLTRB(14, 0, 14, 16),
-                      itemCount: list.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 4),
-                      itemBuilder: (context, i) =>
-                          _ConversationRow(conversation: list[i], index: i),
-                    ),
-                  );
-                },
-              ),
+              child: _tab == _MsgTab.family
+                  ? _FamilyList(query: _query)
+                  : _VillageList(directs: _tab == _MsgTab.directs, query: _query),
             ),
           ],
         ),
@@ -159,11 +111,12 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
     );
   }
 
-  Widget _segment(String label, bool selected, VoidCallback onTap) {
+  Widget _segment(String label, _MsgTab tab) {
     final t = GwTokens.of(context);
+    final selected = _tab == tab;
     return Expanded(
       child: GestureDetector(
-        onTap: onTap,
+        onTap: () => setState(() => _tab = tab),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           height: 40,
@@ -185,36 +138,164 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
     );
   }
 
-  Widget _emptyState(GwTokens t, String message) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Symbols.forum, size: 48, color: t.stoneFaint),
-            const SizedBox(height: 12),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: GwType.ui(fontSize: 14, color: t.stoneMid, height: 1.5),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   void _showNewMessageHint(BuildContext context) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          'Ouvrez un village pour démarrer une conversation',
+          'Ouvrez un village ou votre lignée pour démarrer une conversation',
           style: GwType.ui(fontSize: 14, color: GwTokens.of(context).stone),
         ),
       ),
     );
   }
+}
+
+// ─────────────────────────────────────────────────────────────
+//  Liste Villages / Directs
+// ─────────────────────────────────────────────────────────────
+
+class _VillageList extends ConsumerWidget {
+  const _VillageList({required this.directs, required this.query});
+
+  final bool directs;
+  final String query;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = GwTokens.of(context);
+    final async = ref.watch(myConversationsProvider);
+    return async.when(
+      loading: () =>
+          Center(child: CircularProgressIndicator(color: t.goldText)),
+      error: (e, _) => _emptyState(t, Symbols.forum,
+          'Impossible de charger vos conversations.\nTirez pour réessayer.'),
+      data: (all) {
+        var list = all.where((c) => c.isDirect == directs).toList();
+        list = _filter(list, query);
+        return _RefreshList(
+          onRefresh: () => ref.refresh(myConversationsProvider.future),
+          empty: directs
+              ? 'Aucun message direct pour le moment'
+              : 'Rejoignez un village pour rejoindre ses conversations',
+          list: list,
+        );
+      },
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+//  Liste Famille
+// ─────────────────────────────────────────────────────────────
+
+class _FamilyList extends ConsumerWidget {
+  const _FamilyList({required this.query});
+
+  final String query;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = GwTokens.of(context);
+    final clan = ref.watch(myClanProvider).valueOrNull;
+    final async = ref.watch(myFamilyConversationsProvider);
+    return async.when(
+      loading: () =>
+          Center(child: CircularProgressIndicator(color: t.goldText)),
+      error: (e, _) => _emptyState(t, Symbols.family_history,
+          'Impossible de charger vos discussions de famille.'),
+      data: (all) {
+        final list = _filter(all, query);
+        if (list.isEmpty && (clan == null)) {
+          return _emptyState(
+            t,
+            Symbols.family_history,
+            'Renseignez votre clan dans votre lignée\n'
+            'pour rejoindre la discussion de famille.',
+          );
+        }
+        return _RefreshList(
+          onRefresh: () =>
+              ref.refresh(myFamilyConversationsProvider.future),
+          empty: 'Aucune discussion de famille pour le moment',
+          list: list,
+        );
+      },
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+//  Helpers de liste
+// ─────────────────────────────────────────────────────────────
+
+List<Conversation> _filter(List<Conversation> list, String query) {
+  if (query.isEmpty) return list;
+  final q = query.toLowerCase();
+  return list
+      .where((c) =>
+          c.group.name.toLowerCase().contains(q) ||
+          c.scopeLabel.toLowerCase().contains(q))
+      .toList();
+}
+
+class _RefreshList extends StatelessWidget {
+  const _RefreshList({
+    required this.onRefresh,
+    required this.empty,
+    required this.list,
+  });
+
+  final Future<void> Function() onRefresh;
+  final String empty;
+  final List<Conversation> list;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = GwTokens.of(context);
+    if (list.isEmpty) {
+      return RefreshIndicator(
+        color: t.goldText,
+        onRefresh: onRefresh,
+        child: ListView(
+          children: [
+            SizedBox(height: MediaQuery.sizeOf(context).height * 0.22),
+            _emptyState(t, Symbols.forum, empty),
+          ],
+        ),
+      );
+    }
+    return RefreshIndicator(
+      color: t.goldText,
+      onRefresh: onRefresh,
+      child: ListView.separated(
+        padding: const EdgeInsets.fromLTRB(14, 0, 14, 16),
+        itemCount: list.length,
+        separatorBuilder: (_, __) => const SizedBox(height: 4),
+        itemBuilder: (context, i) =>
+            _ConversationRow(conversation: list[i], index: i),
+      ),
+    );
+  }
+}
+
+Widget _emptyState(GwTokens t, IconData icon, String message) {
+  return Center(
+    child: Padding(
+      padding: const EdgeInsets.all(32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 48, color: t.stoneFaint),
+          const SizedBox(height: 12),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: GwType.ui(fontSize: 14, color: t.stoneMid, height: 1.5),
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -238,7 +319,10 @@ class _ConversationRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = GwTokens.of(context);
     final g = conversation.group;
-    final tint = _tints[index % _tints.length];
+    // Les discussions de famille sont teintées or (identité de lignée).
+    final tint = conversation.isFamily
+        ? GwTokens.gold
+        : _tints[index % _tints.length];
 
     return Material(
       color: Colors.transparent,
@@ -248,7 +332,7 @@ class _ConversationRow extends StatelessWidget {
           Routes.conversation(g.id),
           extra: <String, Object>{
             'group': g,
-            'villageName': conversation.villageName,
+            'villageName': conversation.scopeLabel,
           },
         ),
         borderRadius: BorderRadius.circular(16),
@@ -256,7 +340,7 @@ class _ConversationRow extends StatelessWidget {
           padding: const EdgeInsets.all(14),
           child: Row(
             children: [
-              // Tuile initiale teintée
+              // Tuile initiale teintée (icône famille pour les lignées)
               Container(
                 width: 50,
                 height: 50,
@@ -265,13 +349,16 @@ class _ConversationRow extends StatelessWidget {
                   borderRadius: BorderRadius.circular(16),
                 ),
                 alignment: Alignment.center,
-                child: Text(
-                  g.name.isNotEmpty ? g.name[0].toUpperCase() : '?',
-                  style: GwType.display(
-                      fontSize: 19,
-                      fontWeight: FontWeight.w700,
-                      color: GwTokens.inkOnGold),
-                ),
+                child: conversation.isFamily
+                    ? const Icon(Symbols.family_history,
+                        size: 24, color: GwTokens.inkOnGold)
+                    : Text(
+                        g.name.isNotEmpty ? g.name[0].toUpperCase() : '?',
+                        style: GwType.display(
+                            fontSize: 19,
+                            fontWeight: FontWeight.w700,
+                            color: GwTokens.inkOnGold),
+                      ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -314,12 +401,14 @@ class _ConversationRow extends StatelessWidget {
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      '${conversation.villageName.toUpperCase()} · ${_typeLabel(g)}',
+                      '${conversation.scopeLabel.toUpperCase()} · ${_typeLabel(conversation.kind)}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: GwType.mono(
                           fontSize: 11,
-                          color: t.sageText,
+                          color: conversation.isFamily
+                              ? t.goldText
+                              : t.sageText,
                           letterSpacing: 0.5),
                     ),
                   ],
@@ -332,14 +421,13 @@ class _ConversationRow extends StatelessWidget {
     );
   }
 
-  String _typeLabel(ChatGroupModel g) {
-    switch (g.type.toUpperCase()) {
-      case 'DM':
-      case 'DIRECT':
+  String _typeLabel(ConversationKind kind) {
+    switch (kind) {
+      case ConversationKind.direct:
         return 'DIRECT';
-      case 'PRIVATE':
-        return 'PRIVÉ';
-      default:
+      case ConversationKind.family:
+        return 'FAMILLE';
+      case ConversationKind.village:
         return 'GROUPE';
     }
   }

@@ -7,7 +7,8 @@ part 'chat_group_model.g.dart';
 class ChatGroupModel with _$ChatGroupModel {
   const factory ChatGroupModel({
     required String id,
-    required String villageId,
+    String? villageId, // null pour un groupe de FAMILLE
+    String? familyClan, // clan de rattachement (groupes FAMILLE)
     required String name,
     String? description,
     required String type,
