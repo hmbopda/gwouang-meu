@@ -1,0 +1,38 @@
+{
+    "name": "GWANG MEU — Mémoire des villages",
+    "short_name": "GWANG MEU",
+    "start_url": ".",
+    "scope": ".",
+    "display": "standalone",
+    "background_color": "#FAF6EE",
+    "theme_color": "#C9A84C",
+    "description": "Réseau communautaire africain : villages, généalogie « rivière des générations » et mémoire familiale.",
+    "orientation": "any",
+    "lang": "fr",
+    "categories": ["social", "lifestyle", "education"],
+    "prefer_related_applications": false,
+    "icons": [
+        {
+            "src": "icons/Icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-maskable-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "maskable"
+        },
+        {
+            "src": "icons/Icon-maskable-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ]
+}

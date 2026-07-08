@@ -6,6 +6,7 @@ import 'package:material_symbols_icons/symbols.dart';
 import 'package:gwangmeu/core/router/breadcrumb_provider.dart';
 import 'package:gwangmeu/core/router/route_names.dart';
 import 'package:gwangmeu/core/theme/gw_tokens.dart';
+import 'package:gwangmeu/core/theme/theme_notifier.dart';
 import 'package:gwangmeu/features/feed/feed_notifier.dart';
 import 'package:gwangmeu/features/home/home_screen.dart';
 import 'package:gwangmeu/features/notifications/notifications_notifier.dart';
@@ -244,6 +245,14 @@ class _FeedHeader extends ConsumerWidget {
               ],
             ),
           ),
+          _HeaderAction(
+            icon: t.brightness == Brightness.dark
+                ? Symbols.light_mode
+                : Symbols.dark_mode,
+            onTap: () =>
+                ref.read(displayModeProvider.notifier).toggleLightDark(),
+          ),
+          const SizedBox(width: 10),
           _HeaderAction(
             icon: Symbols.notifications,
             showDot: (ref.watch(unreadCountProvider).valueOrNull ?? 0) > 0,

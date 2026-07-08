@@ -152,7 +152,7 @@ class _SplashScreen extends StatelessWidget {
     return const MaterialApp(
       debugShowCheckedModeBanner: false,
       home: Scaffold(
-        backgroundColor: Color(0xFF080709),
+        backgroundColor: Color(0xFFFAF6EE), // crème (thème par défaut)
         body: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -160,7 +160,7 @@ class _SplashScreen extends StatelessWidget {
               Text(
                 'GWANG MEU',
                 style: TextStyle(
-                  color: Color(0xFFD4A843),
+                  color: Color(0xFF9A7810), // or profond (contraste AA sur crème)
                   fontSize: 28,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 4,
@@ -172,7 +172,7 @@ class _SplashScreen extends StatelessWidget {
                 height: 24,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  color: Color(0x99D4A843),
+                  color: Color(0xFFC9A84C),
                 ),
               ),
             ],

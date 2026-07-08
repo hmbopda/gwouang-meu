@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'package:gwangmeu/core/responsive/responsive.dart';
 import 'package:gwangmeu/core/router/route_names.dart';
 import 'package:gwangmeu/core/theme/gw_tokens.dart';
 import 'package:gwangmeu/features/auth/auth_notifier.dart';
@@ -84,22 +85,49 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       }
     });
 
+    final formPanel = Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 460),
+        child: _mode == AuthMode.register
+            ? _buildRegistrationWizard(authState)
+            : _buildLoginForm(authState),
+      ),
+    );
+
+    // Desktop : deux panneaux — marque à gauche, formulaire à droite.
+    if (context.isDesktop) {
+      return Scaffold(
+        backgroundColor: t.ink,
+        body: Column(
+          children: [
+            const GwWeaveBand(),
+            Expanded(
+              child: Row(
+                children: [
+                  Expanded(flex: 5, child: _BrandPanel()),
+                  Expanded(
+                    flex: 6,
+                    child: Container(
+                      color: t.ink,
+                      child: SafeArea(child: formPanel),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Mobile / tablette : formulaire centré une colonne.
     return Scaffold(
       backgroundColor: t.ink,
       body: SafeArea(
         child: Column(
           children: [
             const GwWeaveBand(),
-            Expanded(
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 460),
-                  child: _mode == AuthMode.register
-                      ? _buildRegistrationWizard(authState)
-                      : _buildLoginForm(authState),
-                ),
-              ),
-            ),
+            Expanded(child: formPanel),
           ],
         ),
       ),
@@ -1676,6 +1704,123 @@ class _SocialButton extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  Panneau de marque (desktop) — colonne gauche de l'écran d'authentification
+// ═══════════════════════════════════════════════════════════════════════════
+
+class _BrandPanel extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final t = GwTokens.of(context);
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            GwTokens.gold.withValues(alpha: 0.18),
+            t.inkDeep,
+          ],
+        ),
+      ),
+      child: Stack(
+        children: [
+          // Barre tissée verticale signature à gauche.
+          const Positioned(
+            left: 0,
+            top: 0,
+            bottom: 0,
+            child: GwWeaveBarVertical(width: 6),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(64, 56, 56, 56),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Emblème
+                Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    color: GwTokens.gold,
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    'G',
+                    style: GwType.display(
+                        fontSize: 34,
+                        fontWeight: FontWeight.w700,
+                        color: GwTokens.inkOnGold),
+                  ),
+                ),
+                const SizedBox(height: 28),
+                Text(
+                  'GWANG MEU',
+                  style: GwType.mono(
+                      fontSize: 12, color: t.goldText, letterSpacing: 3),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'La mémoire\nde vos villages',
+                  style: GwType.display(
+                      fontSize: 40,
+                      fontWeight: FontWeight.w700,
+                      color: t.stone,
+                      height: 1.15),
+                ),
+                const SizedBox(height: 18),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 380),
+                  child: Text(
+                    'Langues, généalogie « rivière des générations » et récits '
+                    'de famille — reliez votre communauté, ici et dans la diaspora.',
+                    style: GwType.ui(
+                        fontSize: 15.5, color: t.stoneMid, height: 1.6),
+                  ),
+                ),
+                const SizedBox(height: 36),
+                // Trois marqueurs
+                Row(
+                  children: [
+                    _pill(t, Symbols.holiday_village, 'Villages'),
+                    const SizedBox(width: 10),
+                    _pill(t, Symbols.family_history, 'Lignées'),
+                    const SizedBox(width: 10),
+                    _pill(t, Symbols.forum, 'Messages'),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _pill(GwTokens t, IconData icon, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+      decoration: BoxDecoration(
+        color: t.inkCard,
+        borderRadius: BorderRadius.circular(GwTokens.rPill),
+        border: Border.all(color: t.line),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: t.goldText),
+          const SizedBox(width: 8),
+          Text(label,
+              style: GwType.ui(
+                  fontSize: 13, fontWeight: FontWeight.w600, color: t.stone)),
         ],
       ),
     );

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
+import 'package:gwangmeu/core/responsive/responsive.dart';
 import 'package:gwangmeu/core/router/breadcrumb_provider.dart';
 import 'package:gwangmeu/core/router/route_names.dart';
 import 'package:gwangmeu/core/theme/gw_tokens.dart';
@@ -11,8 +12,13 @@ import 'package:gwangmeu/features/home/widgets/top_bar.dart';
 import 'package:gwangmeu/features/messages/messages_providers.dart';
 
 /// Shell de navigation responsive :
-/// - Desktop (>= 1024px) : Icon Rail + TopBar + Content
-/// - Mobile  (< 1024px)  : Bottom Nav + Drawer
+/// - **compact** (< 1024 px, téléphone & tablette) : bottom nav + drawer,
+///   contenu en une colonne
+/// - **desktop** (≥ 1024 px) : rail étendu 216 px + topbar + contenu centré
+///   et borné (fini l'étirement edge-to-edge)
+///
+/// Les écrans détectent le mode via [isDesktopLayout] et fournissent leur
+/// corps adapté ; la coquille fournit le chrome (rail, topbar, largeur).
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key, required this.child});
 
@@ -20,20 +26,17 @@ class HomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final width = MediaQuery.sizeOf(context).width;
-    if (width >= 1024) {
-      return _DesktopShell(child: child);
-    }
+    if (context.isDesktop) return _RailShell(child: child);
     return _MobileShell(child: child);
   }
 }
 
 // =============================================================================
-//  DESKTOP LAYOUT (>= 1024px) — Icon Rail + TopBar + Content
+//  DESKTOP — rail étendu 216 px + TopBar + contenu centré et borné
 // =============================================================================
 
-class _DesktopShell extends ConsumerWidget {
-  const _DesktopShell({required this.child});
+class _RailShell extends ConsumerWidget {
+  const _RailShell({required this.child});
   final Widget child;
 
   @override
@@ -47,15 +50,17 @@ class _DesktopShell extends ConsumerWidget {
           Expanded(
             child: Row(
               children: [
-                // ── Rail 216px avec labels (#2d) ──
+                // ── Rail 216 px avec labels (#2d) ──
                 const IconRail(),
 
-                // ── Zone principale (TopBar 60px + Content) ──
+                // ── Zone principale : TopBar 60 px + contenu borné/centré ──
                 Expanded(
                   child: Column(
                     children: [
                       const TopBar(),
-                      Expanded(child: child),
+                      Expanded(
+                        child: AdaptiveContent(child: child),
+                      ),
                     ],
                   ),
                 ),
@@ -461,6 +466,6 @@ class _DrawerItem extends StatelessWidget {
   }
 }
 
-/// Helper for child screens to check desktop mode.
-bool isDesktopLayout(BuildContext context) =>
-    MediaQuery.sizeOf(context).width >= 1024;
+/// Les écrans détectent le mode desktop via le socle responsive partagé
+/// (≥ 1024 px). Conservé pour compatibilité des appels existants.
+bool isDesktopLayout(BuildContext context) => context.isDesktop;

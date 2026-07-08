@@ -6,6 +6,7 @@ import 'package:material_symbols_icons/symbols.dart';
 import 'package:gwangmeu/core/router/breadcrumb_provider.dart';
 import 'package:gwangmeu/core/router/route_names.dart';
 import 'package:gwangmeu/core/theme/gw_tokens.dart';
+import 'package:gwangmeu/core/theme/theme_notifier.dart';
 import 'package:gwangmeu/features/notifications/notifications_notifier.dart';
 import 'package:gwangmeu/features/notifications/widgets/notification_panel.dart';
 
@@ -40,6 +41,10 @@ class TopBar extends ConsumerWidget {
           // ── Recherche 44 px ──
           const _SearchBar(),
           const SizedBox(width: 14),
+
+          // ── Bascule thème clair / sombre ──
+          const _ThemeToggle(),
+          const SizedBox(width: 10),
 
           // ── Notifications 44 px ──
           const _NotificationButton(),
@@ -191,6 +196,43 @@ class _SearchBar extends ConsumerWidget {
                 style: GwType.ui(fontSize: 13.5, color: t.stoneDim),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Bascule thème clair / sombre ────────────────────────────
+
+class _ThemeToggle extends ConsumerWidget {
+  const _ThemeToggle();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = GwTokens.of(context);
+    final isDark = t.brightness == Brightness.dark;
+    return Tooltip(
+      message: isDark ? 'Passer en clair' : 'Passer en sombre',
+      child: Material(
+        color: t.inkCard,
+        shape: const CircleBorder(),
+        child: InkWell(
+          onTap: () =>
+              ref.read(displayModeProvider.notifier).toggleLightDark(),
+          customBorder: const CircleBorder(),
+          child: Container(
+            width: GwTokens.tapTarget,
+            height: GwTokens.tapTarget,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: t.lineMid),
+            ),
+            child: Icon(
+              isDark ? Symbols.light_mode : Symbols.dark_mode,
+              size: 19,
+              color: t.goldText,
+            ),
           ),
         ),
       ),

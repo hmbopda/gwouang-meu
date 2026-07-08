@@ -43,16 +43,21 @@ class DisplayModeNotifier extends StateNotifier<DisplayMode> {
 
   static DisplayMode _loadMode(SharedPreferences prefs) {
     final saved = prefs.getString(_kThemeModeKey);
-    if (saved == null) return DisplayMode.dark; // dark par défaut
+    if (saved == null) return DisplayMode.light; // clair (crème) par défaut
     return DisplayMode.values.firstWhere(
       (m) => m.name == saved,
-      orElse: () => DisplayMode.dark,
+      orElse: () => DisplayMode.light,
     );
   }
 
   void setMode(DisplayMode mode) {
     state = mode;
     _prefs.setString(_kThemeModeKey, mode.name);
+  }
+
+  /// Bascule clair ↔ sombre (bouton de thème).
+  void toggleLightDark() {
+    setMode(state == DisplayMode.light ? DisplayMode.dark : DisplayMode.light);
   }
 }
 
