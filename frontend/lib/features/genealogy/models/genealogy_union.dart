@@ -23,6 +23,14 @@ class GenealogyUnion with _$GenealogyUnion {
     String? dotDescription,
     @Default([]) List<String> dotWitnesses,
     String? endReason,
+    // ── Régime matrimonial / conformité au droit civil ──
+    String? legalRegime,
+    @Default(false) bool isPolygamous,
+    // Pays de rattachement légal, ISO-3166 alpha-2.
+    String? legalCountry,
+    // COMPLIANT | WARNING | NON_COMPLIANT | UNKNOWN.
+    @Default('UNKNOWN') String complianceStatus,
+    String? complianceNote,
   }) = _GenealogyUnion;
 
   factory GenealogyUnion.fromJson(Map<String, dynamic> json) =>

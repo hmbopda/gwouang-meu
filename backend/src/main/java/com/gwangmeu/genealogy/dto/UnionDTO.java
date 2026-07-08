@@ -32,4 +32,13 @@ public class UnionDTO {
     private UUID dotPaidBy;
     private String dotDescription;
     private List<UUID> dotWitnesses;
+
+    // ── Regime matrimonial / conformite ──
+    private String legalRegime;
+    @JsonProperty("isPolygamous")
+    private boolean isPolygamous;
+    private String legalCountry;
+    /** COMPLIANT | WARNING | NON_COMPLIANT | UNKNOWN. */
+    private String complianceStatus;
+    private String complianceNote;
 }

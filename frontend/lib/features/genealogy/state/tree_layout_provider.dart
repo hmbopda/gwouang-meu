@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:gwangmeu/core/theme/gw_tokens.dart';
 import 'package:gwangmeu/features/genealogy/models/family_tree.dart';
+import 'package:gwangmeu/features/genealogy/models/genealogy_union.dart';
 import 'package:gwangmeu/features/genealogy/models/person_genealogy.dart';
 import 'package:gwangmeu/features/genealogy/models/sibling_genealogy.dart';
 import 'package:gwangmeu/features/genealogy/state/tree_view_state.dart';
@@ -61,8 +62,11 @@ TreeLayout _computeLayout(FamilyTree tree, TreeView currentView, Set<int> hidden
   // ── Build generation rows based on view ──
   final rows = <int, List<_NodeInfo>>{};
 
-  // Extraire les conjoints depuis les unions
-  final spouses = _extractSpouses(tree);
+  // Unions du sujet, ordonnées par unionOrder (1re, 2e…) → co-épouses contiguës.
+  final subjectUnions = _subjectUnions(tree);
+
+  // Extraire les conjoints depuis les unions (ordre = unionOrder)
+  final spouses = _extractSpouses(tree, subjectUnions);
 
   switch (currentView) {
     case TreeView.full:
@@ -125,6 +129,7 @@ TreeLayout _computeLayout(FamilyTree tree, TreeView currentView, Set<int> hidden
         type: _nodeType(info.person, tree.subject.id, info.lineage),
         hasDotPaid: info.hasDotPaid,
         isSubject: info.person.id == tree.subject.id,
+        unionInfo: info.unionInfo,
       );
       nodes.add(node);
       nodeMap[info.person.id] = node;
@@ -219,10 +224,87 @@ TreeLayout _computeLayout(FamilyTree tree, TreeView currentView, Set<int> hidden
     }
   }
 
-  // Subject → children
+  // ── Filiation vers les enfants, REGROUPÉE PAR UNION ──────────
+  // En polygamie, chaque co-épouse a SES enfants : on ne relie jamais
+  // le sujet (ni un conjoint) à TOUS les enfants. On rattache chaque enfant
+  // au bon couple via unionId / motherId / fatherId, avec une barre de
+  // fratrie descendante DISTINCTE par union.
   final subNode = nodeMap[tree.subject.id];
-  if (subNode != null) {
+
+  // Enfants restants : ceux qu'aucune union n'a réclamés (données legacy).
+  final unclaimed = <PersonGenealogy>{...tree.children};
+
+  for (final union in subjectUnions) {
+    // Le conjoint (autre que le sujet) de cette union.
+    final spouseId =
+        union.husbandId == tree.subject.id ? union.wifeId : union.husbandId;
+    final spNode = nodeMap[spouseId];
+
+    // Enfants de CETTE union.
+    final unionChildren = <PersonGenealogy>[];
     for (final child in tree.children) {
+      if (_belongsToUnion(child, union, tree.subject.id, spouseId)) {
+        unionChildren.add(child);
+        unclaimed.remove(child);
+      }
+    }
+    if (unionChildren.isEmpty) continue;
+
+    // Point de rattachement de la fratrie : milieu du couple si le conjoint
+    // est présent, sinon le sujet seul.
+    final anchor = (subNode != null && spNode != null)
+        ? Offset(
+            (subNode.position.dx + spNode.position.dx) / 2,
+            (subNode.position.dy + spNode.position.dy) / 2,
+          )
+        : subNode?.position;
+    if (anchor == null) continue;
+
+    final ended = !union.isActive;
+
+    // Barre de fratrie : segment horizontal reliant les enfants de l'union.
+    final childNodes = unionChildren
+        .map((c) => nodeMap[c.id])
+        .whereType<LayoutNode>()
+        .toList();
+    if (childNodes.length > 1) {
+      childNodes.sort((a, b) => a.position.dx.compareTo(b.position.dx));
+      final barY = childNodes.first.position.dy - _vSpacing * 0.28;
+      links.add(LayoutLink(
+        from: Offset(childNodes.first.position.dx, barY),
+        to: Offset(childNodes.last.position.dx, barY),
+        type: LinkType.siblings,
+        ended: ended,
+      ));
+      // Descente du couple vers la barre.
+      links.add(LayoutLink(
+        from: anchor,
+        to: Offset(
+          (childNodes.first.position.dx + childNodes.last.position.dx) / 2,
+          barY,
+        ),
+        type: LinkType.filiation,
+        color: goldLine,
+        ended: ended,
+      ));
+    }
+
+    // Filiation couple → chaque enfant de l'union.
+    for (final cNode in childNodes) {
+      links.add(LayoutLink(
+        from: anchor,
+        to: cNode.position,
+        type: LinkType.filiation,
+        color: goldLine,
+        ended: ended,
+      ));
+    }
+  }
+
+  // Enfants non réclamés par une union (monogame sans unionId, ou legacy) :
+  // rattachés au sujet seul — on ne casse pas le cas simple.
+  if (subNode != null) {
+    for (final child in unclaimed) {
       final cNode = nodeMap[child.id];
       if (cNode != null) {
         links.add(LayoutLink(
@@ -235,24 +317,7 @@ TreeLayout _computeLayout(FamilyTree tree, TreeView currentView, Set<int> hidden
     }
   }
 
-  // Spouse → children (le conjoint est aussi parent des enfants communs)
-  for (final spouse in spouses) {
-    final spNode = nodeMap[spouse.person.id];
-    if (spNode == null) continue;
-    for (final child in tree.children) {
-      final cNode = nodeMap[child.id];
-      if (cNode != null) {
-        links.add(LayoutLink(
-          from: spNode.position,
-          to: cNode.position,
-          type: LinkType.filiation,
-          color: roseLine,
-        ));
-      }
-    }
-  }
-
-  // Unions (horizontal links between spouses)
+  // ── Unions (liens horizontaux sujet↔conjoint + co-épouses contiguës) ──
   for (final union in tree.unions) {
     final hNode = nodeMap[union.husbandId];
     final wNode = nodeMap[union.wifeId];
@@ -261,6 +326,21 @@ TreeLayout _computeLayout(FamilyTree tree, TreeView currentView, Set<int> hidden
         from: hNode.position,
         to: wNode.position,
         type: LinkType.union,
+        ended: !union.isActive,
+      ));
+    }
+  }
+
+  // Co-épouses contiguës d'un même sujet reliées entre elles (rang → rang+1).
+  for (int i = 0; i + 1 < spouses.length; i++) {
+    final a = nodeMap[spouses[i].person.id];
+    final b = nodeMap[spouses[i + 1].person.id];
+    if (a != null && b != null) {
+      links.add(LayoutLink(
+        from: a.position,
+        to: b.position,
+        type: LinkType.union,
+        ended: true, // trait atténué : lien de co-épouses, pas une union active
       ));
     }
   }
@@ -283,10 +363,14 @@ class _NodeInfo {
   /// Lignée structurelle (or = lignée du sujet, rose = lignée alliée).
   final NodeType lineage;
 
+  /// Métadonnées d'union (rang, régime, conformité) pour un conjoint.
+  final NodeUnionInfo? unionInfo;
+
   const _NodeInfo(
     this.person, {
     this.hasDotPaid = false,
     this.lineage = NodeType.primaryLineage,
+    this.unionInfo,
   });
 }
 
@@ -321,11 +405,33 @@ void _addSubjectRow(Map<int, List<_NodeInfo>> rows, int gen,
   ];
 }
 
-/// Extrait les conjoints depuis les unions (husband ou wife selon le sujet)
-List<_NodeInfo> _extractSpouses(FamilyTree tree) {
+/// Unions du sujet, ordonnées par unionOrder (1re, 2e…).
+/// L'ordre pilote la contiguïté des co-épouses et le badge de rang.
+List<GenealogyUnion> _subjectUnions(FamilyTree tree) {
+  final list = tree.unions
+      .where((u) =>
+          u.husbandId == tree.subject.id || u.wifeId == tree.subject.id)
+      .toList()
+    ..sort((a, b) => a.unionOrder.compareTo(b.unionOrder));
+  return list;
+}
+
+/// Un conjoint est polygame si le sujet a ≥ 2 unions actives, OU si l'union
+/// elle-même est marquée polygame par le backend.
+bool _isPolygamousContext(GenealogyUnion union, List<GenealogyUnion> all) {
+  if (union.isPolygamous) return true;
+  final activeCount = all.where((u) => u.isActive).length;
+  return activeCount >= 2;
+}
+
+/// Extrait les conjoints depuis les unions du sujet, dans l'ordre unionOrder,
+/// chacun porteur de ses métadonnées d'union (rang, régime, conformité, dot).
+List<_NodeInfo> _extractSpouses(
+    FamilyTree tree, List<GenealogyUnion> subjectUnions) {
   final spouses = <_NodeInfo>[];
   final addedIds = <String>{};
-  for (final union in tree.unions) {
+  for (int i = 0; i < subjectUnions.length; i++) {
+    final union = subjectUnions[i];
     // Déterminer le conjoint (l'autre personne de l'union)
     PersonGenealogy? spouse;
     if (union.husbandId == tree.subject.id && union.wife != null) {
@@ -339,10 +445,31 @@ List<_NodeInfo> _extractSpouses(FamilyTree tree) {
         spouse,
         hasDotPaid: union.isDotPaid,
         lineage: NodeType.spouse,
+        unionInfo: NodeUnionInfo(
+          unionId: union.id,
+          rank: union.unionOrder,
+          isPolygamous: _isPolygamousContext(union, subjectUnions),
+          isActive: union.isActive,
+          legalRegime: union.legalRegime,
+          compliance: unionComplianceFromStatus(union.complianceStatus),
+        ),
       ));
     }
   }
   return spouses;
+}
+
+/// Un enfant appartient-il à cette union ? Priorité à unionId (le plus sûr),
+/// sinon on rattache par le couple (mother/father = les deux conjoints).
+bool _belongsToUnion(
+    PersonGenealogy child, GenealogyUnion union, String subjectId,
+    String spouseId) {
+  if (child.unionId != null) return child.unionId == union.id;
+  // Sans unionId : l'enfant appartient au couple si ses deux parents sont
+  // exactement {sujet, conjoint} (ordre indifférent selon le genre).
+  final parents = {child.motherId, child.fatherId};
+  if (parents.contains(subjectId) && parents.contains(spouseId)) return true;
+  return false;
 }
 
 /// Ajoute le sujet + conjoints + frères/sœurs sur la même ligne

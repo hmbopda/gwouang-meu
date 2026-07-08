@@ -15,7 +15,6 @@ import 'package:gwangmeu/features/genealogy/genealogy_notifier.dart';
 import 'package:gwangmeu/features/genealogy/models/clan_model.dart';
 import 'package:gwangmeu/features/genealogy/models/genealogy_union.dart';
 import 'package:gwangmeu/features/genealogy/models/person_genealogy.dart';
-import 'package:gwangmeu/features/genealogy/models/family_tree.dart';
 import 'package:gwangmeu/features/genealogy/services/genealogy_api_service.dart';
 
 enum AddPersonStep { chooseAction, lookupContact, selectFromTree, selectClan, selectPerson, createForm, checkDuplicate, selectCoParent }

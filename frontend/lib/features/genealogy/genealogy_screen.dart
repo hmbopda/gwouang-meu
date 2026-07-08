@@ -56,7 +56,10 @@ class _GenealogyBody extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final t = GwTokens.of(context);
-    final treeAsync = ref.watch(familyTreeProvider(personId));
+    // Racine effective de l'arbre : focus « centrer ici » sinon le sujet.
+    final focusId = ref.watch(treeViewProvider.select((s) => s.focusPersonId));
+    final rootId = focusId ?? personId;
+    final treeAsync = ref.watch(familyTreeProvider(rootId));
     final desktop = isDesktopLayout(context);
 
     return treeAsync.when(
@@ -64,11 +67,11 @@ class _GenealogyBody extends ConsumerWidget {
           Center(child: CircularProgressIndicator(color: t.goldText)),
       error: (e, _) => _ErrorView(
         message: '$e',
-        onRetry: () => ref.invalidate(familyTreeProvider(personId)),
+        onRetry: () => ref.invalidate(familyTreeProvider(rootId)),
       ),
       data: (tree) => desktop
-          ? _DesktopLayout(tree: tree, personId: personId)
-          : _MobileLayout(tree: tree, personId: personId),
+          ? _DesktopLayout(tree: tree, personId: rootId, subjectId: personId)
+          : _MobileLayout(tree: tree, personId: rootId, subjectId: personId),
     );
   }
 }
@@ -78,10 +81,19 @@ class _GenealogyBody extends ConsumerWidget {
 // ═════════════════════════════════════════════════════════════
 
 class _MobileLayout extends ConsumerWidget {
-  const _MobileLayout({required this.tree, required this.personId});
+  const _MobileLayout({
+    required this.tree,
+    required this.personId,
+    required this.subjectId,
+  });
 
   final FamilyTree tree;
+
+  /// Racine effective affichée (sujet ou personne « centrée »).
   final String personId;
+
+  /// Identité de l'utilisateur (« retour à moi » du fil d'Ariane).
+  final String subjectId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -372,10 +384,19 @@ class _MobileLayout extends ConsumerWidget {
 // ═════════════════════════════════════════════════════════════
 
 class _DesktopLayout extends ConsumerWidget {
-  const _DesktopLayout({required this.tree, required this.personId});
+  const _DesktopLayout({
+    required this.tree,
+    required this.personId,
+    required this.subjectId,
+  });
 
   final FamilyTree tree;
+
+  /// Racine effective affichée (sujet ou personne « centrée »).
   final String personId;
+
+  /// Identité de l'utilisateur (« retour à moi » du fil d'Ariane).
+  final String subjectId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

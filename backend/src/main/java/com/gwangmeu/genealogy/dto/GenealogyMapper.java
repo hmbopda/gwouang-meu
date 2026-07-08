@@ -41,6 +41,8 @@ public final class GenealogyMapper {
                 .email(p.getEmail())
                 .phone(p.getPhone())
                 .maritalStatus(p.getMaritalStatus() != null ? p.getMaritalStatus().name() : null)
+                .residenceCountry(p.getResidenceCountry())
+                .maritalRegime(p.getMaritalRegime())
                 .photoUrl(p.getPhotoUrl())
                 .privacy(p.getPrivacy())
                 .status(p.getStatus())
@@ -49,6 +51,21 @@ public final class GenealogyMapper {
                 .createdAt(p.getCreatedAt())
                 .updatedAt(p.getUpdatedAt())
                 .build();
+    }
+
+    /**
+     * Variante enrichie : rattache l'enfant a ses parents (mother/father) et,
+     * si derivable, a l'union correspondante. Permet au front de regrouper les
+     * enfants par mere / co-epouse.
+     */
+    public static PersonDTO toChildDTO(Person p, List<UUID> villageIds,
+                                        UUID motherId, UUID fatherId, UUID unionId) {
+        PersonDTO dto = toDTO(p, villageIds);
+        if (dto == null) return null;
+        dto.setMotherId(motherId != null ? motherId.toString() : null);
+        dto.setFatherId(fatherId != null ? fatherId.toString() : null);
+        dto.setUnionId(unionId != null ? unionId.toString() : null);
+        return dto;
     }
 
     public static UnionDTO toDTO(GenealogyUnion u, Person husband, Person wife) {
@@ -71,6 +88,11 @@ public final class GenealogyMapper {
                 .dotPaidBy(u.getDotPaidBy())
                 .dotDescription(u.getDotDescription())
                 .dotWitnesses(u.getDotWitnesses() != null ? Arrays.asList(u.getDotWitnesses()) : List.of())
+                .legalRegime(u.getLegalRegime())
+                .isPolygamous(u.isPolygamous())
+                .legalCountry(u.getLegalCountry())
+                .complianceStatus(u.getComplianceStatus())
+                .complianceNote(u.getComplianceNote())
                 .build();
     }
 

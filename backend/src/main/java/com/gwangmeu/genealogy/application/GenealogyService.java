@@ -54,6 +54,9 @@ public interface GenealogyService {
     List<PersonDTO> getAncestors(UUID personId, int depth);
     List<PersonDTO> getDescendants(UUID personId, int depth);
 
+    // Referentiel pays (regles de mariage)
+    CountryMarriageRuleDTO getMarriageRule(String iso2);
+
     // Claude AI
     List<AiSuggestionDTO> generateAiSuggestions(UUID personId);
     List<AiSuggestionDTO> getPendingSuggestions(UUID personId);

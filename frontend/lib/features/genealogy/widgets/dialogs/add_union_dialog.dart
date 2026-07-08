@@ -17,6 +17,14 @@ import 'package:gwangmeu/features/genealogy/services/genealogy_api_service.dart'
 /// Dialog pour ajouter une union (mariage/dot) a une personne.
 /// Si la personne est MALE → elle est le mari, on sélectionne l'épouse.
 /// Si la personne est FEMALE → elle est l'épouse, on sélectionne le mari.
+/// Règle matrimoniale d'un pays (polygamie ALLOWED/CONDITIONAL/FORBIDDEN
+/// + base légale). Alimente la bannière de conformité du dialogue d'union.
+final marriageRuleProvider = FutureProvider.autoDispose
+    .family<Map<String, dynamic>?, String>((ref, iso2) async {
+  if (iso2.trim().isEmpty) return null;
+  return ref.read(genealogyApiServiceProvider).getMarriageRule(iso2);
+});
+
 class AddUnionDialog extends ConsumerStatefulWidget {
   const AddUnionDialog({
     super.key,
@@ -60,6 +68,17 @@ class _AddUnionDialogState extends ConsumerState<AddUnionDialog> {
   LanguageModel? _spouseLanguage;
   bool _spouseIsAlive = true;
   bool _sendInvitation = true;
+
+  // Régime légal & pays de célébration/résidence (conformité par pays)
+  String _regime = 'CUSTOMARY'; // MONOGAMY | POLYGAMY | CUSTOMARY | DE_FACTO
+  CountryModel? _legalCountry;
+
+  static const _regimeOptions = {
+    'MONOGAMY': 'Monogamie civile',
+    'POLYGAMY': 'Polygamie civile',
+    'CUSTOMARY': 'Coutumier',
+    'DE_FACTO': 'De fait',
+  };
 
   // Union details — multi-select (dot + civil + religieux, etc.)
   final Set<String> _unionTypes = {'TRADITIONAL'};
@@ -304,6 +323,10 @@ class _AddUnionDialogState extends ConsumerState<AddUnionDialog> {
             child: Text('Sélectionnez au moins un type',
                 style: GwType.ui(fontSize: 12, color: t.emberText)),
           ),
+        const SizedBox(height: 16),
+
+        // ── Régime légal & conformité par pays ──
+        _buildLegalSection(t),
         const SizedBox(height: 14),
 
         // Date de début
@@ -762,6 +785,157 @@ class _AddUnionDialogState extends ConsumerState<AddUnionDialog> {
     }
   }
 
+  /// Section « régime légal & conformité » : pays de célébration/résidence,
+  /// régime en pilules (polygamie civile masquée si interdite au pays), et
+  /// bannière de conformité au droit civil (ton doux, jamais de jugement).
+  Widget _buildLegalSection(GwTokens t) {
+    final countriesAsync = ref.watch(countriesNotifierProvider);
+    final iso = _legalCountry?.isoCode ?? '';
+    final ruleAsync = ref.watch(marriageRuleProvider(iso));
+    final rule = ruleAsync.valueOrNull;
+    final polygamy = (rule?['polygamy'] as String?)?.toUpperCase();
+    final forbidden = polygamy == 'FORBIDDEN';
+
+    // Défaut : pays de résidence du sujet, s'il est renseigné.
+    countriesAsync.whenData((countries) {
+      if (_legalCountry == null &&
+          widget.person.residenceCountry != null &&
+          widget.person.residenceCountry!.isNotEmpty) {
+        final match = countries.where((c) =>
+            c.isoCode.toUpperCase() ==
+            widget.person.residenceCountry!.toUpperCase());
+        if (match.isNotEmpty) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted && _legalCountry == null) {
+              setState(() => _legalCountry = match.first);
+            }
+          });
+        }
+      }
+    });
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Régime & droit du pays',
+            style: GwType.ui(
+                fontSize: 14, fontWeight: FontWeight.w600, color: t.stone)),
+        const SizedBox(height: 4),
+        Text(
+          'Le fait est toujours enregistré. Le statut indique seulement la '
+          'conformité au droit civil du pays de résidence.',
+          style: GwType.ui(fontSize: 12, color: t.stoneDim, height: 1.4),
+        ),
+        const SizedBox(height: 10),
+
+        // Pays de célébration / résidence
+        countriesAsync.when(
+          loading: () => const LinearProgressIndicator(minHeight: 2),
+          error: (_, __) => Text('Pays indisponibles',
+              style: GwType.ui(fontSize: 12, color: t.stoneDim)),
+          data: (countries) => DropdownButtonFormField<CountryModel>(
+            initialValue: _legalCountry,
+            isExpanded: true,
+            style: GwType.ui(fontSize: 14, color: t.stone),
+            decoration: gwInputDecoration(context,
+                label: 'Pays de résidence / célébration',
+                prefixIcon: Symbols.public,
+                dense: true),
+            items: countries
+                .map((c) => DropdownMenuItem(
+                      value: c,
+                      child: Text('${c.flagEmoji ?? ''} ${c.name}'.trim(),
+                          overflow: TextOverflow.ellipsis),
+                    ))
+                .toList(),
+            onChanged: (c) => setState(() {
+              _legalCountry = c;
+              if (c != null && _regime == 'POLYGAMY') {
+                // On réévalue à la sélection ; le masquage se fera au rebuild.
+              }
+            }),
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        // Régime en pilules (Polygamie civile masquée si interdite)
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: _regimeOptions.entries
+              .where((e) => !(forbidden && e.key == 'POLYGAMY'))
+              .map((e) => GwChoicePill(
+                    label: e.value,
+                    selected: _regime == e.key,
+                    onTap: () => setState(() => _regime = e.key),
+                  ))
+              .toList(),
+        ),
+        const SizedBox(height: 12),
+
+        _complianceBanner(t, rule),
+      ],
+    );
+  }
+
+  /// Bannière de conformité (3 tons doux — jamais de rouge vif ni de jugement).
+  Widget _complianceBanner(GwTokens t, Map<String, dynamic>? rule) {
+    final iso = _legalCountry?.isoCode ?? '';
+    if (iso.isEmpty) {
+      return _banner(t, t.stoneDim, Symbols.info,
+          'Renseignez le pays pour évaluer la conformité au droit civil.');
+    }
+    final country = _legalCountry?.name ?? iso;
+    final polygamy = (rule?['polygamy'] as String?)?.toUpperCase();
+    final hasActive = _currentUnionCount >= 1;
+    final isPolyIntent = _regime == 'POLYGAMY' || hasActive;
+
+    if (rule == null || polygamy == null) {
+      return _banner(t, t.azureText, Symbols.info,
+          'Droit matrimonial non référencé pour $country. Union enregistrée comme fait culturel.');
+    }
+    if (polygamy == 'FORBIDDEN' && _regime == 'MONOGAMY' && hasActive) {
+      return _banner(t, t.emberText, Symbols.gavel,
+          'Une 2ᵉ union civile n\'est pas reconnue par le droit de $country. '
+          'Choisissez « Coutumier » ou « De fait » pour l\'enregistrer comme fait.');
+    }
+    if (polygamy == 'FORBIDDEN' && isPolyIntent) {
+      return _banner(t, t.emberText, Symbols.info,
+          'La polygamie n\'est pas reconnue par le droit civil de $country. '
+          'L\'union est enregistrée comme fait, sans reconnaissance civile.');
+    }
+    if ((polygamy == 'ALLOWED' || polygamy == 'CONDITIONAL') && isPolyIntent) {
+      final basis = (rule['legalBasis'] as String?)?.trim();
+      return _banner(t, t.sageText, Symbols.verified,
+          'Union polygame conforme au droit de $country${polygamy == 'CONDITIONAL' ? ' (sur déclaration)' : ''}.'
+          '${basis != null && basis.isNotEmpty ? '\n$basis' : ''}');
+    }
+    return _banner(t, t.sageText, Symbols.verified,
+        'Conforme au droit civil de $country.');
+  }
+
+  Widget _banner(GwTokens t, Color color, IconData icon, String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.10),
+        border: Border.all(color: color.withValues(alpha: 0.35)),
+        borderRadius: BorderRadius.circular(GwTokens.rBtn),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 18, color: color),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(text,
+                style: GwType.ui(fontSize: 12.5, color: t.stoneMid, height: 1.45)),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _loading = true);
@@ -851,6 +1025,8 @@ class _AddUnionDialogState extends ConsumerState<AddUnionDialog> {
         'wifeId': wifeId,
         'unionTypes': _unionTypes.toList(),
         'isDotPaid': _isDotPaid,
+        'legalRegime': _regime,
+        if (_legalCountry != null) 'legalCountry': _legalCountry!.isoCode,
       };
 
       if (_startDate != null) {

@@ -110,6 +110,14 @@ public class GenealogyController {
         return ResponseEntity.ok(ApiResponse.ok(genealogyService.getDescendants(personId, Math.min(depth, 20))));
     }
 
+    // ── REFERENTIEL PAYS (regles de mariage) ─────────
+
+    @GetMapping("/marriage-rules/{iso2}")
+    @Operation(summary = "Get marriage/polygamy rule for a country (public read). Absent country -> UNKNOWN.")
+    public ResponseEntity<ApiResponse<CountryMarriageRuleDTO>> getMarriageRule(@PathVariable String iso2) {
+        return ResponseEntity.ok(ApiResponse.ok(genealogyService.getMarriageRule(iso2)));
+    }
+
     // ── CHILD ASSOCIATION REQUESTS ─────────────────
 
     @PostMapping("/child-associations/{requestId}/accept")

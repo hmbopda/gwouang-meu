@@ -30,7 +30,52 @@ enum NodeType {
 
 enum LinkType { filiation, union, siblings, aiSuggestion }
 
+/// Conformité d'une union au droit civil du pays de résidence.
+/// Jamais de « légitimité » : rendu en ton sage/ember doux, aucune croix rouge.
+enum UnionCompliance { compliant, warning, nonCompliant, unknown }
+
+UnionCompliance unionComplianceFromStatus(String? status) {
+  switch (status) {
+    case 'COMPLIANT':
+      return UnionCompliance.compliant;
+    case 'WARNING':
+      return UnionCompliance.warning;
+    case 'NON_COMPLIANT':
+      return UnionCompliance.nonCompliant;
+    default:
+      return UnionCompliance.unknown;
+  }
+}
+
 // ── Layout models ───────────────────────────────────────────
+
+/// Métadonnées d'union portées par un nœud conjoint (badges rang / dot / régime).
+class NodeUnionInfo {
+  final String unionId;
+
+  /// Rang de l'union (1 = 1re, 2 = 2e…), dérivé de unionOrder.
+  final int rank;
+
+  /// Union polygame déclarée (≥ 2 conjoints actifs).
+  final bool isPolygamous;
+
+  /// Union active (non terminée).
+  final bool isActive;
+
+  /// Régime légal déclaré (CIVIL, CUSTOMARY…), affiché en méta discret.
+  final String? legalRegime;
+
+  final UnionCompliance compliance;
+
+  const NodeUnionInfo({
+    required this.unionId,
+    required this.rank,
+    required this.isPolygamous,
+    required this.isActive,
+    this.legalRegime,
+    this.compliance = UnionCompliance.unknown,
+  });
+}
 
 class LayoutNode {
   final PersonGenealogy person;
@@ -40,6 +85,10 @@ class LayoutNode {
   final bool hasDotPaid;
   final bool isSubject;
 
+  /// Renseigné pour un conjoint : rang de l'union, régime, conformité, dot.
+  /// Alimente les badges discrets (mono) du nœud.
+  final NodeUnionInfo? unionInfo;
+
   const LayoutNode({
     required this.person,
     required this.position,
@@ -47,6 +96,7 @@ class LayoutNode {
     required this.type,
     this.hasDotPaid = false,
     this.isSubject = false,
+    this.unionInfo,
   });
 }
 
@@ -60,16 +110,28 @@ class LayoutLink {
   /// Null → couleur neutre du painter.
   final Color? color;
 
+  /// Union terminée (isActive=false) : le lien se rend en trait atténué.
+  final bool ended;
+
   const LayoutLink({
     required this.from,
     required this.to,
     required this.type,
     this.highlight = false,
     this.color,
+    this.ended = false,
   });
 }
 
 // ── View state ──────────────────────────────────────────────
+
+/// Une étape du fil d'Ariane : personne devenue racine de l'arbre.
+class FocusCrumb {
+  final String personId;
+  final String label; // « Prénom Nom » au moment du focus
+
+  const FocusCrumb({required this.personId, required this.label});
+}
 
 class TreeViewState {
   final String? selectedPersonId;
@@ -78,12 +140,22 @@ class TreeViewState {
   final RightTab rightTab;
   final String? hoveredPersonId;
 
+  /// Personne actuellement racine de l'arbre (geste « centrer ici »).
+  /// `null` = sujet par défaut (⌂ retour à moi).
+  final String? focusPersonId;
+
+  /// Pile des focus successifs pour le fil d'Ariane (nom cliquable).
+  /// La dernière entrée correspond à [focusPersonId].
+  final List<FocusCrumb> focusStack;
+
   const TreeViewState({
     this.selectedPersonId,
     this.currentView = TreeView.full,
     this.hiddenGenerations = const {},
     this.rightTab = RightTab.personne,
     this.hoveredPersonId,
+    this.focusPersonId,
+    this.focusStack = const [],
   });
 
   TreeViewState copyWith({
@@ -92,8 +164,11 @@ class TreeViewState {
     Set<int>? hiddenGenerations,
     RightTab? rightTab,
     String? hoveredPersonId,
+    String? focusPersonId,
+    List<FocusCrumb>? focusStack,
     bool clearSelected = false,
     bool clearHovered = false,
+    bool clearFocus = false,
   }) {
     return TreeViewState(
       selectedPersonId: clearSelected ? null : (selectedPersonId ?? this.selectedPersonId),
@@ -101,6 +176,8 @@ class TreeViewState {
       hiddenGenerations: hiddenGenerations ?? this.hiddenGenerations,
       rightTab: rightTab ?? this.rightTab,
       hoveredPersonId: clearHovered ? null : (hoveredPersonId ?? this.hoveredPersonId),
+      focusPersonId: clearFocus ? null : (focusPersonId ?? this.focusPersonId),
+      focusStack: clearFocus ? const [] : (focusStack ?? this.focusStack),
     );
   }
 }
@@ -140,6 +217,36 @@ class TreeViewNotifier extends StateNotifier<TreeViewState> {
     state = id == null
         ? state.copyWith(clearHovered: true)
         : state.copyWith(hoveredPersonId: id);
+  }
+
+  /// Fait de [personId] la nouvelle racine de l'arbre (« centrer ici »).
+  /// Empile un fil d'Ariane ; ne fait rien si déjà au sommet.
+  void focusPerson(String personId, String label) {
+    if (state.focusPersonId == personId) return;
+    final stack = [...state.focusStack, FocusCrumb(personId: personId, label: label)];
+    state = state.copyWith(
+      focusPersonId: personId,
+      focusStack: stack,
+      selectedPersonId: personId,
+      rightTab: RightTab.personne,
+    );
+  }
+
+  /// Revient à une étape précise du fil d'Ariane (nom cliquable).
+  /// [index] pointe dans [focusStack] ; on tronque au-delà.
+  void focusToCrumb(int index) {
+    if (index < 0 || index >= state.focusStack.length) return;
+    final stack = state.focusStack.sublist(0, index + 1);
+    state = state.copyWith(
+      focusPersonId: stack.last.personId,
+      focusStack: stack,
+      selectedPersonId: stack.last.personId,
+    );
+  }
+
+  /// « ⌂ Retour à moi » : réinitialise le focus sur le sujet.
+  void clearFocus() {
+    state = state.copyWith(clearFocus: true);
   }
 }
 

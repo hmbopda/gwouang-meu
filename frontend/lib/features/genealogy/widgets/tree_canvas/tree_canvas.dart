@@ -305,6 +305,14 @@ class _TreeCanvasState extends ConsumerState<TreeCanvas>
                 ),
               ),
 
+              // ── Fil d'Ariane des re-centrages (haut, sous la toolbar) ──
+              Positioned(
+                top: 60,
+                left: 12,
+                right: 12,
+                child: _FocusBreadcrumb(notifier: notifier),
+              ),
+
               // ── Légende des lignées (desktop, bas gauche) ──
               if (widget.showLegend)
                 Positioned(
@@ -385,6 +393,10 @@ class _TreeCanvasState extends ConsumerState<TreeCanvas>
               builder: (_) => PersonDetailPopup(person: node.person),
             );
           },
+          onCenterHere: node.isSubject ? null : () {
+            _hideTooltipNow();
+            _focusOnNode(node, notifier);
+          },
           onAddParent: () {
             notifier.selectPerson(node.person.id);
             _hideTooltipNow();
@@ -399,6 +411,13 @@ class _TreeCanvasState extends ConsumerState<TreeCanvas>
       ),
     );
   }
+
+  /// Geste #1 : « faire de cette personne la racine ».
+  void _focusOnNode(LayoutNode node, TreeViewNotifier notifier) {
+    final p = node.person;
+    notifier.focusPerson(p.id, '${p.firstName} ${p.lastName}'.trim());
+  }
+
 }
 
 /// Pilule d'action or (pleine ou contour), cible ≥ 44 px.
@@ -691,4 +710,83 @@ class _StrataPainter extends CustomPainter {
       oldDelegate.strata != strata ||
       oldDelegate.dashColor != dashColor ||
       oldDelegate.faintColor != faintColor;
+}
+
+// ─────────────────────────────────────────────────────────────
+//  Fil d'Ariane des re-centrages (« ⌂ Moi › Papa › Grand-père »)
+// ─────────────────────────────────────────────────────────────
+
+class _FocusBreadcrumb extends ConsumerWidget {
+  const _FocusBreadcrumb({required this.notifier});
+
+  final TreeViewNotifier notifier;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = GwTokens.of(context);
+    final stack = ref.watch(treeViewProvider.select((s) => s.focusStack));
+    if (stack.isEmpty) return const SizedBox.shrink();
+
+    Widget chip(String label, bool active, VoidCallback onTap, {IconData? icon}) {
+      return Material(
+        color: active ? GwTokens.gold : t.inkCard,
+        borderRadius: BorderRadius.circular(GwTokens.rPill),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(GwTokens.rPill),
+          child: Container(
+            height: 32,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(GwTokens.rPill),
+              border: active ? null : Border.all(color: t.line),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (icon != null) ...[
+                  Icon(icon,
+                      size: 15,
+                      color: active ? GwTokens.inkOnGold : t.stoneMid),
+                  const SizedBox(width: 5),
+                ],
+                Text(
+                  label,
+                  style: GwType.ui(
+                    fontSize: 12.5,
+                    fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+                    color: active ? GwTokens.inkOnGold : t.stoneMid,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            chip('Moi', false, notifier.clearFocus, icon: Symbols.home),
+            for (int i = 0; i < stack.length; i++) ...[
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: Icon(Symbols.chevron_right,
+                    size: 16, color: t.stoneFaint),
+              ),
+              chip(
+                stack[i].label.isEmpty ? '?' : stack[i].label,
+                i == stack.length - 1,
+                () => notifier.focusToCrumb(i),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
 }

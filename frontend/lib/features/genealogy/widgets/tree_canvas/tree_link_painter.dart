@@ -44,9 +44,12 @@ class TreeLinkPainter extends CustomPainter {
 
   void _drawFiliation(Canvas canvas, LayoutLink link) {
     final base = link.color ?? neutralColor;
+    // Union terminée : filiation atténuée (opacité et trait réduits), jamais
+    // effacée — le fait généalogique reste toujours visible.
+    final baseAlpha = link.highlight ? 0.65 : (link.ended ? 0.20 : 0.38);
     final paint = Paint()
-      ..color = base.withValues(alpha: link.highlight ? 0.65 : 0.38)
-      ..strokeWidth = link.highlight ? 2.5 : 2
+      ..color = base.withValues(alpha: baseAlpha)
+      ..strokeWidth = link.highlight ? 2.5 : (link.ended ? 1.5 : 2)
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
 
@@ -62,18 +65,26 @@ class TreeLinkPainter extends CustomPainter {
     _drawBezier(canvas, paint, link.from, link.to);
   }
 
-  /// Union : pointillé discret entre conjoints (plus de cœur orange).
+  /// Union : trait entre conjoints. Active = plein discret ; terminée = pointillé
+  /// atténué (le lien reste visible, jamais barré). Point rose = alliance.
   void _drawUnion(Canvas canvas, LayoutLink link) {
     final paint = Paint()
-      ..color = unionColor
+      ..color = link.ended
+          ? unionColor.withValues(alpha: unionColor.a * 0.55)
+          : unionColor
       ..strokeWidth = 1.5
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
 
-    final path = _dottedPath(link.from, link.to, 1.5, 5);
-    canvas.drawPath(path, paint);
+    if (link.ended) {
+      final path = _dottedPath(link.from, link.to, 1.5, 6);
+      canvas.drawPath(path, paint);
+    } else {
+      final path = _dottedPath(link.from, link.to, 1.5, 5);
+      canvas.drawPath(path, paint);
+    }
 
-    // Petit point rose au milieu (alliance).
+    // Petit point rose au milieu (alliance) — plus doux si l'union est terminée.
     final mid = Offset(
       (link.from.dx + link.to.dx) / 2,
       (link.from.dy + link.to.dy) / 2,
@@ -81,15 +92,17 @@ class TreeLinkPainter extends CustomPainter {
     canvas.drawCircle(
       mid,
       3,
-      Paint()..color = GwTokens.rose.withValues(alpha: 0.6),
+      Paint()..color = GwTokens.rose.withValues(alpha: link.ended ? 0.3 : 0.6),
     );
   }
 
+  /// Barre de fratrie (une par union). Union terminée : plus atténuée.
   void _drawSiblings(Canvas canvas, LayoutLink link) {
     final paint = Paint()
-      ..color = neutralColor.withValues(alpha: 0.3)
+      ..color = neutralColor.withValues(alpha: link.ended ? 0.18 : 0.3)
       ..strokeWidth = 1.5
-      ..style = PaintingStyle.stroke;
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
 
     canvas.drawLine(link.from, link.to, paint);
   }

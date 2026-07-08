@@ -59,6 +59,7 @@ public class SecurityConfig {
             "/api/v1/villages/**",
             "/api/v1/geo/**",
             "/api/v1/posts/*",
+            "/api/v1/genealogy/marriage-rules/**",
             "/api/v1/invitations/token/**",
             "/swagger-ui/**",
             "/swagger-ui.html",

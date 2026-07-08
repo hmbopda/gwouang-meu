@@ -41,6 +41,7 @@ class GenealogyServiceImpl implements GenealogyService {
     private final PersonNodeRepository personNodeRepository;
     private final ApplicationEventPublisher eventPublisher;
     private final GenealogyAiService genealogyAiService;
+    private final ComplianceService complianceService;
 
     // ── PERSONS ────────────────────────────────────────────
 
@@ -562,25 +563,38 @@ class GenealogyServiceImpl implements GenealogyService {
             throw new IllegalStateException("Husband must be MALE");
         }
 
-        // Validation monogamie civile — vérifier les 2 côtés
-        validateNoActiveCivilUnion(req.getHusbandId(), husband.getFirstName() + " " + husband.getLastName());
-        validateNoActiveCivilUnion(req.getWifeId(), wife.getFirstName() + " " + wife.getLastName());
-
-        // Si la nouvelle union contient CIVIL, vérifier qu'aucune union active n'existe
-        if (req.getUnionTypes().contains("CIVIL")) {
-            List<GenealogyUnion> husbandActive = unionRepository.findActiveUnionsByPerson(req.getHusbandId());
-            if (!husbandActive.isEmpty()) {
-                throw new IllegalStateException(
-                        "Impossible d'ajouter un mariage civil : " + husband.getFirstName() + " " + husband.getLastName()
-                                + " a deja une union active. Le mariage civil impose la monogamie.");
-            }
-            List<GenealogyUnion> wifeActive = unionRepository.findActiveUnionsByPerson(req.getWifeId());
-            if (!wifeActive.isEmpty()) {
-                throw new IllegalStateException(
-                        "Impossible d'ajouter un mariage civil : " + wife.getFirstName() + " " + wife.getLastName()
-                                + " a deja une union active. Le mariage civil impose la monogamie.");
-            }
+        // ── REGLE D'OR : on ENREGISTRE TOUJOURS le fait genealogique. ─────────
+        // Le regime legal declare (fallback sur unionTypes contenant CIVIL).
+        String legalRegime = req.getLegalRegime();
+        if (legalRegime == null || legalRegime.isBlank()) {
+            legalRegime = req.getUnionTypes().contains("CIVIL") ? "CIVIL" : null;
         }
+
+        // Pays applicable : celui fourni, sinon la residence du mari, sinon de la femme.
+        String legalCountry = firstNonBlank(req.getLegalCountry(),
+                husband.getResidenceCountry(), wife.getResidenceCountry());
+
+        // Unions actives existantes des deux conjoints (avant la nouvelle).
+        List<GenealogyUnion> husbandActive = unionRepository.findActiveUnionsByPerson(req.getHusbandId());
+        List<GenealogyUnion> wifeActive = unionRepository.findActiveUnionsByPerson(req.getWifeId());
+        boolean isAdditional = !husbandActive.isEmpty() || !wifeActive.isEmpty();
+
+        // SEULE exception dure : 2e union active CIVIL/monogamique en pays FORBIDDEN.
+        if (complianceService.mustHardReject(legalRegime, legalCountry, isAdditional)) {
+            String who = !husbandActive.isEmpty()
+                    ? husband.getFirstName() + " " + husband.getLastName()
+                    : wife.getFirstName() + " " + wife.getLastName();
+            throw new IllegalStateException(
+                    "Impossible d'enregistrer une 2e union civile active pour " + who
+                            + " : le droit civil du pays de residence impose la monogamie. "
+                            + "Un divorce ou un deces du conjoint est necessaire au prealable.");
+        }
+
+        // Evaluation de conformite (persistee, jamais bloquante hors cas ci-dessus).
+        ComplianceService.ComplianceResult compliance =
+                complianceService.evaluate(legalRegime, legalCountry,
+                        isAdditional ? (!husbandActive.isEmpty() ? husbandActive : wifeActive) : List.of(),
+                        isAdditional);
 
         int nextOrder = unionRepository.findMaxUnionOrderByHusband(req.getHusbandId()) + 1;
 
@@ -596,12 +610,29 @@ class GenealogyServiceImpl implements GenealogyService {
                 .dotDescription(req.getDotDescription())
                 .dotWitnesses(req.getDotWitnesses() != null ? req.getDotWitnesses().toArray(new UUID[0]) : null)
                 .status("PENDING_APPROVAL")
+                .legalRegime(legalRegime)
+                .legalCountry(legalCountry)
+                .isPolygamous(isAdditional)
+                .complianceStatus(compliance.status())
+                .complianceNote(compliance.note())
                 .createdBy(createdBy)
                 .build();
 
         GenealogyUnion saved = unionRepository.save(union);
-        log.info("Union created: {} <-> {} (types={}, order={})", req.getHusbandId(), req.getWifeId(),
-                req.getUnionTypes(), nextOrder);
+
+        // Le mari passe polygame des lors qu'il porte >= 2 unions actives :
+        // marquer aussi les unions anterieures.
+        if (isAdditional && !husbandActive.isEmpty()) {
+            for (GenealogyUnion prev : husbandActive) {
+                if (!prev.isPolygamous()) {
+                    prev.setPolygamous(true);
+                    unionRepository.save(prev);
+                }
+            }
+        }
+
+        log.info("Union created: {} <-> {} (types={}, order={}, compliance={})", req.getHusbandId(),
+                req.getWifeId(), req.getUnionTypes(), nextOrder, compliance.status());
 
         eventPublisher.publishEvent(new UnionCreatedEvent(req.getHusbandId(), req.getWifeId(),
                 saved.getId(), saved.isDotPaid()));
@@ -782,19 +813,124 @@ class GenealogyServiceImpl implements GenealogyService {
     @Override
     @Transactional(readOnly = true)
     public List<PersonDTO> getChildren(UUID personId) {
-        List<PersonDTO> pgResult = parentChildRepository.findByParentId(personId).stream()
-                .map(pc -> personRepository.findById(pc.getChildId()).orElse(null))
-                .filter(java.util.Objects::nonNull)
-                .map(p -> GenealogyMapper.toDTO(p, personVillageRepository.findVillageIdsByPersonId(p.getId())))
-                .collect(Collectors.toList());
-        if (!pgResult.isEmpty()) return pgResult;
-
-        try {
-            return nodeListToDTO(personNodeRepository.findChildren(personId.toString()));
-        } catch (Exception e) {
-            log.warn("Neo4j aussi indisponible pour getChildren({}): {}", personId, e.getMessage());
-            return List.of();
+        // Enfants directs du parent demande
+        List<ParentChild> directLinks = parentChildRepository.findByParentId(personId);
+        if (directLinks.isEmpty()) {
+            try {
+                return nodeListToDTO(personNodeRepository.findChildren(personId.toString()));
+            } catch (Exception e) {
+                log.warn("Neo4j aussi indisponible pour getChildren({}): {}", personId, e.getMessage());
+                return List.of();
+            }
         }
+
+        // Ids enfants (dedupliques, ordre stable)
+        List<UUID> childIds = directLinks.stream()
+                .map(ParentChild::getChildId)
+                .distinct()
+                .collect(Collectors.toList());
+
+        // ── Batch : tous les liens parent-enfant des enfants (les 2 parents y figurent) ──
+        List<ParentChild> allChildLinks = parentChildRepository.findByChildIdIn(childIds);
+
+        // childId -> (motherId, fatherId) via parent_role, en resolvant le genre au besoin
+        java.util.Map<UUID, UUID> motherByChild = new java.util.HashMap<>();
+        java.util.Map<UUID, UUID> fatherByChild = new java.util.HashMap<>();
+
+        // Precharger les parents pour resoudre le genre quand parent_role est ambigu
+        Set<UUID> parentIds = allChildLinks.stream().map(ParentChild::getParentId).collect(Collectors.toSet());
+        java.util.Map<UUID, Person> parentById = personRepository.findAllById(parentIds).stream()
+                .collect(Collectors.toMap(Person::getId, p -> p, (a, b) -> a));
+
+        for (ParentChild link : allChildLinks) {
+            UUID childId = link.getChildId();
+            UUID parentId = link.getParentId();
+            ParentRoleEnum role = link.getParentRole();
+            if (role == null) {
+                Person parent = parentById.get(parentId);
+                role = (parent != null && parent.getGender() == GenderEnum.FEMALE)
+                        ? ParentRoleEnum.MOTHER : ParentRoleEnum.FATHER;
+            }
+            if (role == ParentRoleEnum.MOTHER) {
+                motherByChild.putIfAbsent(childId, parentId);
+            } else if (role == ParentRoleEnum.FATHER) {
+                fatherByChild.putIfAbsent(childId, parentId);
+            }
+        }
+
+        // ── Batch : unions impliquant l'un des parents connus, pour rattacher l'enfant a la bonne union ──
+        Set<UUID> allParentIds = new HashSet<>();
+        allParentIds.addAll(motherByChild.values());
+        allParentIds.addAll(fatherByChild.values());
+        List<GenealogyUnion> unions = allParentIds.isEmpty()
+                ? List.of()
+                : unionRepository.findByPersonIdIn(allParentIds);
+
+        // ── Batch : villages de tous les enfants ──
+        java.util.Map<UUID, List<UUID>> villagesByChild = new java.util.HashMap<>();
+        for (PersonVillage pv : personVillageRepository.findByPersonIdIn(childIds)) {
+            villagesByChild.computeIfAbsent(pv.getPersonId(), k -> new ArrayList<>()).add(pv.getVillageId());
+        }
+
+        java.util.Map<UUID, Person> childById = personRepository.findAllById(childIds).stream()
+                .collect(Collectors.toMap(Person::getId, p -> p, (a, b) -> a));
+
+        List<PersonDTO> result = new ArrayList<>();
+        for (UUID childId : childIds) {
+            Person child = childById.get(childId);
+            if (child == null) continue;
+            UUID motherId = motherByChild.get(childId);
+            UUID fatherId = fatherByChild.get(childId);
+            UUID unionId = resolveUnionId(unions, husbandCandidate(fatherId, motherId), wifeCandidate(motherId, fatherId));
+            result.add(GenealogyMapper.toChildDTO(
+                    child,
+                    villagesByChild.getOrDefault(childId, List.of()),
+                    motherId, fatherId, unionId));
+        }
+        return result;
+    }
+
+    /** Cote « mari » de l'union = le pere si connu, sinon la mere (couverture des cas mono-parent). */
+    private UUID husbandCandidate(UUID fatherId, UUID motherId) {
+        return fatherId != null ? fatherId : motherId;
+    }
+
+    /** Cote « femme » de l'union = la mere si connue, sinon le pere. */
+    private UUID wifeCandidate(UUID motherId, UUID fatherId) {
+        return motherId != null ? motherId : fatherId;
+    }
+
+    /**
+     * Trouve l'union rattachant l'enfant a la bonne co-epouse : de preference
+     * l'union (husband=father, wife=mother). A defaut (un seul parent connu),
+     * une union impliquant ce parent, en privilegiant les unions actives.
+     */
+    private UUID resolveUnionId(List<GenealogyUnion> unions, UUID father, UUID mother) {
+        if (unions.isEmpty() || (father == null && mother == null)) return null;
+
+        // 1. Correspondance exacte pere<->mere
+        if (father != null && mother != null) {
+            for (GenealogyUnion u : unions) {
+                if ((father.equals(u.getHusbandId()) && mother.equals(u.getWifeId()))
+                        || (father.equals(u.getWifeId()) && mother.equals(u.getHusbandId()))) {
+                    return u.getId();
+                }
+            }
+        }
+
+        // 2. A defaut : union impliquant l'un des deux parents (active en priorite)
+        GenealogyUnion fallback = null;
+        for (GenealogyUnion u : unions) {
+            boolean involvesFather = father != null
+                    && (father.equals(u.getHusbandId()) || father.equals(u.getWifeId()));
+            boolean involvesMother = mother != null
+                    && (mother.equals(u.getHusbandId()) || mother.equals(u.getWifeId()));
+            if (involvesFather || involvesMother) {
+                if (u.isActive()) return u.getId();
+                if (fallback == null) fallback = u;
+            }
+        }
+        return fallback != null ? fallback.getId() : null;
     }
 
     @Override
@@ -1052,6 +1188,16 @@ class GenealogyServiceImpl implements GenealogyService {
         });
     }
 
+    // ── REFERENTIEL PAYS ───────────────────────────────────
+
+    @Override
+    @Transactional(readOnly = true)
+    public CountryMarriageRuleDTO getMarriageRule(String iso2) {
+        return complianceService.getRule(iso2)
+                .map(CountryMarriageRuleDTO::fromEntity)
+                .orElseGet(() -> CountryMarriageRuleDTO.unknown(iso2));
+    }
+
     // ── CLAUDE AI ──────────────────────────────────────────
 
     @Override
@@ -1102,24 +1248,13 @@ class GenealogyServiceImpl implements GenealogyService {
 
     // ── HELPERS ────────────────────────────────────────────
 
-    /**
-     * Verifie qu'une personne n'a pas d'union active contenant 'CIVIL'.
-     * Si elle en a → refuse toute nouvelle union (monogamie legale).
-     */
-    private void validateNoActiveCivilUnion(UUID personId, String personName) {
-        List<GenealogyUnion> activeUnions = unionRepository.findActiveUnionsByPerson(personId);
-        for (GenealogyUnion u : activeUnions) {
-            if (u.getUnionTypes() != null) {
-                for (String type : u.getUnionTypes()) {
-                    if ("CIVIL".equals(type)) {
-                        throw new IllegalStateException(
-                                personName + " est deja marie(e) au civil (monogamie legale). "
-                                        + "Un divorce ou un deces du conjoint est necessaire avant de creer une nouvelle union. "
-                                        + "Pour plus d'informations, veuillez contacter le concerne.");
-                    }
-                }
-            }
+    /** Premiere valeur non nulle et non blanche parmi les candidats. */
+    private String firstNonBlank(String... values) {
+        if (values == null) return null;
+        for (String v : values) {
+            if (v != null && !v.isBlank()) return v.trim();
         }
+        return null;
     }
 
     private Person findPersonOrThrow(UUID personId) {

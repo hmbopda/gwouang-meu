@@ -11,6 +11,9 @@ class TreeNodeTooltip extends StatelessWidget {
   final VoidCallback onViewDetails;
   final VoidCallback onAddParent;
   final VoidCallback onAddChild;
+  // Re-centrage : « faire de cette personne la racine ».
+  // Null quand le nœud est déjà le sujet (pas de recentrage possible).
+  final VoidCallback? onCenterHere;
 
   const TreeNodeTooltip({
     super.key,
@@ -18,6 +21,7 @@ class TreeNodeTooltip extends StatelessWidget {
     required this.onViewDetails,
     required this.onAddParent,
     required this.onAddChild,
+    this.onCenterHere,
   });
 
   @override
@@ -88,6 +92,10 @@ class TreeNodeTooltip extends StatelessWidget {
               _actionBtn(t, Symbols.child_care, 'Enfant', onAddChild),
             ],
           ),
+          if (onCenterHere != null) ...[
+            const SizedBox(height: 6),
+            _actionBtn(t, Symbols.center_focus_strong, 'Recentrer', onCenterHere!),
+          ],
         ],
       ),
     );

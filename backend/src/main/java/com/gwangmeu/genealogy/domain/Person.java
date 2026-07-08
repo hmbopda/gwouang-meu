@@ -82,6 +82,14 @@ public class Person {
     @Column(name = "marital_status", length = 30)
     private MaritalStatusEnum maritalStatus;
 
+    /** Pays de residence, ISO-3166 alpha-2 (ex: CM, FR). */
+    @Column(name = "residence_country", length = 2)
+    private String residenceCountry;
+
+    /** Regime matrimonial declare (MONOGAMY, POLYGAMY, CUSTOMARY, DE_FACTO, UNKNOWN). */
+    @Column(name = "marital_regime", length = 20)
+    private String maritalRegime;
+
     @Column(columnDefinition = "TEXT")
     private String biography;
 

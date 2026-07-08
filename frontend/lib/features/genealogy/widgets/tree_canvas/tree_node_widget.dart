@@ -335,17 +335,33 @@ class _StandardNode extends StatelessWidget {
                     const SizedBox(height: 3),
                     _monoBadge(_badgeText(node)!, style.badge),
                   ],
+                  // Badges d'union (conjoint) : rang, régime, conformité — mono
+                  // et discrets. Aucun jugement de « légitimité ».
+                  if (node.unionInfo != null) ...[
+                    const SizedBox(height: 4),
+                    _UnionBadges(info: node.unionInfo!, t: t),
+                  ],
                 ],
               ),
             ),
+            // Dot payée : badge DOT or discret (remplace l'ancien point rose).
             if (node.hasDotPaid)
               Container(
-                width: 8,
-                height: 8,
                 margin: const EdgeInsets.only(left: 4),
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: GwTokens.rose,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: GwTokens.gold.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(5),
+                  border: Border.all(
+                      color: GwTokens.gold.withValues(alpha: 0.35)),
+                ),
+                child: Text(
+                  'DOT',
+                  style: GwType.mono(
+                      fontSize: 9,
+                      color: GwTokens.gold,
+                      letterSpacing: 1),
                 ),
               ),
           ],
@@ -439,6 +455,111 @@ String _lifeline(PersonGenealogy p) {
   }
   if (place != null && place.isNotEmpty) parts.add(place);
   return parts.isEmpty ? '—' : parts.join(' · ');
+}
+
+// ── Badges d'union (conjoint) : rang · régime · conformité ───
+
+/// Chips mono discrètes portées par un nœud conjoint.
+/// - Rang : « 1RE UNION », « 2E UNION »… (seulement si polygamie / rang > 1)
+/// - Régime : « CIVIL », « COUTUMIER »… (méta)
+/// - Conformité : ton sage (conforme), ember doux (non conforme / à vérifier).
+///   JAMAIS de « légitimité », aucune croix rouge.
+class _UnionBadges extends StatelessWidget {
+  final NodeUnionInfo info;
+  final GwTokens t;
+
+  const _UnionBadges({required this.info, required this.t});
+
+  @override
+  Widget build(BuildContext context) {
+    final chips = <Widget>[];
+
+    // Rang d'union : utile seulement en contexte polygame ou rang ≥ 2.
+    if (info.isPolygamous || info.rank >= 2) {
+      chips.add(_chip(_rankLabel(info.rank), GwTokens.gold));
+    }
+
+    // Régime légal (méta).
+    final regime = _regimeLabel(info.legalRegime);
+    if (regime != null) chips.add(_chip(regime, t.stoneMid));
+
+    // Union terminée.
+    if (!info.isActive) chips.add(_chip('TERMINÉE', t.stoneFaint));
+
+    // Conformité au droit civil — ton doux, jamais de rouge dur.
+    final comp = _complianceChip(context);
+    if (comp != null) chips.add(comp);
+
+    if (chips.isEmpty) return const SizedBox.shrink();
+
+    return Wrap(
+      spacing: 4,
+      runSpacing: 3,
+      children: chips,
+    );
+  }
+
+  Widget _chip(String text, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(5),
+      ),
+      child: Text(
+        text,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: GwType.mono(fontSize: 9, color: color, letterSpacing: 1),
+      ),
+    );
+  }
+
+  /// Chip de conformité : sage (conforme) ou ember doux (à vérifier / non
+  /// conforme au droit civil). WARNING et NON_COMPLIANT partagent le ton sage
+  /// ember — aucune sanction visuelle brutale.
+  Widget? _complianceChip(BuildContext context) {
+    switch (info.compliance) {
+      case UnionCompliance.compliant:
+        return _chip('CONFORME', GwTokens.sage);
+      case UnionCompliance.warning:
+        return _chip('À VÉRIFIER', GwTokens.ember);
+      case UnionCompliance.nonCompliant:
+        return _chip('DROIT CIVIL', GwTokens.ember);
+      case UnionCompliance.unknown:
+        return null;
+    }
+  }
+
+  static String _rankLabel(int rank) {
+    switch (rank) {
+      case 1:
+        return '1RE UNION';
+      case 2:
+        return '2E UNION';
+      case 3:
+        return '3E UNION';
+      default:
+        return '${rank}E UNION';
+    }
+  }
+
+  static String? _regimeLabel(String? regime) {
+    if (regime == null || regime.isEmpty) return null;
+    switch (regime.toUpperCase()) {
+      case 'CIVIL':
+        return 'CIVIL';
+      case 'CUSTOMARY':
+      case 'COUTUMIER':
+        return 'COUTUMIER';
+      case 'RELIGIOUS':
+        return 'RELIGIEUX';
+      case 'DE_FACTO':
+        return 'DE FAIT';
+      default:
+        return regime.toUpperCase();
+    }
+  }
 }
 
 // ── Style par type de nœud ───────────────────────────────────

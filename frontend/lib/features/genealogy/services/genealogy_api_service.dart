@@ -178,6 +178,15 @@ class GenealogyApiService {
     return GenealogyUnion.fromJson(response['data'] as Map<String, dynamic>);
   }
 
+  /// Règle matrimoniale d'un pays (polygamie autorisée / conditionnelle /
+  /// interdite + base légale). Renvoie null si le pays est inconnu.
+  Future<Map<String, dynamic>?> getMarriageRule(String iso2) async {
+    if (iso2.trim().isEmpty) return null;
+    final response =
+        await _api.get('/api/v1/genealogy/marriage-rules/${iso2.trim()}');
+    return response['data'] as Map<String, dynamic>?;
+  }
+
   Future<GenealogyUnion> updateDotStatus(String unionId, Map<String, dynamic> data) async {
     final response = await _api.put('/api/v1/unions/$unionId/dot', data: data);
     return GenealogyUnion.fromJson(response['data'] as Map<String, dynamic>);

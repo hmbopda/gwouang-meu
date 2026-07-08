@@ -72,6 +72,28 @@ public class GenealogyUnion {
     @Column(name = "created_by", nullable = false)
     private UUID createdBy;
 
+    // ── Regime matrimonial / conformite (V39) ──
+
+    /** Regime legal declare de l'union (ex: CIVIL, CUSTOMARY, RELIGIOUS...). */
+    @Column(name = "legal_regime", length = 30)
+    private String legalRegime;
+
+    /** true si cette union s'inscrit dans un cadre polygame. */
+    @Column(name = "is_polygamous")
+    @Builder.Default
+    private boolean isPolygamous = false;
+
+    /** Pays de celebration / droit applicable, ISO-3166 alpha-2. */
+    @Column(name = "legal_country", length = 2)
+    private String legalCountry;
+
+    /** COMPLIANT | WARNING | NON_COMPLIANT | UNKNOWN (conformite au droit civil). */
+    @Column(name = "compliance_status", length = 20)
+    private String complianceStatus;
+
+    @Column(name = "compliance_note", columnDefinition = "TEXT")
+    private String complianceNote;
+
     // ── Dissolution (divorce / décès) ──
 
     @Column(name = "status", nullable = false, length = 30)
