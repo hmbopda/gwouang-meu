@@ -10,6 +10,7 @@ import 'package:gwangmeu/features/genealogy/services/genealogy_api_service.dart'
 import 'package:gwangmeu/core/theme/gw_tokens.dart';
 import 'package:gwangmeu/features/genealogy/state/tree_view_state.dart';
 import 'package:gwangmeu/features/genealogy/widgets/dialogs/add_person_dialog.dart';
+import 'package:gwangmeu/features/genealogy/widgets/dialogs/add_union_dialog.dart';
 
 /// Right panel with 3 tabs: Personne, Migration, IA.
 class GenealogyRightPanel extends ConsumerWidget {
@@ -229,6 +230,20 @@ class _PersonTab extends StatelessWidget {
                 tree: tree,
                 unions: personUnions,
               ),
+              // ── Gestion du foyer (maquette 2b) : chef polygame (>= 2 unions) ──
+              if (person.gender == 'MALE' &&
+                  personUnions.where((u) => u.husbandId == person.id).length >=
+                      2) ...[
+                const SizedBox(height: 16),
+                _FoyerManagement(
+                  person: person,
+                  unions: personUnions
+                      .where((u) => u.husbandId == person.id)
+                      .toList(),
+                  tree: tree,
+                  treeOwnerId: treeOwnerId,
+                ),
+              ],
             ],
           ),
         ),
@@ -809,6 +824,368 @@ class _FixedActionBtn extends StatelessWidget {
                   ),
                 ),
               ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Gestion du foyer (maquette 2b) ───────────────────────────
+
+/// Couleur de foyer par rang d'union (1 → or, 2 → rose, 3 → vert, cycle).
+Color _foyerColorOf(int index) =>
+    const [GwTokens.gold, GwTokens.rose, GwTokens.sage][index % 3];
+
+/// Panneau « Gestion du foyer » : carte sombre chef de famille + liste
+/// « Épouses & foyers » (point de couleur, rang, année, enfants) + ajout.
+class _FoyerManagement extends ConsumerWidget {
+  final PersonGenealogy person;
+  final List<GenealogyUnion> unions;
+  final FamilyTree tree;
+  final String treeOwnerId;
+
+  const _FoyerManagement({
+    required this.person,
+    required this.unions,
+    required this.tree,
+    required this.treeOwnerId,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = GwTokens.of(context);
+    const brown = Color(0xFF3B2A16);
+    const cream = Color(0xFFF0EBE1);
+    final sorted = [...unions]..sort((a, b) => a.unionOrder.compareTo(b.unionOrder));
+    final initials =
+        '${person.firstName.isNotEmpty ? person.firstName[0] : ''}${person.lastName.isNotEmpty ? person.lastName[0] : ''}'
+            .toUpperCase();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'GESTION DU FOYER',
+          style: GwType.mono(
+              fontSize: 10,
+              letterSpacing: 2,
+              color: t.stoneFaint,
+              fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 10),
+
+        // ── Carte sombre : chef de famille actuel ──
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: brown,
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Symbols.crown, size: 13, color: GwTokens.gold),
+                  const SizedBox(width: 6),
+                  Text(
+                    'CHEF DE FAMILLE ACTUEL',
+                    style: GwType.mono(
+                        fontSize: 9,
+                        letterSpacing: 2,
+                        color: cream.withValues(alpha: 0.7),
+                        fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: const BoxDecoration(
+                        color: GwTokens.gold, shape: BoxShape.circle),
+                    alignment: Alignment.center,
+                    child: Text(
+                      initials,
+                      style: GwType.display(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: brown),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${person.firstName} ${person.lastName}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: GwType.display(
+                              fontSize: 15.5,
+                              fontWeight: FontWeight.w700,
+                              color: cream),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Chef du foyer · ${sorted.length} unions',
+                          style: GwType.ui(
+                              fontSize: 11.5,
+                              color: cream.withValues(alpha: 0.6)),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  Expanded(
+                    flex: 3,
+                    child: _FoyerBtn(
+                      label: 'Transmettre le rôle',
+                      background: GwTokens.gold,
+                      foreground: brown,
+                      onTap: () => _soon(context, 'Transmission du rôle'),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    flex: 2,
+                    child: _FoyerBtn(
+                      label: 'Historique',
+                      background: Colors.transparent,
+                      foreground: cream,
+                      borderColor: cream.withValues(alpha: 0.4),
+                      onTap: () => _soon(context, 'Historique du foyer'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        // ── Épouses & foyers ──
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(16, 14, 8, 6),
+          decoration: BoxDecoration(
+            color: t.inkCard,
+            borderRadius: BorderRadius.circular(GwTokens.rCard),
+            border: Border.all(color: t.line),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'ÉPOUSES & FOYERS',
+                style: GwType.mono(
+                    fontSize: 9,
+                    letterSpacing: 2,
+                    color: t.stoneFaint,
+                    fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 4),
+              for (int i = 0; i < sorted.length; i++)
+                _WifeRow(
+                  union: sorted[i],
+                  rank: i + 1,
+                  color: _foyerColorOf(i),
+                  childCount: _childCountOf(sorted[i]),
+                  onTap: () {
+                    final wifeId = sorted[i].wifeId;
+                    ref.read(treeViewProvider.notifier).selectPerson(wifeId);
+                  },
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        // ── + Ajouter une épouse / union (contour pointillé or) ──
+        SizedBox(
+          width: double.infinity,
+          height: 46,
+          child: Material(
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(GwTokens.rBtn),
+            child: InkWell(
+              onTap: () => _safeDialog(
+                context,
+                AddUnionDialog(
+                    person: person, tree: tree, treeOwnerId: treeOwnerId),
+              ),
+              borderRadius: BorderRadius.circular(GwTokens.rBtn),
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(GwTokens.rBtn),
+                  border: Border.all(color: t.goldLine),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Symbols.add, size: 16, color: t.goldText),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Ajouter une épouse / union',
+                      style: GwType.ui(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: t.goldText),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Enfants rattachés à cette union (unionId prioritaire, sinon motherId).
+  int _childCountOf(GenealogyUnion u) {
+    return tree.children.where((c) {
+      if (c.unionId != null && c.unionId == u.id) return true;
+      return c.motherId != null && c.motherId == u.wifeId;
+    }).length;
+  }
+
+  void _soon(BuildContext context, String what) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('$what — bientôt disponible'),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+}
+
+/// Ligne « épouse » : point couleur foyer, nom gras, méta, chevron.
+class _WifeRow extends StatelessWidget {
+  final GenealogyUnion union;
+  final int rank;
+  final Color color;
+  final int childCount;
+  final VoidCallback onTap;
+
+  const _WifeRow({
+    required this.union,
+    required this.rank,
+    required this.color,
+    required this.childCount,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final t = GwTokens.of(context);
+    final wife = union.wife;
+    final name = wife != null
+        ? '${wife.firstName} ${wife.lastName}'.trim()
+        : 'Épouse $rank';
+    final parts = <String>[
+      rank == 1 ? '1re union' : '${rank}e union',
+      if (union.startDate != null) '${union.startDate!.year}',
+      if (childCount > 0) '$childCount enfant${childCount > 1 ? 's' : ''}',
+      if (!union.isActive) 'terminée',
+    ];
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 9),
+        child: Row(
+          children: [
+            Container(
+              width: 9,
+              height: 9,
+              decoration: BoxDecoration(shape: BoxShape.circle, color: color),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GwType.ui(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: t.stone),
+                  ),
+                  const SizedBox(height: 1),
+                  Text(
+                    parts.join(' · '),
+                    style: GwType.ui(fontSize: 11, color: t.stoneDim),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Symbols.chevron_right, size: 18, color: t.stoneFaint),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Bouton compact de la carte chef (or plein ou contour crème).
+class _FoyerBtn extends StatelessWidget {
+  final String label;
+  final Color background;
+  final Color foreground;
+  final Color? borderColor;
+  final VoidCallback onTap;
+
+  const _FoyerBtn({
+    required this.label,
+    required this.background,
+    required this.foreground,
+    required this.onTap,
+    this.borderColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 38,
+      child: Material(
+        color: background,
+        borderRadius: BorderRadius.circular(10),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(10),
+          child: Container(
+            alignment: Alignment.center,
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(10),
+              border:
+                  borderColor != null ? Border.all(color: borderColor!) : null,
+            ),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                label,
+                maxLines: 1,
+                style: GwType.ui(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                    color: foreground),
+              ),
             ),
           ),
         ),

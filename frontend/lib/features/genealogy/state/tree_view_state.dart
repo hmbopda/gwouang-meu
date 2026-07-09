@@ -28,7 +28,9 @@ enum NodeType {
   spouse,
 }
 
-enum LinkType { filiation, union, siblings, aiSuggestion }
+/// - [foyerDrop] : descente POINTILLÉE épouse → boîte foyer (maquette 2a),
+///   rendue dans la couleur du foyer (or / rose / vert).
+enum LinkType { filiation, union, siblings, aiSuggestion, foyerDrop }
 
 /// Conformité d'une union au droit civil du pays de résidence.
 /// Jamais de « légitimité » : rendu en ton sage/ember doux, aucune croix rouge.
@@ -89,6 +91,18 @@ class LayoutNode {
   /// Alimente les badges discrets (mono) du nœud.
   final NodeUnionInfo? unionInfo;
 
+  /// Mari d'un groupe « foyers » (maquette 2a) : carte or pâle, bordure or,
+  /// pilule brune « ♛ CHEF DE FAMILLE » sous le nom.
+  final bool isChief;
+
+  /// Enfant EMPILÉ à l'intérieur d'une boîte foyer : rendu mini-carte
+  /// (badge initiales 28 px + nom 13 px), pas de carte standard.
+  final bool inFoyerBox;
+
+  /// Couleur du foyer (or / rose / vert, cycle) : bordure de la carte épouse,
+  /// teinte des enfants du foyer. Null hors mode foyers.
+  final Color? foyerColor;
+
   const LayoutNode({
     required this.person,
     required this.position,
@@ -97,6 +111,9 @@ class LayoutNode {
     this.hasDotPaid = false,
     this.isSubject = false,
     this.unionInfo,
+    this.isChief = false,
+    this.inFoyerBox = false,
+    this.foyerColor,
   });
 }
 
@@ -120,6 +137,53 @@ class LayoutLink {
     this.highlight = false,
     this.color,
     this.ended = false,
+  });
+}
+
+/// Pilule-étiquette mono posée au MILIEU du connecteur mari↔épouse
+/// (maquette 2a — foyers polygames) : « 1RE UNION · 1968 », bordée de la
+/// couleur du foyer.
+class UnionBadge {
+  /// Milieu du connecteur mari↔épouse (coordonnées contenu, comme les nœuds).
+  final Offset position;
+
+  /// Ex. « 1RE UNION · 1968 » (année de startDate si connue, sinon sans année).
+  final String label;
+
+  /// Couleur du foyer : rang 1 → or, 2 → rose, 3 → vert (cycle modulo).
+  final Color color;
+
+  /// Union terminée : rendu atténué (jamais barré).
+  final bool ended;
+
+  const UnionBadge({
+    required this.position,
+    required this.label,
+    required this.color,
+    this.ended = false,
+  });
+}
+
+/// Boîte EN POINTILLÉS ARRONDIS de la couleur du foyer, englobant les
+/// mini-cartes des enfants d'une épouse (maquette 2a). En-tête mono
+/// « FOYER MAAH · 3 ENFANTS » + point de couleur à droite.
+class FoyerBox {
+  /// Rect englobant les mini-cartes enfants (padding 12 px, en-tête 26 px).
+  final Rect rect;
+
+  /// Couleur du foyer (or / rose / vert, cycle).
+  final Color color;
+
+  /// Ex. « FOYER MAAH · 3 ENFANTS » (prénom de l'épouse en MAJUSCULES).
+  final String label;
+
+  final int childCount;
+
+  const FoyerBox({
+    required this.rect,
+    required this.color,
+    required this.label,
+    required this.childCount,
   });
 }
 

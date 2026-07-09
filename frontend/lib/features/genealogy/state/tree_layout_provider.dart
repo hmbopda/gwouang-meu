@@ -17,13 +17,26 @@ class TreeLayout {
   final double contentHeight;
   final Map<String, LayoutNode> nodeMap; // personId → node
 
+  /// Pilules-étiquettes des connecteurs d'union (maquette 2a — foyers).
+  /// Vide en mode monogame (rendu 1a).
+  final List<UnionBadge> unionBadges;
+
+  /// Boîtes pointillées par foyer (maquette 2a). Vide en mode monogame.
+  final List<FoyerBox> foyerBoxes;
+
   const TreeLayout({
     required this.nodes,
     required this.links,
     required this.contentWidth,
     required this.contentHeight,
     required this.nodeMap,
+    this.unionBadges = const [],
+    this.foyerBoxes = const [],
   });
+
+  /// Mode « foyers polygames » actif (maquette 2a) : le canvas ne peint ni
+  /// bandes de générations ni barres de fratrie, mais chef + épouses + boîtes.
+  bool get isFoyerMode => foyerBoxes.isNotEmpty;
 
   static const empty = TreeLayout(
     nodes: [],
@@ -55,6 +68,17 @@ const double _padding = 100.0;
 const double _topPadding = 170.0; // extra top space for floating toolbar
 
 TreeLayout _computeLayout(FamilyTree tree, TreeView currentView, Set<int> hiddenGenerations) {
+  // ── Mode FOYERS (maquette 2a) : un homme de l'arbre a ≥ 2 unions ──
+  // Mari (chef) centré en haut, épouses en rangée dessous (couleur de foyer
+  // or / rose / vert cyclique), enfants EMPILÉS dans une boîte pointillée
+  // sous chaque mère. En mode monogame (0 ou 1 union), rendu 1a inchangé.
+  if (currentView != TreeView.migration) {
+    final foyerGroups = _detectFoyerGroups(tree);
+    if (foyerGroups.isNotEmpty) {
+      return _computeFoyerLayout(tree, foyerGroups);
+    }
+  }
+
   final nodes = <LayoutNode>[];
   final links = <LayoutLink>[];
   final nodeMap = <String, LayoutNode>{};
@@ -575,4 +599,316 @@ NodeType _nodeType(PersonGenealogy p, String subjectId, NodeType lineage) {
   if (p.id == subjectId) return NodeType.subject;
   if (!p.isAlive) return NodeType.ancestor;
   return lineage;
+}
+
+// ═══════════════════════════════════════════════════════════
+// Mode FOYERS POLYGAMES (maquette 2a)
+// ═══════════════════════════════════════════════════════════
+
+// Géométrie — base d'espacement 8 px. Cartes standard ~230×84 (centres).
+const double _foyerBoxW = 250.0; // largeur d'une boîte foyer
+const double _foyerSlotW = 274.0; // boîte 250 + gouttière 24 → ~250 px utiles
+const double _foyerGroupGap = 80.0; // écart horizontal entre deux groupes
+const double _cardHalfH = 42.0; // demi-hauteur de carte standard (84 px)
+const double _chiefToWifeV = 170.0; // centre chef → centre rangée épouses
+const double _wifeToBoxV = 28.0; // bas de carte épouse → haut de boîte
+const double _miniCardH = 56.0; // hauteur d'une mini-carte enfant empilée
+const double _boxPad = 12.0; // padding interne de la boîte
+const double _boxHeaderH = 26.0; // en-tête « FOYER MAAH · 3 ENFANTS »
+
+/// Couleurs de foyer, cycle modulo : rang 1 → or, 2 → rose, 3 → vert.
+const List<Color> _foyerColors = [GwTokens.gold, GwTokens.rose, GwTokens.sage];
+
+/// Une épouse d'un groupe foyers, avec son union et SES enfants (rattachés
+/// via union.id / motherId — jamais mélangés entre co-épouses).
+class _FoyerWife {
+  final GenealogyUnion union;
+  final PersonGenealogy wife;
+  final List<PersonGenealogy> children;
+
+  const _FoyerWife(this.union, this.wife, this.children);
+}
+
+/// Un groupe « foyers » : un mari (chef) et ses épouses ordonnées par
+/// unionOrder, chacune avec ses enfants.
+class _FoyerGroup {
+  final PersonGenealogy chief;
+  final List<_FoyerWife> wives;
+
+  const _FoyerGroup(this.chief, this.wives);
+}
+
+/// Toutes les personnes connues de l'arbre, indexées par id (sujet, parents,
+/// grands-parents, oncles, fratrie, enfants + conjoints embarqués des unions).
+Map<String, PersonGenealogy> _allPersons(FamilyTree tree) {
+  final map = <String, PersonGenealogy>{};
+  void add(PersonGenealogy? p) {
+    if (p != null) map.putIfAbsent(p.id, () => p);
+  }
+
+  add(tree.subject);
+  for (final p in [
+    ...tree.father,
+    ...tree.mother,
+    ...tree.paternalGP,
+    ...tree.maternalGP,
+    ...tree.uncles,
+    ...tree.children,
+  ]) {
+    add(p);
+  }
+  for (final s in tree.siblings) {
+    add(s.person);
+  }
+  for (final u in tree.unions) {
+    add(u.husband);
+    add(u.wife);
+  }
+  return map;
+}
+
+/// Détecte les groupes « foyers » : chaque personne masculine (mari des
+/// unions) ayant ≥ 2 unions dans tree.unions, triées par unionOrder.
+///
+/// Ne s'active que si le SUJET est concerné (chef, épouse ou enfant d'un
+/// foyer) : sinon on retombe sur le rendu 1a, où les co-épouses des ancêtres
+/// restent visibles via [_ensureUnionSpousesPlaced] — le sujet ne disparaît
+/// jamais de son propre arbre.
+List<_FoyerGroup> _detectFoyerGroups(FamilyTree tree) {
+  final persons = _allPersons(tree);
+
+  // Unions groupées par mari.
+  final byHusband = <String, List<GenealogyUnion>>{};
+  for (final u in tree.unions) {
+    byHusband.putIfAbsent(u.husbandId, () => []).add(u);
+  }
+
+  final groups = <_FoyerGroup>[];
+  final claimed = <String>{}; // enfants déjà rattachés à un foyer
+
+  for (final entry in byHusband.entries) {
+    if (entry.value.length < 2) continue;
+    final chief = persons[entry.key];
+    if (chief == null) continue; // mari non résolvable → pas de carte possible
+
+    final unions = [...entry.value]
+      ..sort((a, b) => a.unionOrder.compareTo(b.unionOrder));
+    final wifeIds = unions.map((u) => u.wifeId).toSet();
+
+    final wives = <_FoyerWife>[];
+    for (final union in unions) {
+      final wife = persons[union.wifeId] ?? union.wife;
+      if (wife == null) continue;
+
+      // Enfants de CETTE union (réutilise _belongsToUnion : unionId d'abord,
+      // sinon couple exact {mari, épouse} via motherId/fatherId).
+      final children = <PersonGenealogy>[];
+      for (final p in persons.values) {
+        if (p.id == chief.id || wifeIds.contains(p.id)) continue;
+        if (claimed.contains(p.id)) continue;
+        if (_belongsToUnion(p, union, chief.id, wife.id)) {
+          children.add(p);
+          claimed.add(p.id);
+        }
+      }
+      // Aîné·e d'abord (dates croissantes, inconnues à la fin), puis prénom.
+      children.sort((a, b) {
+        final da = a.birthDate;
+        final db = b.birthDate;
+        if (da != null && db != null) return da.compareTo(db);
+        if (da != null) return -1;
+        if (db != null) return 1;
+        return a.firstName.compareTo(b.firstName);
+      });
+      wives.add(_FoyerWife(union, wife, children));
+    }
+    if (wives.length < 2) continue; // < 2 épouses plaçables → rendu 1a
+
+    groups.add(_FoyerGroup(chief, wives));
+  }
+
+  // Le sujet doit appartenir à au moins un groupe, sinon rendu 1a.
+  final subjectId = tree.subject.id;
+  final involvesSubject = groups.any((g) =>
+      g.chief.id == subjectId ||
+      g.wives.any((w) =>
+          w.wife.id == subjectId || w.children.any((c) => c.id == subjectId)));
+  if (!involvesSubject) return const [];
+
+  // Groupe du sujet en premier (lecture gauche → droite).
+  groups.sort((a, b) {
+    bool inGroup(_FoyerGroup g) =>
+        g.chief.id == subjectId ||
+        g.wives.any((w) =>
+            w.wife.id == subjectId ||
+            w.children.any((c) => c.id == subjectId));
+    final ia = inGroup(a) ? 0 : 1;
+    final ib = inGroup(b) ? 0 : 1;
+    return ia.compareTo(ib);
+  });
+  return groups;
+}
+
+/// Libellé de pilule d'union : « 1RE UNION · 1968 » (année si connue).
+String _unionBadgeLabel(int rank, DateTime? startDate) {
+  final ordinal = rank == 1 ? '1RE' : '${rank}E';
+  return startDate != null
+      ? '$ordinal UNION · ${startDate.year}'
+      : '$ordinal UNION';
+}
+
+/// Libellé d'en-tête de boîte : « FOYER MAAH · 3 ENFANTS » (prénom en MAJ).
+String _foyerBoxLabel(PersonGenealogy wife, int childCount) {
+  final name = wife.firstName.trim().toUpperCase();
+  final String suffix;
+  if (childCount == 0) {
+    suffix = 'SANS ENFANT';
+  } else if (childCount == 1) {
+    suffix = '1 ENFANT';
+  } else {
+    suffix = '$childCount ENFANTS';
+  }
+  return 'FOYER $name · $suffix';
+}
+
+/// Layout « foyers » (maquette 2a) : chef centré en haut, épouses en rangée
+/// (~250 px utiles par foyer), enfants empilés en mini-cartes (56 px) dans une
+/// boîte pointillée sous chaque mère. Pas de liens de filiation individuels :
+/// la boîte matérialise la fratrie. contentHeight suit la boîte la plus
+/// profonde — jamais de chevauchement possible avec un contenu suivant.
+TreeLayout _computeFoyerLayout(FamilyTree tree, List<_FoyerGroup> groups) {
+  final nodes = <LayoutNode>[];
+  final links = <LayoutLink>[];
+  final nodeMap = <String, LayoutNode>{};
+  final unionBadges = <UnionBadge>[];
+  final foyerBoxes = <FoyerBox>[];
+
+  void addNode(LayoutNode node) {
+    if (nodeMap.containsKey(node.person.id)) return; // anti-doublon
+    nodes.add(node);
+    nodeMap[node.person.id] = node;
+  }
+
+  double groupLeft = _padding;
+  double maxBottom = _topPadding;
+
+  for (final group in groups) {
+    final groupW = group.wives.length * _foyerSlotW;
+    final chiefX = groupLeft + groupW / 2;
+    const chiefY = _topPadding;
+    const wifeY = chiefY + _chiefToWifeV;
+    final chiefPos = Offset(chiefX, chiefY);
+
+    // ── Chef de famille : carte or pâle + pilule « ♛ CHEF DE FAMILLE » ──
+    addNode(LayoutNode(
+      person: group.chief,
+      position: chiefPos,
+      generation: 0,
+      type: _nodeType(group.chief, tree.subject.id, NodeType.primaryLineage),
+      isSubject: group.chief.id == tree.subject.id,
+      isChief: true,
+    ));
+
+    for (int i = 0; i < group.wives.length; i++) {
+      final foyer = group.wives[i];
+      final union = foyer.union;
+      final color = _foyerColors[i % _foyerColors.length];
+      final wifeX = groupLeft + _foyerSlotW / 2 + i * _foyerSlotW;
+      final wifePos = Offset(wifeX, wifeY);
+      final ended = !union.isActive;
+
+      // ── Épouse : carte blanche, BORDURE de la couleur du foyer ──
+      addNode(LayoutNode(
+        person: foyer.wife,
+        position: wifePos,
+        generation: 1,
+        type: _nodeType(foyer.wife, tree.subject.id, NodeType.spouse),
+        hasDotPaid: union.isDotPaid,
+        isSubject: foyer.wife.id == tree.subject.id,
+        foyerColor: color,
+        unionInfo: NodeUnionInfo(
+          unionId: union.id,
+          rank: i + 1, // rang d'affichage « ÉPOUSE 1 / 2 / 3 » (unionOrder trié)
+          isPolygamous: true,
+          isActive: union.isActive,
+          legalRegime: union.legalRegime,
+          compliance: unionComplianceFromStatus(union.complianceStatus),
+        ),
+      ));
+
+      // ── Connecteur d'union chef ↔ épouse, couleur du foyer ──
+      links.add(LayoutLink(
+        from: chiefPos,
+        to: wifePos,
+        type: LinkType.union,
+        color: color,
+        ended: ended,
+      ));
+
+      // Pilule-étiquette au MILIEU du connecteur : « 1RE UNION · 1968 ».
+      unionBadges.add(UnionBadge(
+        position: Offset(wifeX, (chiefY + wifeY) / 2),
+        label: _unionBadgeLabel(i + 1, union.startDate),
+        color: color,
+        ended: ended,
+      ));
+
+      // ── Boîte foyer pointillée (padding 12, en-tête 26, 56/enfant) ──
+      const boxTop = wifeY + _cardHalfH + _wifeToBoxV;
+      final childCount = foyer.children.length;
+      final boxH = _boxPad + _boxHeaderH + childCount * _miniCardH + _boxPad;
+      final rect =
+          Rect.fromLTWH(wifeX - _foyerBoxW / 2, boxTop, _foyerBoxW, boxH);
+      foyerBoxes.add(FoyerBox(
+        rect: rect,
+        color: color,
+        label: _foyerBoxLabel(foyer.wife, childCount),
+        childCount: childCount,
+      ));
+
+      // Petit trait pointillé vertical épouse → boîte (couleur du foyer).
+      links.add(LayoutLink(
+        from: wifePos,
+        to: Offset(wifeX, boxTop),
+        type: LinkType.foyerDrop,
+        color: color,
+        ended: ended,
+      ));
+
+      // ── Enfants EMPILÉS en mini-cartes (56 px), PAS de liens filiation ──
+      for (int j = 0; j < childCount; j++) {
+        final child = foyer.children[j];
+        final childY =
+            boxTop + _boxPad + _boxHeaderH + j * _miniCardH + _miniCardH / 2;
+        addNode(LayoutNode(
+          person: child,
+          position: Offset(wifeX, childY),
+          generation: 2,
+          type: _nodeType(child, tree.subject.id, NodeType.primaryLineage),
+          isSubject: child.id == tree.subject.id,
+          inFoyerBox: true,
+          foyerColor: color,
+        ));
+      }
+
+      if (rect.bottom > maxBottom) maxBottom = rect.bottom;
+    }
+
+    groupLeft += groupW + _foyerGroupGap;
+  }
+
+  // contentHeight recalculée depuis la boîte la plus profonde : les piles
+  // d'enfants ne chevauchent jamais le contenu suivant.
+  final contentW = groupLeft - _foyerGroupGap + _padding;
+  final contentH = maxBottom + _padding;
+
+  return TreeLayout(
+    nodes: nodes,
+    links: links,
+    contentWidth: contentW < 600 ? 600 : contentW,
+    contentHeight: contentH < 400 ? 400 : contentH,
+    nodeMap: nodeMap,
+    unionBadges: unionBadges,
+    foyerBoxes: foyerBoxes,
+  );
 }

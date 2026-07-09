@@ -172,7 +172,9 @@ class _TreeCanvasState extends ConsumerState<TreeCanvas>
     final currentView =
         ref.watch(treeViewProvider.select((s) => s.currentView));
     final notifier = ref.read(treeViewProvider.notifier);
-    final strata = _strataFor(layout, t);
+    // Mode foyers (maquette 2a) : pas de bandes de générations.
+    final strata =
+        layout.isFoyerMode ? const <_StrataInfo>[] : _strataFor(layout, t);
 
     return Container(
       color: t.ink,
@@ -197,15 +199,27 @@ class _TreeCanvasState extends ConsumerState<TreeCanvas>
                       clipBehavior: Clip.none,
                       children: [
                         // Strates de générations — bandes douces + labels mono
-                        Positioned.fill(
-                          child: CustomPaint(
-                            painter: _StrataPainter(
-                              strata: strata,
-                              dashColor: t.line.withValues(alpha: 0.05),
-                              faintColor: t.stoneFaint,
+                        // (rendu 1a uniquement — masquées en mode foyers 2a)
+                        if (!layout.isFoyerMode)
+                          Positioned.fill(
+                            child: CustomPaint(
+                              painter: _StrataPainter(
+                                strata: strata,
+                                dashColor: t.line.withValues(alpha: 0.05),
+                                faintColor: t.stoneFaint,
+                              ),
                             ),
                           ),
-                        ),
+
+                        // Boîtes foyer (maquette 2a) : rectangle arrondi en
+                        // pointillés 1.5 px de la couleur du foyer, fond 4 %.
+                        if (layout.isFoyerMode)
+                          Positioned.fill(
+                            child: CustomPaint(
+                              painter:
+                                  _FoyerBoxPainter(boxes: layout.foyerBoxes),
+                            ),
+                          ),
 
                         // Links (Bézier curves)
                         Positioned.fill(
@@ -219,6 +233,15 @@ class _TreeCanvasState extends ConsumerState<TreeCanvas>
                           ),
                         ),
 
+                        // En-têtes des boîtes foyer (maquette 2a) : label mono
+                        // « FOYER X · N ENFANTS » + point de couleur à droite.
+                        ...layout.foyerBoxes.map(
+                          (box) => _FoyerBoxHeader(
+                            key: ValueKey('foyer-${box.rect.left}'),
+                            box: box,
+                          ),
+                        ),
+
                         // Nodes — chaque _NodeSlot observe son propre
                         // isSelected/isHovered (le tooltip ne les rebuild pas)
                         ...layout.nodes.map((node) => _NodeSlot(
@@ -229,6 +252,19 @@ class _TreeCanvasState extends ConsumerState<TreeCanvas>
                               onTooltipScheduleHide: _scheduleHideTooltip,
                               onTooltipHideNow: _hideTooltipNow,
                             )),
+
+                        // Pilules-étiquettes d'union (maquette 2a) : centrées
+                        // sur le connecteur mari↔épouse, « 1RE UNION · 1968 ».
+                        ...layout.unionBadges.map(
+                          (badge) => Positioned(
+                            left: badge.position.dx,
+                            top: badge.position.dy,
+                            child: FractionalTranslation(
+                              translation: const Offset(-0.5, -0.5),
+                              child: _UnionBadgeChip(badge: badge),
+                            ),
+                          ),
+                        ),
 
                         // Tooltip overlay — seul ce builder écoute le hover
                         ValueListenableBuilder<String?>(
@@ -313,12 +349,15 @@ class _TreeCanvasState extends ConsumerState<TreeCanvas>
                 child: _FocusBreadcrumb(notifier: notifier),
               ),
 
-              // ── Légende des lignées (desktop, bas gauche) ──
+              // ── Légende (desktop, bas gauche) : lignées en mode 1a,
+              // foyers colorés + chef de famille en mode 2a ──
               if (widget.showLegend)
                 Positioned(
                   bottom: 16,
                   left: 20,
-                  child: _LineageLegend(),
+                  child: layout.isFoyerMode
+                      ? const _FoyerLegend()
+                      : _LineageLegend(),
                 ),
 
               // ── Zoom controls (bottom right) ──
@@ -530,6 +569,181 @@ class _LineageLegend extends StatelessWidget {
   }
 }
 
+/// Légende du mode foyers (maquette 2a) : points de couleur par foyer
+/// (or / rose / vert) + « ♛ Chef de famille / successeur ».
+class _FoyerLegend extends StatelessWidget {
+  const _FoyerLegend();
+
+  @override
+  Widget build(BuildContext context) {
+    final t = GwTokens.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: t.ink.withValues(alpha: 0.85),
+        border: Border.all(color: t.line),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _dot(t, GwTokens.gold, 'Foyer 1'),
+          const SizedBox(width: 14),
+          _dot(t, GwTokens.rose, 'Foyer 2'),
+          const SizedBox(width: 14),
+          _dot(t, GwTokens.sage, 'Foyer 3'),
+          const SizedBox(width: 14),
+          Text('♛ Chef de famille / successeur',
+              style: GwType.ui(fontSize: 12, color: t.stoneMid)),
+        ],
+      ),
+    );
+  }
+
+  Widget _dot(GwTokens t, Color color, String label) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(shape: BoxShape.circle, color: color),
+        ),
+        const SizedBox(width: 6),
+        Text(label, style: GwType.ui(fontSize: 12, color: t.stoneMid)),
+      ],
+    );
+  }
+}
+
+/// En-tête d'une boîte foyer (maquette 2a), posé dans le Stack du canvas
+/// au-dessus du coin haut-gauche du rect : label mono « FOYER MAAH ·
+/// 3 ENFANTS » + point de couleur à droite.
+class _FoyerBoxHeader extends StatelessWidget {
+  final FoyerBox box;
+
+  const _FoyerBoxHeader({super.key, required this.box});
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      left: box.rect.left + 12,
+      top: box.rect.top + 12,
+      width: box.rect.width - 24,
+      height: 26,
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              box.label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: GwType.mono(
+                fontSize: 9.5,
+                letterSpacing: 1.5,
+                color: box.color,
+              ),
+            ),
+          ),
+          const SizedBox(width: 6),
+          Container(
+            width: 7,
+            height: 7,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: box.color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Pilule-étiquette d'union (maquette 2a) : blanche, bordée 1 px de la
+/// couleur du foyer, texte mono « 1RE UNION · 1968 » ; atténuée si terminée.
+class _UnionBadgeChip extends StatelessWidget {
+  final UnionBadge badge;
+
+  const _UnionBadgeChip({required this.badge});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = GwTokens.of(context);
+    return Opacity(
+      opacity: badge.ended ? 0.6 : 1.0,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(
+          color: t.inkCard,
+          borderRadius: BorderRadius.circular(GwTokens.rPill),
+          border: Border.all(color: badge.color),
+        ),
+        child: Text(
+          badge.label,
+          maxLines: 1,
+          style: GwType.mono(
+            fontSize: 9,
+            letterSpacing: 1.5,
+            color: badge.color,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Boîtes foyer (maquette 2a) ───────────────────────────────
+
+/// Rectangles arrondis EN POINTILLÉS (1.5 px, couleur du foyer) avec fond de
+/// la même couleur à 4 % d'opacité — sous les nœuds, au-dessus du fond.
+class _FoyerBoxPainter extends CustomPainter {
+  final List<FoyerBox> boxes;
+
+  const _FoyerBoxPainter({required this.boxes});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    for (final box in boxes) {
+      final rrect =
+          RRect.fromRectAndRadius(box.rect, const Radius.circular(12));
+
+      // Fond très léger de la couleur du foyer.
+      canvas.drawRRect(rrect, Paint()..color = box.color.withValues(alpha: 0.04));
+
+      // Bordure pointillée arrondie.
+      final border = Paint()
+        ..color = box.color.withValues(alpha: 0.6)
+        ..strokeWidth = 1.5
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round;
+      final outline = Path()..addRRect(rrect);
+      canvas.drawPath(_dashOutline(outline, 5, 5), border);
+    }
+  }
+
+  /// Découpe un `Path` fermé en tirets via sa longueur d'arc (PathMetric).
+  static Path _dashOutline(Path source, double dashLen, double gapLen) {
+    final result = Path();
+    for (final metric in source.computeMetrics()) {
+      double d = 0;
+      bool draw = true;
+      while (d < metric.length) {
+        final end =
+            (d + (draw ? dashLen : gapLen)).clamp(0.0, metric.length);
+        if (draw) result.addPath(metric.extractPath(d, end), Offset.zero);
+        d = end;
+        draw = !draw;
+      }
+    }
+    return result;
+  }
+
+  @override
+  bool shouldRepaint(covariant _FoyerBoxPainter oldDelegate) =>
+      oldDelegate.boxes != boxes;
+}
+
 /// Widget isolé pour un node : observe UNIQUEMENT isSelected et isHovered
 /// pour ce node. Évite le rebuild de tous les nodes à chaque clic.
 class _NodeSlot extends ConsumerWidget {
@@ -557,11 +771,20 @@ class _NodeSlot extends ConsumerWidget {
       treeViewProvider.select((s) => s.hoveredPersonId == node.person.id),
     );
 
-    final width = node.isSubject ? kTreeSubjectWidth : kTreeNodeWidth;
+    // Mini-carte empilée dans une boîte foyer (2a) : 200×48 centrée dans sa
+    // rangée de 56 px. Sinon carte standard 230×84 centrée sur node.position
+    // (le layout raisonne en CENTRES : _cardHalfH = kTreeNodeHeight / 2).
+    final width = node.inFoyerBox
+        ? kTreeMiniNodeWidth
+        : node.isSubject
+            ? kTreeSubjectWidth
+            : kTreeNodeWidth;
+    final topOffset =
+        node.inFoyerBox ? kTreeMiniNodeHeight / 2 : kTreeNodeHeight / 2;
 
     return Positioned(
       left: node.position.dx - width / 2,
-      top: node.position.dy - 40,
+      top: node.position.dy - topOffset,
       child: RepaintBoundary(
         child: TreeNodeWidget(
           node: node,

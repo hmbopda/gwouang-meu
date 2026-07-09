@@ -43,7 +43,7 @@ class TreeLinkPainter extends CustomPainter {
   // s'arrêter net au bord haut de l'enfant. Cela résout aussi proprement le cas
   // du lien couple→barre-de-fratrie (cible = jonction, pas une carte) : on
   // atteint exactement le point, sans laisser de vide avant la barre.
-  static const double _halfWidth = 90; // kTreeNodeWidth (180) / 2
+  static const double _halfWidth = 115; // kTreeNodeWidth (230) / 2
 
   // Rayon des coins de l'équerre (jonctions vertical↔horizontal). Nets, très
   // légèrement adoucis pour un rendu propre, jamais « courbe ».
@@ -71,6 +71,8 @@ class TreeLinkPainter extends CustomPainter {
           _drawSiblings(canvas, link);
         case LinkType.aiSuggestion:
           _drawAiSuggestion(canvas, link);
+        case LinkType.foyerDrop:
+          _drawFoyerDrop(canvas, link);
       }
     }
   }
@@ -170,7 +172,23 @@ class TreeLinkPainter extends CustomPainter {
   /// Union : trait horizontal INTERROMPU entre conjoints, ancré aux côtés des
   /// cartes. Active = tirets discrets ; terminée = tirets plus espacés et
   /// atténués (le lien reste visible, jamais barré). Point rose = alliance.
+  ///
+  /// Mode FOYERS (maquette 2a) : `link.color` est fournie (couleur du foyer,
+  /// or / rose / vert) → connecteur ORTHOGONAL PLEIN chef→épouse dans cette
+  /// couleur ; la pilule « 1RE UNION · 1968 » (widget) en couvre le milieu.
   void _drawUnion(Canvas canvas, LayoutLink link) {
+    final foyer = link.color;
+    if (foyer != null) {
+      final paint = Paint()
+        ..color = foyer.withValues(alpha: link.ended ? 0.35 : 0.75)
+        ..strokeWidth = 1.6
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round;
+      canvas.drawPath(_elbowPath(link.from, link.to), paint);
+      return;
+    }
+
     final paint = Paint()
       ..color = link.ended
           ? unionColor.withValues(alpha: unionColor.a * 0.55)
@@ -195,6 +213,20 @@ class TreeLinkPainter extends CustomPainter {
       3,
       Paint()..color = GwTokens.rose.withValues(alpha: link.ended ? 0.3 : 0.6),
     );
+  }
+
+  /// Descente pointillée épouse → boîte foyer (maquette 2a) : petit trait
+  /// vertical en pointillé fin, dans la couleur du foyer (or / rose / vert).
+  void _drawFoyerDrop(Canvas canvas, LayoutLink link) {
+    final base = link.color ?? neutralColor;
+    final paint = Paint()
+      ..color = base.withValues(alpha: link.ended ? 0.35 : 0.60)
+      ..strokeWidth = 1.4
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+
+    final path = _dashedPath(link.from, link.to, 3, 4);
+    canvas.drawPath(path, paint);
   }
 
   /// Barre de fratrie (une par union) : trait horizontal plein reliant les
