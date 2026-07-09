@@ -5,9 +5,15 @@ import 'package:flutter/material.dart';
 import 'package:gwangmeu/core/theme/gw_tokens.dart';
 import 'package:gwangmeu/features/genealogy/state/tree_view_state.dart';
 
-/// Liens « Tissage » (#2c) : courbes bézier douces 2 px, opacité 30–45 %,
-/// colorées par lignée (or Mbopda, rose Ngo Bassa). Unions en pointillé
-/// discret, suggestions IA en tirets sage.
+/// Liens « Tissage » (#2c) — rendu ORGANIGRAMME professionnel.
+///
+/// - Filiation (parent→enfant) : connecteur ORTHOGONAL en équerre (« elbow »),
+///   traits droits pleins, coins très légèrement arrondis, routés par une ligne
+///   horizontale à mi-chemin entre les deux paliers.
+/// - Union (conjoint↔conjoint) : trait horizontal INTERROMPU (tirets) ancré aux
+///   côtés des cartes, petit point rose d'alliance au centre.
+/// - Fratrie : barre horizontale + descentes verticales (déjà orthogonal côté
+///   layout ; on ancre au bord haut des cartes enfants).
 ///
 /// Les couleurs dépendantes du thème sont injectées par le widget appelant
 /// (jamais de `GwTokens.of`/`GwTokens.dark` dans le painter).
@@ -28,24 +34,23 @@ class TreeLinkPainter extends CustomPainter {
     required this.unionColor,
   });
 
-  // Demi-dimensions des cartes-nœud : les liens sont ancrés au BORD des cartes
-  // (et non au centre), pour éviter que le trait ne traverse/dépasse le nœud.
-  static const double _halfHeight = 52;
+  // Demi-dimensions des cartes-nœud : les liens d'UNION sont ancrés au CÔTÉ des
+  // cartes (et non au centre) pour rester visibles ENTRE les deux conjoints.
+  //
+  // La filiation, elle, route jusqu'au CENTRE de la carte cible : les nœuds sont
+  // peints PAR-DESSUS les liens (ordre du Stack : liens puis nœuds), donc le
+  // moignon carte-centre → bord est masqué par la carte et le trait paraît
+  // s'arrêter net au bord haut de l'enfant. Cela résout aussi proprement le cas
+  // du lien couple→barre-de-fratrie (cible = jonction, pas une carte) : on
+  // atteint exactement le point, sans laisser de vide avant la barre.
   static const double _halfWidth = 90; // kTreeNodeWidth (180) / 2
 
-  /// Ramène `from`/`to` (centres des nœuds) sur le bord des cartes, en insérant
-  /// chaque extrémité vers l'autre. Clampé à 45 % de la distance pour ne jamais
-  /// inverser le segment quand les nœuds sont proches.
-  static (Offset, Offset) _cardEndpoints(Offset from, Offset to,
-      {required bool vertical, required double half}) {
-    if (vertical) {
-      final sign = to.dy >= from.dy ? 1.0 : -1.0;
-      final d = math.min(half, (to.dy - from.dy).abs() * 0.45);
-      return (
-        Offset(from.dx, from.dy + sign * d),
-        Offset(to.dx, to.dy - sign * d),
-      );
-    }
+  // Rayon des coins de l'équerre (jonctions vertical↔horizontal). Nets, très
+  // légèrement adoucis pour un rendu propre, jamais « courbe ».
+  static const double _elbowRadius = 6;
+
+  /// Ancre horizontale : ramène `from`/`to` aux CÔTÉS des cartes (union).
+  static (Offset, Offset) _hEndpoints(Offset from, Offset to, double half) {
     final sign = to.dx >= from.dx ? 1.0 : -1.0;
     final d = math.min(half, (to.dx - from.dx).abs() * 0.45);
     return (
@@ -70,50 +75,117 @@ class TreeLinkPainter extends CustomPainter {
     }
   }
 
+  /// Filiation : connecteur orthogonal en équerre.
+  ///
+  /// Depuis le bas-centre du parent → segment VERTICAL vers le bas jusqu'à une
+  /// ligne de routage horizontale (mi-hauteur entre les paliers) → segment
+  /// HORIZONTAL jusqu'à l'abscisse de l'enfant → segment VERTICAL vers le
+  /// haut-centre de l'enfant. Coins nets, très légèrement arrondis (≤ 6 px).
+  /// On route de centre à centre : les cartes (peintes par-dessus) masquent les
+  /// moignons et le trait paraît naître/mourir au bord des nœuds.
   void _drawFiliation(Canvas canvas, LayoutLink link) {
     final base = link.color ?? neutralColor;
     // Union terminée : filiation atténuée (opacité et trait réduits), jamais
     // effacée — le fait généalogique reste toujours visible.
-    final baseAlpha = link.highlight ? 0.65 : (link.ended ? 0.20 : 0.38);
+    final baseAlpha = link.highlight ? 0.75 : (link.ended ? 0.22 : 0.42);
+    final strokeWidth = link.highlight ? 2.0 : (link.ended ? 1.5 : 1.7);
+
     final paint = Paint()
       ..color = base.withValues(alpha: baseAlpha)
-      ..strokeWidth = link.highlight ? 2.5 : (link.ended ? 1.5 : 2)
+      ..strokeWidth = strokeWidth
       ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
 
-    // Ancrage au bord haut/bas des cartes (filiation ≈ verticale).
-    final (a, b) =
-        _cardEndpoints(link.from, link.to, vertical: true, half: _halfHeight);
+    final path = _elbowPath(link.from, link.to);
 
+    // Glow du lien sélectionné : même tracé orthogonal, flouté dessous.
     if (link.highlight) {
       final glow = Paint()
-        ..color = base.withValues(alpha: 0.18)
-        ..strokeWidth = 7
+        ..color = base.withValues(alpha: 0.20)
+        ..strokeWidth = 6
         ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
-      _drawBezier(canvas, glow, a, b);
+      canvas.drawPath(path, glow);
     }
 
-    _drawBezier(canvas, paint, a, b);
+    canvas.drawPath(path, paint);
   }
 
-  /// Union : trait entre conjoints. Active = plein discret ; terminée = pointillé
-  /// atténué (le lien reste visible, jamais barré). Point rose = alliance.
+  /// Construit l'équerre orthogonale de `a` (émetteur) vers `b` (récepteur).
+  ///
+  /// Cas vertical (paliers différents) : V descendant → H de routage → V. Le
+  /// palier horizontal est placé à mi-hauteur entre `a.dy` et `b.dy`. Si les
+  /// deux abscisses coïncident (± 1 px), on trace un simple trait droit.
+  /// Cas dégénéré (même palier) : simple ligne droite.
+  Path _elbowPath(Offset a, Offset b) {
+    final path = Path()..moveTo(a.dx, a.dy);
+
+    final dx = (b.dx - a.dx).abs();
+    final dy = (b.dy - a.dy).abs();
+
+    // Colinéaires (verticalement ou horizontalement alignés) : trait droit.
+    if (dx < 1.0 || dy < 1.0) {
+      path.lineTo(b.dx, b.dy);
+      return path;
+    }
+
+    // Ligne de routage horizontale, au milieu vertical entre les paliers.
+    final routeY = (a.dy + b.dy) / 2;
+
+    // Rayon des coins borné pour ne jamais dépasser les demi-segments
+    // disponibles (évite les arcs qui se chevauchent quand les cartes sont
+    // proches ou l'écart horizontal très faible).
+    final vHalf = (routeY - a.dy).abs();
+    final r = math.min(_elbowRadius, math.min(dx / 2, vHalf));
+
+    final xSign = b.dx >= a.dx ? 1.0 : -1.0; // sens horizontal du palier
+    final ySignDown = b.dy >= a.dy ? 1.0 : -1.0; // descente/montée émetteur
+
+    if (r <= 0.5) {
+      // Trop peu de place pour arrondir : équerre à angles vifs.
+      path
+        ..lineTo(a.dx, routeY)
+        ..lineTo(b.dx, routeY)
+        ..lineTo(b.dx, b.dy);
+      return path;
+    }
+
+    // 1) Segment vertical émetteur → juste avant la ligne de routage.
+    path.lineTo(a.dx, routeY - ySignDown * r);
+    // Coin arrondi vertical→horizontal (côté émetteur).
+    path.quadraticBezierTo(a.dx, routeY, a.dx + xSign * r, routeY);
+    // 2) Segment horizontal de routage → juste avant l'abscisse enfant.
+    path.lineTo(b.dx - xSign * r, routeY);
+    // Coin arrondi horizontal→vertical (côté récepteur).
+    path.quadraticBezierTo(b.dx, routeY, b.dx, routeY + ySignDown * r);
+    // 3) Segment vertical → haut-centre de l'enfant.
+    path.lineTo(b.dx, b.dy);
+
+    return path;
+  }
+
+  /// Union : trait horizontal INTERROMPU entre conjoints, ancré aux côtés des
+  /// cartes. Active = tirets discrets ; terminée = tirets plus espacés et
+  /// atténués (le lien reste visible, jamais barré). Point rose = alliance.
   void _drawUnion(Canvas canvas, LayoutLink link) {
     final paint = Paint()
       ..color = link.ended
           ? unionColor.withValues(alpha: unionColor.a * 0.55)
           : unionColor
-      ..strokeWidth = 1.5
+      ..strokeWidth = 1.6
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
 
     // Ancrage aux côtés des cartes (union ≈ horizontale) → plus de trait qui
     // traverse les nœuds conjoints.
-    final (a, b) =
-        _cardEndpoints(link.from, link.to, vertical: false, half: _halfWidth);
+    final (a, b) = _hEndpoints(link.from, link.to, _halfWidth);
 
-    final path = _dottedPath(a, b, 1.5, link.ended ? 6 : 5);
+    // Trait bien « interrompu » : tirets nets (segments plus longs que les
+    // trous) — plus lisible qu'un pointillé fin comme une liaison suspendue.
+    final path = _dashedPath(a, b, link.ended ? 5 : 7, link.ended ? 5 : 4);
     canvas.drawPath(path, paint);
 
     // Petit point rose au milieu (alliance) — plus doux si l'union est terminée.
@@ -125,38 +197,60 @@ class TreeLinkPainter extends CustomPainter {
     );
   }
 
-  /// Barre de fratrie (une par union). Union terminée : plus atténuée.
+  /// Barre de fratrie (une par union) : trait horizontal plein reliant les
+  /// enfants d'un même couple. Le layout fournit déjà les descentes verticales
+  /// (liens filiation couple→enfant) ; ici on rend juste la barre nette.
+  /// Union terminée : plus atténuée.
   void _drawSiblings(Canvas canvas, LayoutLink link) {
     final paint = Paint()
-      ..color = neutralColor.withValues(alpha: link.ended ? 0.18 : 0.3)
-      ..strokeWidth = 1.5
+      ..color = neutralColor.withValues(alpha: link.ended ? 0.20 : 0.34)
+      ..strokeWidth = 1.6
       ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
 
+    // La barre de fratrie est horizontale (même Y) : trait droit.
     canvas.drawLine(link.from, link.to, paint);
   }
 
-  /// Affluent IA : tirets sage arrondis (4 / 6).
+  /// Affluent IA : équerre orthogonale en tirets sage (cohérent filiation).
   void _drawAiSuggestion(Canvas canvas, LayoutLink link) {
     final paint = Paint()
       ..color = GwTokens.sage.withValues(alpha: 0.5)
       ..strokeWidth = 2
       ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
 
-    final path = _dottedPath(link.from, link.to, 4, 6);
-    canvas.drawPath(path, paint);
+    // Même routage orthogonal que la filiation, mais rendu en tirets pour
+    // marquer la suggestion (non confirmée).
+    final elbow = _elbowPath(link.from, link.to);
+    final dashed = _dashPathMetric(elbow, 5, 5);
+    canvas.drawPath(dashed, paint);
   }
 
-  void _drawBezier(Canvas canvas, Paint paint, Offset from, Offset to) {
-    final midY = (from.dy + to.dy) / 2;
-    final path = Path()
-      ..moveTo(from.dx, from.dy)
-      ..cubicTo(from.dx, midY, to.dx, midY, to.dx, to.dy);
-    canvas.drawPath(path, paint);
+  /// Découpe un `Path` quelconque (ex. équerre) en tirets, en suivant sa
+  /// longueur d'arc réelle (PathMetric) — les coins arrondis restent nets.
+  Path _dashPathMetric(Path source, double dashLen, double gapLen) {
+    final result = Path();
+    for (final metric in source.computeMetrics()) {
+      double d = 0;
+      bool draw = true;
+      while (d < metric.length) {
+        final seg = draw ? dashLen : gapLen;
+        final end = math.min(d + seg, metric.length);
+        if (draw) {
+          result.addPath(metric.extractPath(d, end), Offset.zero);
+        }
+        d = end;
+        draw = !draw;
+      }
+    }
+    return result;
   }
 
-  Path _dottedPath(Offset from, Offset to, double dotLen, double gapLen) {
+  /// Tirets sur un segment droit `from`→`to` (union). `dashLen`/`gapLen` en px.
+  Path _dashedPath(Offset from, Offset to, double dashLen, double gapLen) {
     final path = Path();
     final dist = (to - from).distance;
     if (dist == 0) return path;
@@ -165,8 +259,8 @@ class TreeLinkPainter extends CustomPainter {
     double d = 0;
     bool drawing = true;
     while (d < dist) {
-      final seg = drawing ? dotLen : gapLen;
-      final end = (d + seg).clamp(0.0, dist);
+      final seg = drawing ? dashLen : gapLen;
+      final end = math.min(d + seg, dist);
       if (drawing) {
         path.moveTo(
           from.dx + dx * (d / dist),

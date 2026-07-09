@@ -42,7 +42,16 @@ class GwangButton extends StatelessWidget {
                 Icon(icon, size: 18),
                 const SizedBox(width: 8),
               ],
-              Text(label),
+              // Flexible + ellipsis : un libellé long ne déborde plus du bouton
+              // (ni troncature brutale au milieu du texte).
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                ),
+              ),
             ],
           );
 

@@ -154,7 +154,13 @@ class TreeNodeTooltip extends StatelessWidget {
             children: [
               Icon(icon, size: 14, color: t.stoneMid),
               const SizedBox(height: 2),
-              Text(label, style: GwType.ui(fontSize: 12, color: t.stoneMid)),
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: GwType.ui(fontSize: 12, color: t.stoneMid),
+              ),
             ],
           ),
         ),

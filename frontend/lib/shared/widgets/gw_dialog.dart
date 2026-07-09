@@ -349,12 +349,16 @@ class GwDialog extends StatelessWidget {
             Icon(a.icon, size: 18, color: t.stoneMid),
             const SizedBox(width: 6),
           ],
-          Text(
-            a.label,
-            style: GwType.ui(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: t.stoneMid,
+          Flexible(
+            child: Text(
+              a.label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: GwType.ui(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: t.stoneMid,
+              ),
             ),
           ),
         ],
@@ -527,7 +531,11 @@ class GwChoicePill extends StatelessWidget {
               Flexible(
                 child: Text(
                   label,
-                  maxLines: 1,
+                  // Les libellés de pilules (ex. « Dans l'arbre », « Religieuse
+                  // (Église) ») peuvent passer sur 2 lignes plutôt que d'être
+                  // tronqués quand la colonne est étroite (sheet mobile 3 pilules).
+                  maxLines: 2,
+                  softWrap: true,
                   overflow: TextOverflow.ellipsis,
                   textAlign: TextAlign.center,
                   style: GwType.ui(
