@@ -86,6 +86,11 @@ server:
   port: ${PORT:8080}
   servlet:
     context-path: /
+    # Force UTF-8 sur les corps de requête/réponse (noms accentués : é, ç, ô…)
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
 
 # ===== Application custom =====
 application:

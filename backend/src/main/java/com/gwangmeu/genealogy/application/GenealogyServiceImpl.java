@@ -775,6 +775,24 @@ class GenealogyServiceImpl implements GenealogyService {
                 })
                 .toList();
 
+        // Unions du sujet ET des ascendants (parents + grands-parents), dedupliquees
+        // par id. Indispensable pour afficher les CO-EPOUSES d'un fondateur
+        // (polygamie) : sans cela, seules les unions du sujet remontent et les
+        // conjoint·es des ancetres n'apparaissent jamais dans l'arbre.
+        java.util.LinkedHashMap<UUID, UnionDTO> treeUnionsById = new java.util.LinkedHashMap<>();
+        List<UUID> unionOwners = new ArrayList<>();
+        unionOwners.add(personId);
+        father.forEach(p -> unionOwners.add(p.getId()));
+        mother.forEach(p -> unionOwners.add(p.getId()));
+        paternalGP.forEach(p -> unionOwners.add(p.getId()));
+        maternalGP.forEach(p -> unionOwners.add(p.getId()));
+        for (UUID ownerId : unionOwners) {
+            for (UnionDTO u : getUnionsByPerson(ownerId)) {
+                treeUnionsById.putIfAbsent(u.getId(), u);
+            }
+        }
+        List<UnionDTO> treeUnions = new ArrayList<>(treeUnionsById.values());
+
         return FamilyTreeDTO.builder()
                 .subject(GenealogyMapper.toDTO(person, villageIds))
                 .father(father)
@@ -783,7 +801,7 @@ class GenealogyServiceImpl implements GenealogyService {
                 .maternalGP(maternalGP)
                 .siblings(getSiblingsWithType(personId))
                 .children(getChildren(personId))
-                .unions(getUnionsByPerson(personId))
+                .unions(treeUnions)
                 .cousins(getFirstCousins(personId))
                 .uncles(uncles)
                 .pendingSuggestions(suggestions)

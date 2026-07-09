@@ -55,6 +55,8 @@ HEALTHCHECK --interval=30s --timeout=15s --start-period=120s --retries=5 \
 ENTRYPOINT ["sh", "-c", "exec java \
     -XX:+UseContainerSupport \
     -XX:MaxRAMPercentage=75.0 \
+    -Dfile.encoding=UTF-8 \
+    -Dsun.jnu.encoding=UTF-8 \
     -Dspring.profiles.active=${SPRING_PROFILES_ACTIVE:-prod} \
     -Djava.security.egd=file:/dev/./urandom \
     -jar app.jar"]
