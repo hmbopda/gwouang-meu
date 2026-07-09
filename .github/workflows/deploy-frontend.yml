@@ -71,6 +71,35 @@ jobs:
             --pwa-strategy none \
             --dart-define=FLUTTER_WEB_CANVASKIT_URL=https://www.gstatic.com/flutter-canvaskit/
 
+      # Le service worker Flutter servait des versions périmées. On dépose un SW
+      # AUTO-DESTRUCTEUR : les navigateurs déjà « infectés » le récupèrent au
+      # prochain chargement (le script SW est revalidé), il se désenregistre,
+      # purge les caches et recharge → version fraîche. + headers no-cache.
+      - name: Neutraliser le service worker (anti-cache PWA)
+        working-directory: frontend
+        run: |
+          cat > build/web/flutter_service_worker.js <<'SW'
+          self.addEventListener('install', function (e) { self.skipWaiting(); });
+          self.addEventListener('activate', function (e) {
+            e.waitUntil((async function () {
+              try { await self.registration.unregister(); } catch (_) {}
+              try { var ks = await caches.keys(); await Promise.all(ks.map(function (k) { return caches.delete(k); })); } catch (_) {}
+              try { var cs = await self.clients.matchAll(); cs.forEach(function (c) { c.navigate(c.url); }); } catch (_) {}
+            })());
+          });
+          SW
+          cat > build/web/_headers <<'HDR'
+          /flutter_service_worker.js
+            Cache-Control: no-cache, no-store, must-revalidate
+          /index.html
+            Cache-Control: no-cache, no-store, must-revalidate
+          /flutter_bootstrap.js
+            Cache-Control: no-cache, no-store, must-revalidate
+          /
+            Cache-Control: no-cache, no-store, must-revalidate
+          HDR
+          echo "SW auto-destructeur + _headers déposés."
+
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/pages-action@v1
         with:
