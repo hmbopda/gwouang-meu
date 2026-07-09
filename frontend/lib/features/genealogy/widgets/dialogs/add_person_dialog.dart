@@ -51,6 +51,9 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
   final _birthPlaceCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
+  // Genre initialise en fonction du role par defaut dans initState (deduit du
+  // role parental / conjoint). Ne jamais laisser 'MALE' par accident quand le
+  // contexte designe une femme (mere / epouse).
   String _gender = 'MALE';
   bool _isAlive = true;
   bool _loading = false;
@@ -59,6 +62,10 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
   LanguageModel? _selectedLanguage;
   String? _selectedPhoneCode;
   DateTime? _birthDate;
+  // Date de deces : reste NULL tant que l'utilisateur n'a pas explicitement
+  // marque la personne decedee ET choisi une date. Ne JAMAIS auto-remplir
+  // (pas de valeur par defaut, pas de min du date picker utilise comme date).
+  DateTime? _deathDate;
 
   // Deduplication
   List<PersonGenealogy> _duplicateCandidates = [];
@@ -71,8 +78,15 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
   @override
   void initState() {
     super.initState();
-    _role = widget.isParent ? 'FATHER' : 'FATHER';
+    _role = 'FATHER';
+    // Le genre suit toujours le role choisi : on ne laisse jamais 'MALE'
+    // par accident lorsque le contexte designera une femme.
+    _gender = _genderForRole(_role);
   }
+
+  /// Genre coherent avec le role : FATHER -> MALE, MOTHER -> FEMALE.
+  /// Source unique de verite pour deduire le genre par defaut d'un role.
+  String _genderForRole(String role) => role == 'FATHER' ? 'MALE' : 'FEMALE';
 
   @override
   void dispose() {
@@ -86,7 +100,7 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
     super.dispose();
   }
 
-  String get _genderFilter => _role == 'FATHER' ? 'MALE' : 'FEMALE';
+  String get _genderFilter => _genderForRole(_role);
   String get _genderLabel => _role == 'FATHER' ? 'Homme' : 'Femme';
 
   /// Calculates child age from _birthDate (null if no birth date set).
@@ -294,7 +308,7 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
           title: 'Creer une nouvelle personne',
           subtitle: 'Remplir les informations manuellement',
           onTap: () => setState(() {
-            _gender = _role == 'FATHER' ? 'MALE' : 'FEMALE';
+            _gender = _genderForRole(_role);
             _step = AddPersonStep.createForm;
           }),
         ),
@@ -360,7 +374,7 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
                 icon: Symbols.person_add,
                 label: 'Creer manuellement',
                 onTap: () => setState(() {
-                  _gender = _role == 'FATHER' ? 'MALE' : 'FEMALE';
+                  _gender = _genderForRole(_role);
                   _step = AddPersonStep.createForm;
                 }),
               ),
@@ -408,7 +422,7 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
         setState(() {
           _emailCtrl.text = email;
           _phoneCtrl.text = phone;
-          _gender = _role == 'FATHER' ? 'MALE' : 'FEMALE';
+          _gender = _genderForRole(_role);
           _step = AddPersonStep.createForm;
         });
       },
@@ -419,7 +433,7 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
     final myPerson = ref.read(genealogyNotifierProvider).valueOrNull;
     if (myPerson == null || myPerson.villageIds.isEmpty) {
       setState(() {
-        _gender = _role == 'FATHER' ? 'MALE' : 'FEMALE';
+        _gender = _genderForRole(_role);
         _step = AddPersonStep.createForm;
       });
       if (mounted) {
@@ -480,7 +494,7 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
             icon: Symbols.person_add,
             label: 'Creer manuellement',
             onTap: () => setState(() {
-              _gender = _role == 'FATHER' ? 'MALE' : 'FEMALE';
+              _gender = _genderForRole(_role);
               _step = AddPersonStep.createForm;
             }),
           ),
@@ -523,7 +537,7 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
             icon: Symbols.person_add,
             label: 'Je ne trouve pas, creer manuellement',
             onTap: () => setState(() {
-              _gender = _role == 'FATHER' ? 'MALE' : 'FEMALE';
+              _gender = _genderForRole(_role);
               _step = AddPersonStep.createForm;
             }),
           ),
@@ -624,7 +638,7 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
                 icon: Symbols.person_add,
                 label: 'Creer',
                 onTap: () => setState(() {
-                  _gender = _role == 'FATHER' ? 'MALE' : 'FEMALE';
+                  _gender = _genderForRole(_role);
                   _step = AddPersonStep.createForm;
                 }),
               ),
@@ -660,7 +674,7 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
             icon: Symbols.person_add,
             label: 'Je ne trouve pas, creer manuellement',
             onTap: () => setState(() {
-              _gender = _role == 'FATHER' ? 'MALE' : 'FEMALE';
+              _gender = _genderForRole(_role);
               _step = AddPersonStep.createForm;
             }),
           ),
@@ -853,8 +867,48 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
             value: _isAlive,
             activeThumbColor: GwTokens.gold,
             contentPadding: EdgeInsets.zero,
-            onChanged: (v) => setState(() => _isAlive = v),
+            onChanged: (v) => setState(() {
+              _isAlive = v;
+              // Repasser en vie efface toute date de deces saisie : on ne
+              // conserve jamais une date de deces pour une personne vivante.
+              if (_isAlive) _deathDate = null;
+            }),
           ),
+          if (!_isAlive) ...[
+            const SizedBox(height: 8),
+            InkWell(
+              onTap: () async {
+                final picked = await showDatePicker(
+                  context: context,
+                  // initialDate = date affichee a l'ouverture du picker ;
+                  // ce n'est PAS une valeur enregistree. Tant que
+                  // l'utilisateur n'a pas valide, _deathDate reste NULL.
+                  initialDate: _deathDate ?? DateTime.now(),
+                  firstDate: DateTime(1900),
+                  lastDate: DateTime.now(),
+                );
+                // On n'enregistre la date QUE si l'utilisateur en choisit une.
+                if (picked != null) setState(() => _deathDate = picked);
+              },
+              borderRadius: BorderRadius.circular(GwTokens.rBtn),
+              child: InputDecorator(
+                decoration: gwInputDecoration(
+                  context,
+                  label: 'Date de deces (optionnel)',
+                  prefixIcon: Symbols.event_busy,
+                ),
+                child: Text(
+                  _deathDate != null
+                      ? DateFormat('dd/MM/yyyy').format(_deathDate!)
+                      : 'Selectionner une date',
+                  style: GwType.ui(
+                    fontSize: 14,
+                    color: _deathDate != null ? t.stone : t.stoneDim,
+                  ),
+                ),
+              ),
+            ),
+          ],
           if (_isAlive && _showValidationSection) ...[
             const SizedBox(height: 8),
             Container(

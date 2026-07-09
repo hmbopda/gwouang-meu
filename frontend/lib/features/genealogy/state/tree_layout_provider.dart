@@ -89,6 +89,13 @@ TreeLayout _computeLayout(FamilyTree tree, TreeView currentView, Set<int> hidden
       break;
   }
 
+  // ── Conjoints des ANCÊTRES (co-épouses d'un fondateur polygame…) ──
+  // Le backend renvoie désormais les unions du sujet ET des ascendants.
+  // Pour chaque union, si un seul des deux conjoints est déjà placé (ex : le
+  // père en génération 1), on ajoute l'AUTRE (la co-épouse) dans la MÊME ligne,
+  // juste après lui, sinon la polygamie des ancêtres reste invisible.
+  _ensureUnionSpousesPlaced(rows, tree);
+
   // Remove empty rows and compact
   rows.removeWhere((_, v) => v.isEmpty);
 
@@ -489,6 +496,76 @@ void _addSubjectRowWithSpouses(Map<int, List<_NodeInfo>> rows, int gen,
       ...spouses,
       ...siblings.map((s) => _NodeInfo(s.person)),
     ];
+  }
+}
+
+/// Garantit que les DEUX conjoints de chaque union possèdent un nœud.
+///
+/// Le backend fournit les unions du sujet mais aussi celles des ascendants
+/// (père, mère, grands-parents). Les conjoint·es des ancêtres (autres épouses
+/// d'un fondateur polygame…) ne sont créés par aucune passe. Ici, pour chaque
+/// union dont UN SEUL conjoint est déjà placé, on ajoute l'AUTRE dans la même
+/// ligne, immédiatement après le partenaire déjà présent. On réutilise la
+/// personne embarquée (union.husband / union.wife) et on marque le nœud comme
+/// [NodeType.spouse] avec un [NodeUnionInfo] cohérent (rang = unionOrder).
+void _ensureUnionSpousesPlaced(Map<int, List<_NodeInfo>> rows, FamilyTree tree) {
+  // Ensemble des personnes déjà placées (tous rangs confondus), anti-doublon.
+  final placed = <String>{};
+  for (final row in rows.values) {
+    for (final info in row) {
+      placed.add(info.person.id);
+    }
+  }
+
+  for (final union in tree.unions) {
+    final husbandPlaced = placed.contains(union.husbandId);
+    final wifePlaced = placed.contains(union.wifeId);
+
+    // Rien à faire si les deux sont déjà placés ou si aucun ne l'est
+    // (aucun point d'ancrage : on ne peut choisir de ligne).
+    if (husbandPlaced == wifePlaced) continue;
+
+    // Le conjoint déjà placé et celui à ajouter (personne embarquée).
+    final String anchorId;
+    final PersonGenealogy? missing;
+    if (husbandPlaced) {
+      anchorId = union.husbandId;
+      missing = union.wife;
+    } else {
+      anchorId = union.wifeId;
+      missing = union.husband;
+    }
+
+    // Personne conjoint indisponible → on ne crée rien.
+    if (missing == null) continue;
+    // Anti-doublon : déjà placée (autre union, même personne).
+    if (placed.contains(missing.id)) continue;
+
+    // Localiser la ligne + l'index du partenaire déjà placé.
+    for (final entry in rows.entries) {
+      final row = entry.value;
+      final anchorIndex = row.indexWhere((info) => info.person.id == anchorId);
+      if (anchorIndex < 0) continue;
+
+      row.insert(
+        anchorIndex + 1,
+        _NodeInfo(
+          missing,
+          hasDotPaid: union.isDotPaid,
+          lineage: NodeType.spouse,
+          unionInfo: NodeUnionInfo(
+            unionId: union.id,
+            rank: union.unionOrder,
+            isPolygamous: _isPolygamousContext(union, tree.unions),
+            isActive: union.isActive,
+            legalRegime: union.legalRegime,
+            compliance: unionComplianceFromStatus(union.complianceStatus),
+          ),
+        ),
+      );
+      placed.add(missing.id);
+      break;
+    }
   }
 }
 

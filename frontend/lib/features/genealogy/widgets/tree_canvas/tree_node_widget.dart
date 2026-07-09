@@ -199,11 +199,16 @@ class _SubjectNodeState extends State<_SubjectNode>
                     children: [
                       Text(
                         '${p.firstName} ${p.lastName}',
-                        maxLines: 1,
+                        // Lisibilité : le NOM peut passer sur 2 lignes et se
+                        // couper au mot (softWrap) ; l'ellipsis n'intervient
+                        // que si le nom est vraiment trop long pour 2 lignes.
+                        maxLines: 2,
+                        softWrap: true,
                         overflow: TextOverflow.ellipsis,
                         style: GwType.ui(
                             fontSize: 15,
                             fontWeight: FontWeight.w700,
+                            height: 1.2,
                             color: t.stone),
                       ),
                       const SizedBox(height: 2),
@@ -316,11 +321,17 @@ class _StandardNode extends StatelessWidget {
                 children: [
                   Text(
                     '${p.firstName} ${p.lastName}',
-                    maxLines: 1,
+                    // Lisibilité : le NOM peut passer sur 2 lignes et se couper
+                    // au mot (softWrap) ; l'ellipsis n'intervient que si le nom
+                    // dépasse 2 lignes. Un nom comme « Compte Démo » reste
+                    // affiché en entier.
+                    maxLines: 2,
+                    softWrap: true,
                     overflow: TextOverflow.ellipsis,
                     style: GwType.ui(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
+                        height: 1.2,
                         color: t.stone),
                   ),
                   const SizedBox(height: 1),
