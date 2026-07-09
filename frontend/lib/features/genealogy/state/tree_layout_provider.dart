@@ -677,6 +677,12 @@ Map<String, PersonGenealogy> _allPersons(FamilyTree tree) {
 List<_FoyerGroup> _detectFoyerGroups(FamilyTree tree) {
   final persons = _allPersons(tree);
 
+  // Parents du SUJET : son propre DTO ne porte pas motherId/fatherId (le
+  // backend ne les attribue qu'aux enfants) — on passe par tree.father/mother.
+  final subjectId = tree.subject.id;
+  final subjectFatherIds = {for (final p in tree.father) p.id};
+  final subjectMotherIds = {for (final p in tree.mother) p.id};
+
   // Unions groupées par mari.
   final byHusband = <String, List<GenealogyUnion>>{};
   for (final u in tree.unions) {
@@ -711,6 +717,15 @@ List<_FoyerGroup> _detectFoyerGroups(FamilyTree tree) {
           claimed.add(p.id);
         }
       }
+      // Le SUJET est enfant de cette union si le chef et cette épouse sont
+      // ses parents (via tree.father/tree.mother, cf. plus haut).
+      if (!claimed.contains(subjectId) &&
+          subjectFatherIds.contains(chief.id) &&
+          subjectMotherIds.contains(wife.id)) {
+        children.add(tree.subject);
+        claimed.add(subjectId);
+      }
+
       // Aîné·e d'abord (dates croissantes, inconnues à la fin), puis prénom.
       children.sort((a, b) {
         final da = a.birthDate;
@@ -727,12 +742,12 @@ List<_FoyerGroup> _detectFoyerGroups(FamilyTree tree) {
     groups.add(_FoyerGroup(chief, wives));
   }
 
-  // Le sujet doit appartenir à au moins un groupe, sinon rendu 1a.
-  final subjectId = tree.subject.id;
-  final involvesSubject = groups.any((g) =>
-      g.chief.id == subjectId ||
-      g.wives.any((w) =>
-          w.wife.id == subjectId || w.children.any((c) => c.id == subjectId)));
+  // Le sujet doit être RÉELLEMENT placé dans un groupe (chef, épouse ou
+  // enfant réclamé), sinon rendu 1a — il ne disparaît jamais de son arbre.
+  final involvesSubject = claimed.contains(subjectId) ||
+      groups.any((g) =>
+          g.chief.id == subjectId ||
+          g.wives.any((w) => w.wife.id == subjectId));
   if (!involvesSubject) return const [];
 
   // Groupe du sujet en premier (lecture gauche → droite).

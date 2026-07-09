@@ -198,6 +198,8 @@ class _NavDestination extends StatelessWidget {
           children: [
             Column(
               mainAxisSize: MainAxisSize.min,
+              // Icône centrée au-dessus du label, sur le même axe vertical.
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Container(
                   width: 52,

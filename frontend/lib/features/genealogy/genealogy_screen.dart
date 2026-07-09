@@ -18,6 +18,7 @@ import 'package:gwangmeu/features/genealogy/widgets/dialogs/add_union_dialog.dar
 import 'package:gwangmeu/features/genealogy/widgets/dialogs/person_detail_popup.dart';
 import 'package:gwangmeu/features/genealogy/widgets/right_panel/genealogy_right_panel.dart';
 import 'package:gwangmeu/features/genealogy/widgets/right_panel/genealogy_story_panel.dart';
+import 'package:gwangmeu/features/genealogy/widgets/migration/migration_view.dart';
 import 'package:gwangmeu/features/genealogy/widgets/river_view.dart';
 import 'package:gwangmeu/features/genealogy/widgets/tree_canvas/tree_canvas.dart';
 
@@ -203,6 +204,12 @@ class _MobileLayout extends ConsumerWidget {
                     ? null
                     : () => context.push(Routes.verify(suggestion.id)),
               ),
+            // Carte de migration (maquette 5a) à la place de l'arbre.
+            RiverMode.tree
+                when ref.watch(treeViewProvider
+                        .select((s) => s.currentView)) ==
+                    TreeView.migration =>
+              MigrationView(tree: tree, personId: personId),
             RiverMode.tree => TreeCanvas(
                 tree: tree,
                 personId: personId,
@@ -403,6 +410,8 @@ class _DesktopLayout extends ConsumerWidget {
     final t = GwTokens.of(context);
     final selectedId =
         ref.watch(treeViewProvider.select((s) => s.selectedPersonId));
+    final currentView =
+        ref.watch(treeViewProvider.select((s) => s.currentView));
     // Suggestion IA réelle (plus forte confidence, hors « Plus tard »).
     final suggestion = _bestSuggestion(
         tree, ref.watch(dismissedSuggestionsProvider));
@@ -460,18 +469,21 @@ class _DesktopLayout extends ConsumerWidget {
           child: Row(
             children: [
               Expanded(
-                child: TreeCanvas(
-                  tree: tree,
-                  personId: personId,
-                  showLegend: true,
-                  onAddParent: () =>
-                      _showAddDialog(context, ref, isParent: true),
-                  onAddChild: () =>
-                      _showAddDialog(context, ref, isParent: false),
-                  onAddUnion: () => _showUnionDialog(context, ref),
-                  onExport: () =>
-                      showGwToast(context, 'Export — bientôt disponible'),
-                ),
+                // Carte de migration (maquette 5a) à la place de l'arbre.
+                child: currentView == TreeView.migration
+                    ? MigrationView(tree: tree, personId: personId)
+                    : TreeCanvas(
+                        tree: tree,
+                        personId: personId,
+                        showLegend: true,
+                        onAddParent: () =>
+                            _showAddDialog(context, ref, isParent: true),
+                        onAddChild: () =>
+                            _showAddDialog(context, ref, isParent: false),
+                        onAddUnion: () => _showUnionDialog(context, ref),
+                        onExport: () => showGwToast(
+                            context, 'Export — bientôt disponible'),
+                      ),
               ),
               VerticalDivider(width: 1, color: t.line),
               // Récit par défaut ; détail personne quand une carte est choisie

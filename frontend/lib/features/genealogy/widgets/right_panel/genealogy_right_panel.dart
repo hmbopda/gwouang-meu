@@ -8,6 +8,7 @@ import 'package:gwangmeu/features/genealogy/models/genealogy_union.dart';
 import 'package:gwangmeu/features/genealogy/models/person_genealogy.dart';
 import 'package:gwangmeu/features/genealogy/services/genealogy_api_service.dart';
 import 'package:gwangmeu/core/theme/gw_tokens.dart';
+import 'package:gwangmeu/features/genealogy/state/migration_journey.dart';
 import 'package:gwangmeu/features/genealogy/state/tree_view_state.dart';
 import 'package:gwangmeu/features/genealogy/widgets/dialogs/add_person_dialog.dart';
 import 'package:gwangmeu/features/genealogy/widgets/dialogs/add_union_dialog.dart';
@@ -75,7 +76,11 @@ class GenealogyRightPanel extends ConsumerWidget {
                   selectedId: selectedPersonId,
                   treeOwnerId: personId,
                 ),
-              RightTab.migration => const _MigrationTab(),
+              RightTab.migration => _MigrationTab(
+                  tree: tree,
+                  selectedId: selectedPersonId,
+                  treeOwnerId: personId,
+                ),
               RightTab.ia => _IaTab(
                   suggestions: tree.pendingSuggestions,
                   personId: personId,
@@ -1194,37 +1199,465 @@ class _FoyerBtn extends StatelessWidget {
   }
 }
 
-// ── Migration tab ──
+// ── Migration tab (maquette 5a — panneau droit) ──
 
+/// Snackbar flottante générique du panneau Migration.
+void _migrationSnack(BuildContext context, String message) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(message),
+      behavior: SnackBarBehavior.floating,
+    ),
+  );
+}
+
+/// Retrouve une personne dans toutes les branches de l'arbre (même logique
+/// que `_PersonTab._findPerson`, factorisée pour l'onglet Migration).
+PersonGenealogy? _findPersonInTree(FamilyTree tree, String id) {
+  final all = <PersonGenealogy>[
+    tree.subject,
+    ...tree.father,
+    ...tree.mother,
+    ...tree.paternalGP,
+    ...tree.maternalGP,
+    ...tree.siblings.map((s) => s.person),
+    ...tree.children,
+    ...tree.uncles,
+    for (final u in tree.unions) ...[
+      if (u.husband != null) u.husband!,
+      if (u.wife != null) u.wife!,
+    ],
+  ];
+  try {
+    return all.firstWhere((p) => p.id == id);
+  } catch (_) {
+    return null;
+  }
+}
+
+/// Onglet « Migration » : parcours de migration de la personne sélectionnée
+/// (sinon du sujet) — badge, timeline « PARCOURS DE MIGRATION », alliances
+/// territoriales et actions carte (maquette 5a).
 class _MigrationTab extends StatelessWidget {
-  const _MigrationTab();
+  final FamilyTree tree;
+  final String? selectedId;
+  final String treeOwnerId;
+
+  const _MigrationTab({
+    required this.tree,
+    required this.selectedId,
+    required this.treeOwnerId,
+  });
 
   @override
   Widget build(BuildContext context) {
     final t = GwTokens.of(context);
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+    const brown = Color(0xFF3B2A16);
+    const cream = Color(0xFFF0EBE1);
+
+    // Personne affichée : la sélection si elle existe, sinon le sujet.
+    final person = (selectedId != null
+            ? _findPersonInTree(tree, selectedId!)
+            : null) ??
+        tree.subject;
+    final journey = buildMigrationJourney(tree, person);
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+      children: [
+        _MigrationHeader(person: person, tree: tree, journey: journey),
+        const SizedBox(height: 24),
+        _MigrationTimelineCard(journey: journey),
+        const SizedBox(height: 16),
+        _MigrationAlliancesCard(alliances: journey.alliances),
+        const SizedBox(height: 20),
+
+        // ── Actions (dans la zone défilante) ──
+        _FixedActionBtn(
+          icon: Symbols.travel_explore,
+          label: 'Voir toute la famille sur la carte',
+          backgroundColor: brown,
+          foregroundColor: cream,
+          onTap: () => _migrationSnack(
+            context,
+            'Bascule sur la carte — utilisez le toggle « Toute la famille »',
+          ),
+        ),
+        const SizedBox(height: 8),
+        _FixedActionBtn(
+          icon: Symbols.ios_share,
+          label: 'Exporter le parcours',
+          backgroundColor: Colors.transparent,
+          foregroundColor: t.goldText,
+          borderColor: t.goldLine,
+          onTap: () => _migrationSnack(
+            context,
+            'Export du parcours — bientôt disponible',
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// En-tête : badge initiales 56 px anneau or (+ point vert si vivant·e),
+/// nom en serif, sous-ligne « Foyer {mère} · Concession {père} ».
+class _MigrationHeader extends StatelessWidget {
+  final PersonGenealogy person;
+  final FamilyTree tree;
+  final MigrationJourney journey;
+
+  const _MigrationHeader({
+    required this.person,
+    required this.tree,
+    required this.journey,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final t = GwTokens.of(context);
+    final initials =
+        '${person.firstName.isNotEmpty ? person.firstName[0] : ''}${person.lastName.isNotEmpty ? person.lastName[0] : ''}'
+            .toUpperCase();
+
+    // Sous-ligne : composants disponibles uniquement.
+    final mother = tree.mother.isNotEmpty ? tree.mother.first : null;
+    final subParts = <String>[
+      if (mother != null && mother.firstName.trim().isNotEmpty)
+        'Foyer ${mother.firstName.trim()}',
+      if (journey.pilierConcession != null)
+        'Concession ${journey.pilierConcession}',
+    ];
+
+    return Column(
+      children: [
+        // ── Badge initiales 56 px, anneau or ──
+        Stack(
+          alignment: Alignment.center,
           children: [
-            Icon(Symbols.flight_takeoff, size: 40, color: t.stoneDim),
-            const SizedBox(height: 8),
-            Text(
-              'Parcours migratoire',
-              style: TextStyle(color: t.stone, fontSize: 14, fontWeight: FontWeight.w600),
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: t.inkLift,
+                border: Border.all(color: GwTokens.gold, width: 2.5),
+                boxShadow: [
+                  BoxShadow(
+                    color: GwTokens.gold.withValues(alpha: 0.22),
+                    blurRadius: 12,
+                    spreadRadius: 1,
+                  ),
+                ],
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                initials,
+                style: GwType.display(
+                  fontSize: 19,
+                  fontWeight: FontWeight.w700,
+                  color: t.stone,
+                ),
+              ),
             ),
-            const SizedBox(height: 4),
-            Text(
-              'Fonctionnalité en cours de développement.\nVous pourrez bientôt visualiser les parcours migratoires de chaque membre.',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: t.stoneDim, fontSize: 11),
-            ),
+            if (person.isAlive)
+              Positioned(
+                right: 1,
+                bottom: 1,
+                child: Container(
+                  width: 14,
+                  height: 14,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: GwTokens.sage,
+                    border: Border.all(color: t.inkCard, width: 2.5),
+                  ),
+                ),
+              ),
           ],
         ),
+        const SizedBox(height: 12),
+
+        // ── Nom serif centré ──
+        Text(
+          '${person.firstName} ${person.lastName}',
+          textAlign: TextAlign.center,
+          style: GwType.display(
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            color: t.stone,
+          ),
+        ),
+        if (subParts.isNotEmpty) ...[
+          const SizedBox(height: 4),
+          Text(
+            subParts.join(' · '),
+            textAlign: TextAlign.center,
+            style: GwType.ui(fontSize: 12.5, color: t.stoneDim),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+/// Carte « PARCOURS DE MIGRATION » : timeline verticale à puces colorées
+/// (or pour les étapes, vert pour la résidence actuelle) + bouton pointillé
+/// or « + Ajouter une étape ».
+class _MigrationTimelineCard extends StatelessWidget {
+  final MigrationJourney journey;
+
+  const _MigrationTimelineCard({required this.journey});
+
+  /// « {Lieu} — {année | depuis année | —} ».
+  String _titleOf(MigrationStep s) {
+    if (s.kind == MigrationStepKind.residence) {
+      return s.year != null ? '${s.place} — depuis ${s.year}' : '${s.place} — auj.';
+    }
+    return s.year != null ? '${s.place} — ${s.year}' : '${s.place} — —';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = GwTokens.of(context);
+    final steps = journey.steps;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: t.ink,
+        borderRadius: BorderRadius.circular(GwTokens.rCard),
+        border: Border.all(color: t.line),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'PARCOURS DE MIGRATION',
+            style: GwType.mono(
+              fontSize: 10,
+              letterSpacing: 2,
+              color: t.stoneFaint,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 14),
+          if (steps.isEmpty)
+            Text(
+              'Aucune étape de migration renseignée.',
+              style: GwType.ui(fontSize: 12.5, color: t.stoneDim),
+            )
+          else
+            ...List.generate(steps.length, (i) {
+              final s = steps[i];
+              final dotColor = s.kind == MigrationStepKind.residence
+                  ? GwTokens.sage
+                  : GwTokens.gold;
+              return Padding(
+                padding:
+                    EdgeInsets.only(bottom: i == steps.length - 1 ? 0 : 16),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Container(
+                        width: 10,
+                        height: 10,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: dotColor,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _titleOf(s),
+                            style: GwType.ui(
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w700,
+                              color: t.stone,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            s.subtitle,
+                            style:
+                                GwType.ui(fontSize: 12.5, color: t.stoneDim),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          const SizedBox(height: 14),
+
+          // ── + Ajouter une étape (contour pointillé or) ──
+          SizedBox(
+            width: double.infinity,
+            height: 42,
+            child: CustomPaint(
+              painter: _DashedBorderPainter(
+                color: t.goldLine,
+                radius: GwTokens.rBtn,
+              ),
+              child: Material(
+                color: Colors.transparent,
+                borderRadius: BorderRadius.circular(GwTokens.rBtn),
+                child: InkWell(
+                  onTap: () => _migrationSnack(
+                    context,
+                    'Ajout d\'étape — bientôt disponible',
+                  ),
+                  borderRadius: BorderRadius.circular(GwTokens.rBtn),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Symbols.add, size: 16, color: t.goldText),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Ajouter une étape',
+                        style: GwType.ui(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w600,
+                          color: t.goldText,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
+}
+
+/// Carte « ALLIANCES SUR LA CARTE » : point rose (maternelle) ou vert
+/// (par union) + village en gras + type à droite.
+class _MigrationAlliancesCard extends StatelessWidget {
+  final List<MigrationAlliance> alliances;
+
+  const _MigrationAlliancesCard({required this.alliances});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = GwTokens.of(context);
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: t.ink,
+        borderRadius: BorderRadius.circular(GwTokens.rCard),
+        border: Border.all(color: t.line),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'ALLIANCES SUR LA CARTE',
+            style: GwType.mono(
+              fontSize: 10,
+              letterSpacing: 2,
+              color: t.stoneFaint,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 14),
+          if (alliances.isEmpty)
+            Text(
+              'Aucune alliance sur la carte',
+              style: GwType.ui(fontSize: 12.5, color: t.stoneDim),
+            )
+          else
+            ...List.generate(alliances.length, (i) {
+              final a = alliances[i];
+              final color = a.kind == AllianceKind.maternelle
+                  ? GwTokens.rose
+                  : GwTokens.sage;
+              final typeLabel =
+                  a.kind == AllianceKind.maternelle ? 'maternelle' : 'par union';
+              return Padding(
+                padding:
+                    EdgeInsets.only(bottom: i == alliances.length - 1 ? 0 : 12),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 9,
+                      height: 9,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: color,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        a.place,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GwType.ui(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: t.stone,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      typeLabel,
+                      style: GwType.ui(fontSize: 12, color: color),
+                    ),
+                  ],
+                ),
+              );
+            }),
+        ],
+      ),
+    );
+  }
+}
+
+/// Trace un contour arrondi en pointillés (bouton « + Ajouter une étape »).
+class _DashedBorderPainter extends CustomPainter {
+  final Color color;
+  final double radius;
+
+  const _DashedBorderPainter({required this.color, required this.radius});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1;
+    final path = Path()
+      ..addRRect(RRect.fromRectAndRadius(
+        Offset.zero & size,
+        Radius.circular(radius),
+      ));
+    const dash = 5.0;
+    const gap = 4.0;
+    for (final metric in path.computeMetrics()) {
+      var distance = 0.0;
+      while (distance < metric.length) {
+        canvas.drawPath(metric.extractPath(distance, distance + dash), paint);
+        distance += dash + gap;
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DashedBorderPainter oldDelegate) =>
+      oldDelegate.color != color || oldDelegate.radius != radius;
 }
 
 // ── IA tab ──

@@ -78,6 +78,7 @@ class IconRail extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.fromLTRB(10, 0, 10, 18),
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Container(
                   width: 32,
@@ -92,6 +93,7 @@ class IconRail extends ConsumerWidget {
                     style: GwType.display(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
+                        height: 1,
                         color: const Color(0xFF0C0B0F)),
                   ),
                 ),
@@ -101,6 +103,7 @@ class IconRail extends ConsumerWidget {
                   style: GwType.display(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
+                      height: 1,
                       color: t.stone),
                 ),
               ],
@@ -203,9 +206,17 @@ class _RailItem extends StatelessWidget {
             height: GwTokens.tapTarget,
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Icon(item.icon, size: 20, color: color,
-                    fill: isActive ? 1 : 0),
+                // Slot fixe 24 px : l'icône 20 px est centrée dedans, si bien
+                // que tous les labels démarrent à la même abscisse.
+                SizedBox(
+                  width: 24,
+                  child: Center(
+                    child: Icon(item.icon, size: 20, color: color,
+                        fill: isActive ? 1 : 0),
+                  ),
+                ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
