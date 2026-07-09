@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import 'package:gwangmeu/core/theme/gw_tokens.dart';
@@ -26,6 +28,32 @@ class TreeLinkPainter extends CustomPainter {
     required this.unionColor,
   });
 
+  // Demi-dimensions des cartes-nœud : les liens sont ancrés au BORD des cartes
+  // (et non au centre), pour éviter que le trait ne traverse/dépasse le nœud.
+  static const double _halfHeight = 52;
+  static const double _halfWidth = 90; // kTreeNodeWidth (180) / 2
+
+  /// Ramène `from`/`to` (centres des nœuds) sur le bord des cartes, en insérant
+  /// chaque extrémité vers l'autre. Clampé à 45 % de la distance pour ne jamais
+  /// inverser le segment quand les nœuds sont proches.
+  static (Offset, Offset) _cardEndpoints(Offset from, Offset to,
+      {required bool vertical, required double half}) {
+    if (vertical) {
+      final sign = to.dy >= from.dy ? 1.0 : -1.0;
+      final d = math.min(half, (to.dy - from.dy).abs() * 0.45);
+      return (
+        Offset(from.dx, from.dy + sign * d),
+        Offset(to.dx, to.dy - sign * d),
+      );
+    }
+    final sign = to.dx >= from.dx ? 1.0 : -1.0;
+    final d = math.min(half, (to.dx - from.dx).abs() * 0.45);
+    return (
+      Offset(from.dx + sign * d, from.dy),
+      Offset(to.dx - sign * d, to.dy),
+    );
+  }
+
   @override
   void paint(Canvas canvas, Size size) {
     for (final link in links) {
@@ -53,16 +81,20 @@ class TreeLinkPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
 
+    // Ancrage au bord haut/bas des cartes (filiation ≈ verticale).
+    final (a, b) =
+        _cardEndpoints(link.from, link.to, vertical: true, half: _halfHeight);
+
     if (link.highlight) {
       final glow = Paint()
         ..color = base.withValues(alpha: 0.18)
         ..strokeWidth = 7
         ..style = PaintingStyle.stroke
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
-      _drawBezier(canvas, glow, link.from, link.to);
+      _drawBezier(canvas, glow, a, b);
     }
 
-    _drawBezier(canvas, paint, link.from, link.to);
+    _drawBezier(canvas, paint, a, b);
   }
 
   /// Union : trait entre conjoints. Active = plein discret ; terminée = pointillé
@@ -76,19 +108,16 @@ class TreeLinkPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
 
-    if (link.ended) {
-      final path = _dottedPath(link.from, link.to, 1.5, 6);
-      canvas.drawPath(path, paint);
-    } else {
-      final path = _dottedPath(link.from, link.to, 1.5, 5);
-      canvas.drawPath(path, paint);
-    }
+    // Ancrage aux côtés des cartes (union ≈ horizontale) → plus de trait qui
+    // traverse les nœuds conjoints.
+    final (a, b) =
+        _cardEndpoints(link.from, link.to, vertical: false, half: _halfWidth);
+
+    final path = _dottedPath(a, b, 1.5, link.ended ? 6 : 5);
+    canvas.drawPath(path, paint);
 
     // Petit point rose au milieu (alliance) — plus doux si l'union est terminée.
-    final mid = Offset(
-      (link.from.dx + link.to.dx) / 2,
-      (link.from.dy + link.to.dy) / 2,
-    );
+    final mid = Offset((a.dx + b.dx) / 2, (a.dy + b.dy) / 2);
     canvas.drawCircle(
       mid,
       3,
