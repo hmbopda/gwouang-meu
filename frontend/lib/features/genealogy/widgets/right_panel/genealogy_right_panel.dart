@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_symbols_icons/symbols.dart';
@@ -12,6 +13,20 @@ import 'package:gwangmeu/features/genealogy/state/migration_journey.dart';
 import 'package:gwangmeu/features/genealogy/state/tree_view_state.dart';
 import 'package:gwangmeu/features/genealogy/widgets/dialogs/add_person_dialog.dart';
 import 'package:gwangmeu/features/genealogy/widgets/dialogs/add_union_dialog.dart';
+
+/// Défilement inratable pour le panneau : molette, trackpad ET glisser à la
+/// souris (le drag souris est désactivé par défaut sur Flutter web/desktop).
+class _PanelScrollBehavior extends MaterialScrollBehavior {
+  const _PanelScrollBehavior();
+
+  @override
+  Set<PointerDeviceKind> get dragDevices => const {
+        PointerDeviceKind.touch,
+        PointerDeviceKind.mouse,
+        PointerDeviceKind.trackpad,
+        PointerDeviceKind.stylus,
+      };
+}
 
 /// Right panel with 3 tabs: Personne, Migration, IA.
 class GenealogyRightPanel extends ConsumerWidget {
@@ -221,15 +236,18 @@ class _PersonTabState extends State<_PersonTab> {
 
     return Column(
       children: [
-        // ── Contenu défilant (borné, barre visible) ──
+        // ── Contenu défilant (borné, barre visible, molette + drag souris) ──
         Expanded(
-          child: Scrollbar(
-            controller: _scrollCtrl,
-            thumbVisibility: true,
-            child: SingleChildScrollView(
+          child: ScrollConfiguration(
+            behavior: const _PanelScrollBehavior(),
+            child: Scrollbar(
               controller: _scrollCtrl,
-              padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
-              child: Column(
+              thumbVisibility: true,
+              child: SingleChildScrollView(
+                controller: _scrollCtrl,
+                primary: false,
+                padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+                child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   _PersonHeader(
@@ -258,6 +276,7 @@ class _PersonTabState extends State<_PersonTab> {
                     unions: personUnions,
                   ),
                 ],
+                ),
               ),
             ),
           ),
@@ -1470,11 +1489,14 @@ class _MigrationTabState extends State<_MigrationTab> {
         tree.subject;
     final journey = buildMigrationJourney(tree, person);
 
-    return Scrollbar(
+    return ScrollConfiguration(
+      behavior: const _PanelScrollBehavior(),
+      child: Scrollbar(
       controller: _scrollCtrl,
       thumbVisibility: true,
       child: SingleChildScrollView(
         controller: _scrollCtrl,
+        primary: false,
         padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1511,6 +1533,7 @@ class _MigrationTabState extends State<_MigrationTab> {
             ),
           ],
         ),
+      ),
       ),
     );
   }
