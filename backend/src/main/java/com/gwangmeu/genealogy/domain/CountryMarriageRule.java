@@ -24,6 +24,10 @@ public class CountryMarriageRule {
     @Column(name = "iso2", length = 2)
     private String iso2;
 
+    /** Code pays ISO-3166 alpha-3 (ex: CMR, FRA) — aligne sur la table countries. */
+    @Column(name = "iso3", length = 3)
+    private String iso3;
+
     @Column(name = "country_name", length = 100)
     private String countryName;
 

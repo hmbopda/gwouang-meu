@@ -14,4 +14,6 @@ import java.util.Optional;
 public interface CountryMarriageRuleRepository extends JpaRepository<CountryMarriageRule, String> {
 
     Optional<CountryMarriageRule> findByIso2IgnoreCase(String iso2);
+
+    Optional<CountryMarriageRule> findByIso3IgnoreCase(String iso3);
 }

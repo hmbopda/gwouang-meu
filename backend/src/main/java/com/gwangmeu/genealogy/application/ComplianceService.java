@@ -48,11 +48,17 @@ public class ComplianceService {
      * Regle pays (referentiel), depuis le cache memoire. Vide si pays absent
      * ou iso2 null/blanc → traite UNKNOWN a l'execution.
      */
-    public Optional<CountryMarriageRule> getRule(String iso2) {
-        if (iso2 == null || iso2.isBlank()) return Optional.empty();
-        String key = iso2.trim().toUpperCase();
-        CountryMarriageRule cached = cache.computeIfAbsent(key, k ->
-                ruleRepository.findByIso2IgnoreCase(k).orElse(null));
+    public Optional<CountryMarriageRule> getRule(String code) {
+        if (code == null || code.isBlank()) return Optional.empty();
+        String key = code.trim().toUpperCase();
+        // Le front envoie le code de la table countries (ISO-3, ex "CMR"), mais le
+        // referentiel est saisi en ISO-2 (ex "CM"). On tente les deux pour rester
+        // tolerant quelle que soit la source du code pays.
+        CountryMarriageRule cached = cache.computeIfAbsent(key, k -> {
+            Optional<CountryMarriageRule> r = ruleRepository.findByIso2IgnoreCase(k);
+            if (r.isEmpty()) r = ruleRepository.findByIso3IgnoreCase(k);
+            return r.orElse(null);
+        });
         return Optional.ofNullable(cached);
     }
 
