@@ -68,6 +68,7 @@ jobs:
             --release \
             --base-href "/" \
             --no-tree-shake-icons \
+            --pwa-strategy none \
             --dart-define=FLUTTER_WEB_CANVASKIT_URL=https://www.gstatic.com/flutter-canvaskit/
 
       - name: Deploy to Cloudflare Pages

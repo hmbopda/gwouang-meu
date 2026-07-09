@@ -243,7 +243,7 @@ class _PersonTab extends StatelessWidget {
   }
 
   PersonGenealogy? _findPerson(String id) {
-    final all = [
+    final all = <PersonGenealogy>[
       tree.subject,
       ...tree.father,
       ...tree.mother,
@@ -252,6 +252,12 @@ class _PersonTab extends StatelessWidget {
       ...tree.siblings.map((s) => s.person),
       ...tree.children,
       ...tree.uncles,
+      // Conjoint·es embarqué·es dans les unions (co-épouses des ascendants) :
+      // sinon un clic sur une co-épouse affiche « Personne introuvable ».
+      for (final u in tree.unions) ...[
+        if (u.husband != null) u.husband!,
+        if (u.wife != null) u.wife!,
+      ],
     ];
     try {
       return all.firstWhere((p) => p.id == id);

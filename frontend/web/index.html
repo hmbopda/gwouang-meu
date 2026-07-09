@@ -36,6 +36,23 @@
 
   <title>GWANG MEU — Mémoire des villages</title>
   <link rel="manifest" href="manifest.json">
+
+  <!-- Anti-cache PWA : le service worker Flutter servait des versions périmées
+       (« je vois rien » après déploiement). On désenregistre tout SW existant et
+       on purge ses caches → l'app est toujours à jour. Le build utilise aussi
+       --pwa-strategy=none (plus aucun SW enregistré). -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations()
+        .then(function (regs) { regs.forEach(function (r) { r.unregister(); }); })
+        .catch(function () {});
+    }
+    if (window.caches && caches.keys) {
+      caches.keys()
+        .then(function (keys) { keys.forEach(function (k) { caches.delete(k); }); })
+        .catch(function () {});
+    }
+  </script>
 </head>
 <body>
   <!-- Splash de chargement pendant l'init Flutter (thème crème par défaut) -->
