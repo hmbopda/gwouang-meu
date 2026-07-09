@@ -290,21 +290,21 @@ class _PersonHeader extends StatelessWidget {
 
     return Column(
       children: [
-        // ── Gros badge circulaire à initiales ──
+        // ── Badge circulaire à initiales (compact) ──
         Stack(
           alignment: Alignment.center,
           children: [
             Container(
-              width: 88,
-              height: 88,
+              width: 72,
+              height: 72,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: t.inkLift,
-                border: Border.all(color: ringColor, width: 3),
+                border: Border.all(color: ringColor, width: 2.5),
                 boxShadow: [
                   BoxShadow(
-                    color: ringColor.withValues(alpha: 0.25),
-                    blurRadius: 16,
+                    color: ringColor.withValues(alpha: 0.22),
+                    blurRadius: 12,
                     spreadRadius: 1,
                   ),
                 ],
@@ -314,15 +314,15 @@ class _PersonHeader extends StatelessWidget {
                   ? ClipOval(
                       child: Image.network(
                         person.photoUrl!,
-                        width: 82,
-                        height: 82,
+                        width: 67,
+                        height: 67,
                         fit: BoxFit.cover,
                       ),
                     )
                   : Text(
                       initials,
                       style: GwType.display(
-                        fontSize: 30,
+                        fontSize: 25,
                         fontWeight: FontWeight.w700,
                         color: t.stone,
                       ),
@@ -331,28 +331,28 @@ class _PersonHeader extends StatelessWidget {
             // Point vert « vivant·e » en bas-droite.
             if (person.isAlive)
               Positioned(
-                right: 6,
-                bottom: 6,
+                right: 4,
+                bottom: 4,
                 child: Container(
-                  width: 18,
-                  height: 18,
+                  width: 15,
+                  height: 15,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: GwTokens.sage,
-                    border: Border.all(color: t.inkCard, width: 3),
+                    border: Border.all(color: t.inkCard, width: 2.5),
                   ),
                 ),
               ),
           ],
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 12),
 
         // ── Nom en serif centré ──
         Text(
           '${person.firstName} ${person.lastName}',
           textAlign: TextAlign.center,
           style: GwType.display(
-            fontSize: 22,
+            fontSize: 19,
             fontWeight: FontWeight.w700,
             color: t.stone,
           ),
@@ -514,7 +514,7 @@ class _LifeFiche extends StatelessWidget {
     final events = _buildEvents();
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: t.ink,
         borderRadius: BorderRadius.circular(GwTokens.rCard),
@@ -526,13 +526,13 @@ class _LifeFiche extends StatelessWidget {
           Text(
             'FICHE DE VIE',
             style: GwType.mono(
-              fontSize: 10,
+              fontSize: 9.5,
               letterSpacing: 2,
               color: t.stoneFaint,
               fontWeight: FontWeight.w600,
             ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
           if (events.isEmpty)
             Text(
               'Aucun évènement de vie renseigné.',
@@ -543,22 +543,22 @@ class _LifeFiche extends StatelessWidget {
               final e = events[i];
               return Padding(
                 padding: EdgeInsets.only(
-                    bottom: i == events.length - 1 ? 0 : 16),
+                    bottom: i == events.length - 1 ? 0 : 12),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Padding(
                       padding: const EdgeInsets.only(top: 4),
                       child: Container(
-                        width: 10,
-                        height: 10,
+                        width: 8,
+                        height: 8,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           color: e.dotColor,
                         ),
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 10),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -566,7 +566,7 @@ class _LifeFiche extends StatelessWidget {
                           Text(
                             e.title,
                             style: GwType.ui(
-                              fontSize: 13.5,
+                              fontSize: 12.5,
                               fontWeight: FontWeight.w700,
                               color: t.stone,
                             ),
@@ -575,7 +575,7 @@ class _LifeFiche extends StatelessWidget {
                           Text(
                             e.subtitle,
                             style:
-                                GwType.ui(fontSize: 12.5, color: t.stoneDim),
+                                GwType.ui(fontSize: 11.5, color: t.stoneDim),
                           ),
                         ],
                       ),
@@ -646,7 +646,7 @@ class _MiniCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = GwTokens.of(context);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
       decoration: BoxDecoration(
         color: t.inkCard,
         borderRadius: BorderRadius.circular(GwTokens.rBtn),
@@ -658,17 +658,17 @@ class _MiniCard extends StatelessWidget {
           Text(
             label,
             style: GwType.mono(
-              fontSize: 9,
+              fontSize: 8.5,
               letterSpacing: 1.5,
               color: t.stoneFaint,
               fontWeight: FontWeight.w600,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Text(
             value,
             style: GwType.ui(
-              fontSize: 14,
+              fontSize: 13,
               fontWeight: FontWeight.w600,
               color: t.stone,
             ),
@@ -708,7 +708,7 @@ class _FixedActions extends StatelessWidget {
     // Brun patrimonial de la charte (#3b2a16) pour le bouton secondaire fort.
     const brown = Color(0xFF3B2A16);
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
       decoration: BoxDecoration(
         color: t.inkCard,
         border: Border(top: BorderSide(color: t.line)),
@@ -724,7 +724,7 @@ class _FixedActions extends StatelessWidget {
             foregroundColor: GwTokens.inkOnGold,
             onTap: () => _showEditDialog(context, person, treeOwnerId),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
 
           // ── Voir carte de migration (brun plein) ──
           _FixedActionBtn(
@@ -741,7 +741,7 @@ class _FixedActions extends StatelessWidget {
               );
             },
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
 
           // ── Ajouter un enfant (contour) ──
           _FixedActionBtn(
@@ -780,9 +780,10 @@ class _FixedActionBtn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Boutons « soft » miniaturisés : 36 px, typo 12, icône 15.
     return SizedBox(
       width: double.infinity,
-      height: 48,
+      height: 36,
       child: Material(
         color: backgroundColor,
         borderRadius: BorderRadius.circular(GwTokens.rBtn),
@@ -800,12 +801,12 @@ class _FixedActionBtn extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(icon, size: 18, color: foregroundColor),
-                const SizedBox(width: 8),
+                Icon(icon, size: 15, color: foregroundColor),
+                const SizedBox(width: 6),
                 Text(
                   label,
                   style: GwType.ui(
-                    fontSize: 13.5,
+                    fontSize: 12,
                     fontWeight: FontWeight.w600,
                     color: foregroundColor,
                   ),
@@ -892,20 +893,20 @@ class _FoyerManagement extends ConsumerWidget {
               Row(
                 children: [
                   Container(
-                    width: 40,
-                    height: 40,
+                    width: 34,
+                    height: 34,
                     decoration: const BoxDecoration(
                         color: GwTokens.gold, shape: BoxShape.circle),
                     alignment: Alignment.center,
                     child: Text(
                       initials,
                       style: GwType.display(
-                          fontSize: 15,
+                          fontSize: 13,
                           fontWeight: FontWeight.w700,
                           color: brown),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1001,7 +1002,7 @@ class _FoyerManagement extends ConsumerWidget {
         // ── + Ajouter une épouse / union (contour pointillé or) ──
         SizedBox(
           width: double.infinity,
-          height: 46,
+          height: 34,
           child: Material(
             color: Colors.transparent,
             borderRadius: BorderRadius.circular(GwTokens.rBtn),
@@ -1020,12 +1021,12 @@ class _FoyerManagement extends ConsumerWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Symbols.add, size: 16, color: t.goldText),
-                    const SizedBox(width: 6),
+                    Icon(Symbols.add, size: 14, color: t.goldText),
+                    const SizedBox(width: 5),
                     Text(
                       'Ajouter une épouse / union',
                       style: GwType.ui(
-                          fontSize: 13,
+                          fontSize: 11.5,
                           fontWeight: FontWeight.w600,
                           color: t.goldText),
                     ),
@@ -1147,19 +1148,20 @@ class _FoyerBtn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Boutons compacts de la carte chef : 32 px, typo 11.5.
     return SizedBox(
-      height: 38,
+      height: 32,
       child: Material(
         color: background,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(9),
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(9),
           child: Container(
             alignment: Alignment.center,
             padding: const EdgeInsets.symmetric(horizontal: 8),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(9),
               border:
                   borderColor != null ? Border.all(color: borderColor!) : null,
             ),
@@ -1169,7 +1171,7 @@ class _FoyerBtn extends StatelessWidget {
                 label,
                 maxLines: 1,
                 style: GwType.ui(
-                    fontSize: 12.5,
+                    fontSize: 11.5,
                     fontWeight: FontWeight.w700,
                     color: foreground),
               ),
@@ -1483,7 +1485,7 @@ class _MigrationTimelineCard extends StatelessWidget {
           // ── + Ajouter une étape (contour pointillé or) ──
           SizedBox(
             width: double.infinity,
-            height: 42,
+            height: 34,
             child: CustomPaint(
               painter: _DashedBorderPainter(
                 color: t.goldLine,
@@ -1501,12 +1503,12 @@ class _MigrationTimelineCard extends StatelessWidget {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Symbols.add, size: 16, color: t.goldText),
-                      const SizedBox(width: 6),
+                      Icon(Symbols.add, size: 14, color: t.goldText),
+                      const SizedBox(width: 5),
                       Text(
                         'Ajouter une étape',
                         style: GwType.ui(
-                          fontSize: 12.5,
+                          fontSize: 11.5,
                           fontWeight: FontWeight.w600,
                           color: t.goldText,
                         ),
