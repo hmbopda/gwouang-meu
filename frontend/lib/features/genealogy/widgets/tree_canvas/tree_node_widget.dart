@@ -446,7 +446,11 @@ class _StandardNode extends StatelessWidget {
 
     if (node.hasDotPaid) pills.add(_tintPill('DOT', GwTokens.gold));
 
-    return pills;
+    // MAX 3 pilules par carte : au-delà, le FittedBox les écrasait en
+    // illisible. Priorité conservée : rôle → vivant·e → rang/état.
+    // Les détails complets (terminée, conformité, dot) restent dans le
+    // panneau Personne et le tooltip.
+    return pills.length > 3 ? pills.sublist(0, 3) : pills;
   }
 }
 
@@ -717,14 +721,20 @@ Color _badgeColor(LayoutNode node) {
   }
 }
 
+/// Tronque un libellé de pilule (les noms longs écrasaient toute la rangée).
+String _pillCap(String s) {
+  final up = s.toUpperCase();
+  return up.length > 10 ? '${up.substring(0, 10)}…' : up;
+}
+
 String? _badgeText(LayoutNode n) {
   final p = n.person;
   if (n.type == NodeType.aiSuggestion) return 'AFFLUENT PROBABLE';
   if (n.type == NodeType.secondaryLineage || n.type == NodeType.spouse) {
-    return 'LIGNÉE ${p.lastName.toUpperCase()}';
+    return 'LIGNÉE ${_pillCap(p.lastName)}';
   }
   if (p.clan != null && p.clan!.isNotEmpty) {
-    return 'CLAN ${p.clan!.toUpperCase()}';
+    return 'CLAN ${_pillCap(p.clan!)}';
   }
   return null;
 }

@@ -86,8 +86,9 @@ final treeLayoutProvider = Provider.autoDispose.family<TreeLayout, FamilyTree>(
 
 // ── Layout algorithm ────────────────────────────────────────
 
-// Nœuds-cartes « Tissage » (~180 px de large) → espacements élargis.
-const double _hSpacing = 210.0;
+// Nœuds-cartes maquette (230 px de large) → 264 = carte + gouttière 34 px,
+// AUCUN chevauchement possible entre cartes voisines.
+const double _hSpacing = 264.0;
 const double _vSpacing = 190.0;
 const double _padding = 100.0;
 const double _topPadding = 170.0; // extra top space for floating toolbar
