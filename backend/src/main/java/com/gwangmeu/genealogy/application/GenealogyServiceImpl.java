@@ -1249,6 +1249,11 @@ class GenealogyServiceImpl implements GenealogyService {
             suggestion.setStatus(AiSuggestionStatusEnum.ACCEPTED);
             aiSuggestionRepository.save(suggestion);
 
+            // Materialiser la relation dans PostgreSQL (source de verite). Sans ceci,
+            // accepter une suggestion ne changeait que le statut : le lien n'apparaissait
+            // jamais dans l'arbre (l'ancien listener n'ecrivait que dans Neo4j, injoignable).
+            materializeAcceptedRelation(suggestion, reviewedBy);
+
             eventPublisher.publishEvent(new AiSuggestionAcceptedEvent(
                     suggestionId, suggestion.getPersonAId(), suggestion.getPersonBId(),
                     suggestion.getSuggestedRelation()));
@@ -1265,6 +1270,57 @@ class GenealogyServiceImpl implements GenealogyService {
     }
 
     // ── HELPERS ────────────────────────────────────────────
+
+    /**
+     * Cree la relation reelle correspondant a une suggestion IA acceptee.
+     * personA = sujet, personB = personne proposee. Non bloquant : en cas de
+     * conflit (lien deja present, genre incompatible…), on journalise sans
+     * faire echouer l'acceptation.
+     */
+    private void materializeAcceptedRelation(AiGenealogySuggestion s, UUID reviewedBy) {
+        String rel = s.getSuggestedRelation() == null ? "" : s.getSuggestedRelation().trim().toUpperCase();
+        UUID a = s.getPersonAId();
+        UUID b = s.getPersonBId();
+        try {
+            switch (rel) {
+                case "MOTHER" -> linkIfNoBioParent(b, a, ParentRoleEnum.MOTHER, reviewedBy);
+                case "FATHER" -> linkIfNoBioParent(b, a, ParentRoleEnum.FATHER, reviewedBy);
+                case "CHILD" -> {
+                    Person pa = personRepository.findById(a).orElse(null);
+                    ParentRoleEnum role = (pa != null && pa.getGender() == GenderEnum.FEMALE)
+                            ? ParentRoleEnum.MOTHER : ParentRoleEnum.FATHER;
+                    linkIfNoBioParent(a, b, role, reviewedBy);
+                }
+                case "SIBLING" -> {
+                    for (ParentChild pc : parentChildRepository.findByChildId(a)) {
+                        linkIfNoBioParent(pc.getParentId(), b, pc.getParentRole(), reviewedBy);
+                    }
+                }
+                case "WIFE", "HUSBAND", "SPOUSE" -> {
+                    Person pa = personRepository.findById(a).orElse(null);
+                    UUID husband = (pa != null && pa.getGender() == GenderEnum.MALE) ? a : b;
+                    UUID wife = husband.equals(a) ? b : a;
+                    createUnion(CreateUnionRequest.builder()
+                            .husbandId(husband).wifeId(wife)
+                            .unionTypes(java.util.List.of("CUSTOMARY")).build(), reviewedBy);
+                }
+                default -> log.warn("Suggestion IA acceptee mais relation '{}' non materialisable", rel);
+            }
+        } catch (Exception e) {
+            log.warn("Materialisation relation IA '{}' (non bloquant) echouee: {}", rel, e.getMessage());
+        }
+    }
+
+    /** Lien parent-enfant seulement si l'enfant n'a pas deja un parent bio de ce role. */
+    private void linkIfNoBioParent(UUID parentId, UUID childId, ParentRoleEnum role, UUID createdBy) {
+        boolean hasRole = parentChildRepository.findByChildId(childId).stream()
+                .anyMatch(pc -> pc.getParentRole() == role && pc.getParentType() == ParentTypeEnum.BIOLOGICAL);
+        if (hasRole) {
+            log.info("Enfant {} a deja un parent bio {} — materialisation IA ignoree", childId, role);
+            return;
+        }
+        linkParentChild(parentId, childId, role, ParentTypeEnum.BIOLOGICAL, createdBy);
+    }
 
     /** Premiere valeur non nulle et non blanche parmi les candidats. */
     private String firstNonBlank(String... values) {
