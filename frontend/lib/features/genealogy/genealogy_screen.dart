@@ -17,7 +17,6 @@ import 'package:gwangmeu/features/genealogy/widgets/dialogs/add_person_dialog.da
 import 'package:gwangmeu/features/genealogy/widgets/dialogs/add_union_dialog.dart';
 import 'package:gwangmeu/features/genealogy/widgets/dialogs/person_detail_popup.dart';
 import 'package:gwangmeu/features/genealogy/widgets/right_panel/genealogy_right_panel.dart';
-import 'package:gwangmeu/features/genealogy/widgets/right_panel/genealogy_story_panel.dart';
 import 'package:gwangmeu/features/genealogy/widgets/migration/migration_view.dart';
 import 'package:gwangmeu/features/genealogy/widgets/river_view.dart';
 import 'package:gwangmeu/features/genealogy/widgets/tree_canvas/tree_canvas.dart';
@@ -408,8 +407,6 @@ class _DesktopLayout extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final t = GwTokens.of(context);
-    final selectedId =
-        ref.watch(treeViewProvider.select((s) => s.selectedPersonId));
     final currentView =
         ref.watch(treeViewProvider.select((s) => s.currentView));
     // Suggestion IA réelle (plus forte confidence, hors « Plus tard »).
@@ -486,23 +483,12 @@ class _DesktopLayout extends ConsumerWidget {
                       ),
               ),
               VerticalDivider(width: 1, color: t.line),
-              // Récit par défaut ; détail personne quand une carte est choisie
-              selectedId == null
-                  ? GenealogyStoryPanel(
-                      tree: tree,
-                      suggestion: suggestion,
-                      suggestionConfirmed: aiConfirmed,
-                      onVerifySuggestion: suggestion == null
-                          ? null
-                          : () =>
-                              context.push(Routes.verify(suggestion.id)),
-                      onDismissSuggestion: suggestion == null
-                          ? null
-                          : () => ref
-                              .read(dismissedSuggestionsProvider.notifier)
-                              .update((s) => {...s, suggestion.id}),
-                    )
-                  : GenealogyRightPanel(tree: tree, personId: personId),
+              // Panneau Personne/Migration/IA PERMANENT (maquette 1a) :
+              // il affiche le sujet par défaut et ne disparaît plus quand la
+              // sélection se vide (clic dans le vide, pan…) — la « Gestion du
+              // foyer » reste stable. Le récit vit dans « Mode récit » et les
+              // suggestions IA dans l'onglet ✦ IA du panneau.
+              GenealogyRightPanel(tree: tree, personId: personId),
             ],
           ),
         ),
