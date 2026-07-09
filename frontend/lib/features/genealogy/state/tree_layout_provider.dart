@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -45,6 +46,13 @@ class TreeLayout {
   /// Nombre d'épouses (foyers) masquées par le filtre 2c. 0 sans filtre.
   final int hiddenFoyerCount;
 
+  /// ENCLOS DES UNIONS (maquette 8a, vue Ascendants) : cadre pointillé qui
+  /// regroupe les conjoints du sujet en grille. Null hors de ce mode.
+  final Rect? unionEnclos;
+
+  /// Libellé mono de l'enclos, ex « VOS UNIONS · 4 · 8 ENFANTS ».
+  final String? unionEnclosLabel;
+
   const TreeLayout({
     required this.nodes,
     required this.links,
@@ -55,6 +63,8 @@ class TreeLayout {
     this.foyerBoxes = const [],
     this.foyerChips = const [],
     this.hiddenFoyerCount = 0,
+    this.unionEnclos,
+    this.unionEnclosLabel,
   });
 
   /// Mode « foyers polygames » actif (maquette 2a) : le canvas ne peint ni
@@ -121,6 +131,12 @@ TreeLayout _computeLayout(FamilyTree tree, TreeView currentView,
   // Extraire les conjoints depuis les unions (ordre = unionOrder)
   final spouses = _extractSpouses(tree, subjectUnions);
 
+  // ENCLOS DES UNIONS (maquette 8a) : en vue Ascendants avec ≥ 2 unions,
+  // les conjoints sont regroupés dans un CADRE POINTILLÉ en grille 2 colonnes
+  // à droite du sujet (un seul lien or), au lieu d'être étalés sur la rangée.
+  final enclosMode =
+      currentView == TreeView.ancestors && spouses.length >= 2;
+
   switch (currentView) {
     case TreeView.full:
       _addRow(rows, 0, tree.paternalGP, tree.maternalGP);
@@ -131,7 +147,8 @@ TreeLayout _computeLayout(FamilyTree tree, TreeView currentView,
     case TreeView.ancestors:
       _addRow(rows, 0, tree.paternalGP, tree.maternalGP);
       _addRow3(rows, 1, tree.father, tree.mother, tree.uncles);
-      _addSubjectRowWithSpouses(rows, 2, tree.subject, const [], spouses);
+      _addSubjectRowWithSpouses(
+          rows, 2, tree.subject, const [], enclosMode ? const [] : spouses);
       break;
     case TreeView.descendants:
       _addSubjectRowWithSpouses(rows, 0, tree.subject, const [], spouses);
@@ -147,7 +164,13 @@ TreeLayout _computeLayout(FamilyTree tree, TreeView currentView,
   // Pour chaque union, si un seul des deux conjoints est déjà placé (ex : le
   // père en génération 1), on ajoute l'AUTRE (la co-épouse) dans la MÊME ligne,
   // juste après lui, sinon la polygamie des ancêtres reste invisible.
-  _ensureUnionSpousesPlaced(rows, tree);
+  // En mode enclos, les unions du SUJET sont exclues (posées dans l'enclos).
+  _ensureUnionSpousesPlaced(
+    rows,
+    tree,
+    excludeUnionIds:
+        enclosMode ? subjectUnions.map((u) => u.id).toSet() : const {},
+  );
 
   // Remove empty rows and compact
   rows.removeWhere((_, v) => v.isEmpty);
@@ -170,12 +193,22 @@ TreeLayout _computeLayout(FamilyTree tree, TreeView currentView,
   final contentH = (sortedGens.length * _vSpacing) + _topPadding + _padding;
   final centerX = contentW / 2;
 
+  // Génération du sujet (pour l'ancrage à gauche en mode enclos).
+  final subjectGen = rows.entries
+      .where((e) => e.value.any((n) => n.person.id == tree.subject.id))
+      .map((e) => e.key)
+      .firstOrNull;
+
   for (int i = 0; i < sortedGens.length; i++) {
     final gen = sortedGens[i];
     final row = rows[gen]!;
     final y = _topPadding + i * _vSpacing;
     final totalW = row.length * _hSpacing;
-    final startX = centerX - totalW / 2 + _hSpacing / 2;
+    // Mode enclos : le sujet est ANCRÉ À GAUCHE de sa bande, l'enclos des
+    // unions occupe la droite (maquette 8a).
+    final startX = (enclosMode && gen == subjectGen)
+        ? _padding + 140
+        : centerX - totalW / 2 + _hSpacing / 2;
 
     for (int j = 0; j < row.length; j++) {
       final info = row[j];
@@ -190,9 +223,68 @@ TreeLayout _computeLayout(FamilyTree tree, TreeView currentView,
         hasDotPaid: info.hasDotPaid,
         isSubject: info.person.id == tree.subject.id,
         unionInfo: info.unionInfo,
+        foyerColor: info.foyerColor,
       );
       nodes.add(node);
       nodeMap[info.person.id] = node;
+    }
+  }
+
+  // ── ENCLOS DES UNIONS (maquette 8a, vue Ascendants) ─────────
+  // Cadre pointillé à droite du sujet : conjoints en grille 2 colonnes,
+  // couleur par union, UN SEUL lien or sujet → enclos.
+  Rect? unionEnclos;
+  String? unionEnclosLabel;
+  var outW = contentW;
+  var outH = contentH;
+  if (enclosMode) {
+    final subjNode = nodeMap[tree.subject.id];
+    if (subjNode != null) {
+      const cardW = 230.0, cardH = 84.0, pad = 16.0;
+      const headerH = 26.0, colGap = 18.0, rowGap = 14.0, footerH = 44.0;
+      final n = spouses.length;
+      final rowsN = (n + 1) ~/ 2;
+      const enclosW = pad * 2 + 2 * cardW + colGap;
+      final enclosH =
+          headerH + pad * 2 + rowsN * cardH + (rowsN - 1) * rowGap + footerH;
+      final left = subjNode.position.dx + cardW / 2 + 56;
+      final top = subjNode.position.dy - cardH / 2 - 6;
+      unionEnclos = Rect.fromLTWH(left, top, enclosW, enclosH);
+
+      for (int i = 0; i < n; i++) {
+        final info = spouses[i];
+        final col = i % 2;
+        final r = i ~/ 2;
+        final pos = Offset(
+          left + pad + cardW / 2 + col * (cardW + colGap),
+          top + headerH + pad + cardH / 2 + r * (cardH + rowGap),
+        );
+        final node = LayoutNode(
+          person: info.person,
+          position: pos,
+          generation: subjectGen ?? 2,
+          type: _nodeType(info.person, tree.subject.id, NodeType.spouse),
+          hasDotPaid: info.hasDotPaid,
+          unionInfo: info.unionInfo,
+          foyerColor: info.foyerColor,
+        );
+        nodes.add(node);
+        nodeMap[info.person.id] = node;
+      }
+
+      // Lien unique sujet → bord gauche de l'enclos (trait or plein).
+      links.add(LayoutLink(
+        from: subjNode.position,
+        to: Offset(left, subjNode.position.dy),
+        type: LinkType.filiation,
+        color: GwTokens.gold,
+      ));
+
+      final kids = tree.children.length;
+      unionEnclosLabel = 'VOS UNIONS · $n'
+          '${kids > 0 ? ' · $kids ENFANT${kids > 1 ? 'S' : ''}' : ''}';
+      outW = math.max(outW, left + enclosW + _padding);
+      outH = math.max(outH, top + enclosH + _padding);
     }
   }
 
@@ -378,39 +470,61 @@ TreeLayout _computeLayout(FamilyTree tree, TreeView currentView,
   }
 
   // ── Unions (liens horizontaux sujet↔conjoint + co-épouses contiguës) ──
+  // ≥ 2 unions du sujet : chaque union porte SA couleur (or/rose/vert/azure)
+  // et le peintre les TRESSE sous la rangée (maquette 6a) au lieu du
+  // pointillé latéral.
+  final subjectUnionColor = <String, Color>{};
+  if (subjectUnions.length >= 2) {
+    for (int i = 0; i < subjectUnions.length; i++) {
+      subjectUnionColor[subjectUnions[i].id] =
+          _foyerColors[i % _foyerColors.length];
+    }
+  }
+
   for (final union in tree.unions) {
+    // Mode enclos : les unions du sujet sont matérialisées par l'enclos
+    // lui-même (un seul lien or) — pas de trait par union.
+    if (enclosMode && subjectUnionColor.containsKey(union.id)) continue;
     final hNode = nodeMap[union.husbandId];
     final wNode = nodeMap[union.wifeId];
     if (hNode != null && wNode != null) {
+      // Le tressage part toujours du SUJET vers le conjoint.
+      final fromSubject = hNode.isSubject || !wNode.isSubject;
       links.add(LayoutLink(
-        from: hNode.position,
-        to: wNode.position,
+        from: fromSubject ? hNode.position : wNode.position,
+        to: fromSubject ? wNode.position : hNode.position,
         type: LinkType.union,
         ended: !union.isActive,
+        color: subjectUnionColor[union.id],
       ));
     }
   }
 
-  // Co-épouses contiguës d'un même sujet reliées entre elles (rang → rang+1).
-  for (int i = 0; i + 1 < spouses.length; i++) {
-    final a = nodeMap[spouses[i].person.id];
-    final b = nodeMap[spouses[i + 1].person.id];
-    if (a != null && b != null) {
-      links.add(LayoutLink(
-        from: a.position,
-        to: b.position,
-        type: LinkType.union,
-        ended: true, // trait atténué : lien de co-épouses, pas une union active
-      ));
+  // Co-épouses contiguës reliées entre elles — uniquement quand les unions ne
+  // sont PAS tressées en couleur (le tressage rend ce lien redondant).
+  if (subjectUnionColor.isEmpty) {
+    for (int i = 0; i + 1 < spouses.length; i++) {
+      final a = nodeMap[spouses[i].person.id];
+      final b = nodeMap[spouses[i + 1].person.id];
+      if (a != null && b != null) {
+        links.add(LayoutLink(
+          from: a.position,
+          to: b.position,
+          type: LinkType.union,
+          ended: true, // trait atténué : lien de co-épouses
+        ));
+      }
     }
   }
 
   return TreeLayout(
     nodes: nodes,
     links: links,
-    contentWidth: contentW,
-    contentHeight: contentH,
+    contentWidth: outW,
+    contentHeight: outH,
     nodeMap: nodeMap,
+    unionEnclos: unionEnclos,
+    unionEnclosLabel: unionEnclosLabel,
   );
 }
 
@@ -426,11 +540,16 @@ class _NodeInfo {
   /// Métadonnées d'union (rang, régime, conformité) pour un conjoint.
   final NodeUnionInfo? unionInfo;
 
+  /// Couleur d'union (maquette 6a) : bordure de carte + tressage, quand le
+  /// sujet a ≥ 2 unions (or / rose / vert / azure par rang).
+  final Color? foyerColor;
+
   const _NodeInfo(
     this.person, {
     this.hasDotPaid = false,
     this.lineage = NodeType.primaryLineage,
     this.unionInfo,
+    this.foyerColor,
   });
 }
 
@@ -505,6 +624,11 @@ List<_NodeInfo> _extractSpouses(
         spouse,
         hasDotPaid: union.isDotPaid,
         lineage: NodeType.spouse,
+        // ≥ 2 unions : chaque conjoint porte la couleur de SON union
+        // (bordure de carte + tressage sous la rangée, maquette 6a).
+        foyerColor: subjectUnions.length >= 2
+            ? _foyerColors[i % _foyerColors.length]
+            : null,
         unionInfo: NodeUnionInfo(
           unionId: union.id,
           rank: union.unionOrder,
@@ -561,7 +685,8 @@ void _addSubjectRowWithSpouses(Map<int, List<_NodeInfo>> rows, int gen,
 /// ligne, immédiatement après le partenaire déjà présent. On réutilise la
 /// personne embarquée (union.husband / union.wife) et on marque le nœud comme
 /// [NodeType.spouse] avec un [NodeUnionInfo] cohérent (rang = unionOrder).
-void _ensureUnionSpousesPlaced(Map<int, List<_NodeInfo>> rows, FamilyTree tree) {
+void _ensureUnionSpousesPlaced(Map<int, List<_NodeInfo>> rows, FamilyTree tree,
+    {Set<String> excludeUnionIds = const {}}) {
   // Ensemble des personnes déjà placées (tous rangs confondus), anti-doublon.
   final placed = <String>{};
   for (final row in rows.values) {
@@ -571,6 +696,8 @@ void _ensureUnionSpousesPlaced(Map<int, List<_NodeInfo>> rows, FamilyTree tree) 
   }
 
   for (final union in tree.unions) {
+    // Unions posées ailleurs (ex : enclos des unions du sujet, maquette 8a).
+    if (excludeUnionIds.contains(union.id)) continue;
     final husbandPlaced = placed.contains(union.husbandId);
     final wifePlaced = placed.contains(union.wifeId);
 
@@ -645,8 +772,14 @@ const double _miniCardH = 56.0; // hauteur d'une mini-carte enfant empilée
 const double _boxPad = 12.0; // padding interne de la boîte
 const double _boxHeaderH = 26.0; // en-tête « FOYER MAAH · 3 ENFANTS »
 
-/// Couleurs de foyer, cycle modulo : rang 1 → or, 2 → rose, 3 → vert.
-const List<Color> _foyerColors = [GwTokens.gold, GwTokens.rose, GwTokens.sage];
+/// Couleurs de foyer/union, cycle modulo (maquette 6a) :
+/// rang 1 → or, 2 → rose, 3 → vert, 4 → azure.
+const List<Color> _foyerColors = [
+  GwTokens.gold,
+  GwTokens.rose,
+  GwTokens.sage,
+  GwTokens.azure,
+];
 
 /// Une épouse d'un groupe foyers, avec son union et SES enfants (rattachés
 /// via union.id / motherId — jamais mélangés entre co-épouses).
@@ -902,6 +1035,7 @@ TreeLayout _computeFoyerLayout(
         type: _nodeType(foyer.wife, tree.subject.id, NodeType.spouse),
         hasDotPaid: union.isDotPaid,
         isSubject: foyer.wife.id == tree.subject.id,
+        isFoyerWife: true,
         foyerColor: color,
         unionInfo: NodeUnionInfo(
           unionId: union.id,

@@ -221,6 +221,22 @@ class _TreeCanvasState extends ConsumerState<TreeCanvas>
                             ),
                           ),
 
+                        // ENCLOS DES UNIONS (maquette 8a, vue Ascendants) :
+                        // cadre pointillé or regroupant les conjoints du sujet.
+                        if (layout.unionEnclos != null)
+                          Positioned.fill(
+                            child: CustomPaint(
+                              painter: _FoyerBoxPainter(boxes: [
+                                FoyerBox(
+                                  rect: layout.unionEnclos!,
+                                  color: GwTokens.gold,
+                                  label: layout.unionEnclosLabel ?? '',
+                                  childCount: 0,
+                                ),
+                              ]),
+                            ),
+                          ),
+
                         // Links (Bézier curves)
                         Positioned.fill(
                           child: CustomPaint(
@@ -241,6 +257,56 @@ class _TreeCanvasState extends ConsumerState<TreeCanvas>
                             box: box,
                           ),
                         ),
+
+                        // En-tête + bouton « + Ajouter une épouse / union »
+                        // de l'ENCLOS DES UNIONS (maquette 8a).
+                        if (layout.unionEnclos != null) ...[
+                          _FoyerBoxHeader(
+                            key: const ValueKey('union-enclos-header'),
+                            box: FoyerBox(
+                              rect: layout.unionEnclos!,
+                              color: GwTokens.gold,
+                              label: layout.unionEnclosLabel ?? '',
+                              childCount: 0,
+                            ),
+                          ),
+                          Positioned(
+                            left: layout.unionEnclos!.left + 16,
+                            top: layout.unionEnclos!.bottom - 42,
+                            width: layout.unionEnclos!.width - 32,
+                            height: 30,
+                            child: Material(
+                              color: Colors.transparent,
+                              borderRadius: BorderRadius.circular(9),
+                              child: InkWell(
+                                onTap: widget.onAddUnion,
+                                borderRadius: BorderRadius.circular(9),
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(9),
+                                    border: Border.all(color: t.goldLine),
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Symbols.add,
+                                          size: 13, color: t.goldText),
+                                      const SizedBox(width: 5),
+                                      Text(
+                                        'Ajouter une épouse / union',
+                                        style: GwType.ui(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w600,
+                                            color: t.goldText),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
 
                         // Nodes — chaque _NodeSlot observe son propre
                         // isSelected/isHovered (le tooltip ne les rebuild pas)
@@ -1028,6 +1094,10 @@ List<_StrataInfo> _buildStrata(TreeLayout layout, GwTokens t) {
   }
   final sorted = gens.keys.toList()..sort();
 
+  // Le sujet a-t-il des conjoints colorés sur sa rangée (maquette 6a) ?
+  final subjectHasUnions =
+      layout.nodes.any((n) => n.foyerColor != null && !n.inFoyerBox);
+
   final result = <_StrataInfo>[];
   for (int i = 0; i < sorted.length; i++) {
     final gen = sorted[i];
@@ -1035,7 +1105,9 @@ List<_StrataInfo> _buildStrata(TreeLayout layout, GwTokens t) {
     final isFirst = i == 0;
 
     final label = isSubjectGen
-        ? 'GÉNÉRATION ${gen + 1} · VOUS'
+        ? (subjectHasUnions
+            ? 'GÉNÉRATION ${gen + 1} · VOUS & VOS UNIONS'
+            : 'GÉNÉRATION ${gen + 1} · VOUS')
         : isFirst
             ? 'GÉNÉRATION ${gen + 1} · LES FONDATEURS'
             : 'GÉNÉRATION ${gen + 1}';

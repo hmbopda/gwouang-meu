@@ -61,12 +61,15 @@ class TreeLinkPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    // Compteur de tressage : chaque union colorée de MÊME RANGÉE descend un
+    // cran plus bas que la précédente (maquette 6a).
+    var braid = 0;
     for (final link in links) {
       switch (link.type) {
         case LinkType.filiation:
           _drawFiliation(canvas, link);
         case LinkType.union:
-          _drawUnion(canvas, link);
+          braid = _drawUnion(canvas, link, braid);
         case LinkType.siblings:
           _drawSiblings(canvas, link);
         case LinkType.aiSuggestion:
@@ -176,17 +179,38 @@ class TreeLinkPainter extends CustomPainter {
   /// Mode FOYERS (maquette 2a) : `link.color` est fournie (couleur du foyer,
   /// or / rose / vert) → connecteur ORTHOGONAL PLEIN chef→épouse dans cette
   /// couleur ; la pilule « 1RE UNION · 1968 » (widget) en couvre le milieu.
-  void _drawUnion(Canvas canvas, LayoutLink link) {
+  int _drawUnion(Canvas canvas, LayoutLink link, int braidIndex) {
     final foyer = link.color;
     if (foyer != null) {
       final paint = Paint()
-        ..color = foyer.withValues(alpha: link.ended ? 0.35 : 0.75)
-        ..strokeWidth = 1.6
+        ..color = foyer.withValues(alpha: link.ended ? 0.35 : 0.85)
+        ..strokeWidth = 2
         ..style = PaintingStyle.stroke
         ..strokeCap = StrokeCap.round
         ..strokeJoin = StrokeJoin.round;
+
+      // MÊME RANGÉE (sujet + conjoints côte à côte) : TRESSAGE sous la
+      // rangée (maquette 6a) — descente sous le sujet, course horizontale
+      // colorée, remontée sous la carte du conjoint. Chaque union a son
+      // propre cran de profondeur.
+      final sameRow = (link.from.dy - link.to.dy).abs() < 1;
+      if (sameRow) {
+        const cardHalfH = 42.0; // demi-hauteur de carte standard (84 px)
+        final startX = link.from.dx - 24 + braidIndex * 16.0;
+        final fromBottom = link.from.dy + cardHalfH;
+        final routeY = fromBottom + 14 + braidIndex * 10.0;
+        final toBottom = link.to.dy + cardHalfH;
+        final path = Path()
+          ..moveTo(startX, fromBottom)
+          ..lineTo(startX, routeY)
+          ..lineTo(link.to.dx, routeY)
+          ..lineTo(link.to.dx, toBottom);
+        canvas.drawPath(path, paint);
+        return braidIndex + 1;
+      }
+
       canvas.drawPath(_elbowPath(link.from, link.to), paint);
-      return;
+      return braidIndex;
     }
 
     final paint = Paint()
@@ -213,6 +237,7 @@ class TreeLinkPainter extends CustomPainter {
       3,
       Paint()..color = GwTokens.rose.withValues(alpha: link.ended ? 0.3 : 0.6),
     );
+    return braidIndex;
   }
 
   /// Descente pointillée épouse → boîte foyer (maquette 2a) : petit trait

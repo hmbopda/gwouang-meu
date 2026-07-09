@@ -416,9 +416,18 @@ class _StandardNode extends StatelessWidget {
 
     if (node.isChief) {
       pills.add(_brownPill('CHEF DE FAMILLE', icon: Symbols.crown));
-    } else if (_isWife) {
+    } else if (node.isFoyerWife) {
+      // Mode foyers (maquette 2a) : « ÉPOUSE N » teintée couleur du foyer.
       final rank = info?.rank ?? 1;
       pills.add(_tintPill('ÉPOUSE $rank', node.foyerColor!));
+    } else if (node.foyerColor != null && info != null) {
+      // Conjoint coloré en vue générations (maquette 6a) :
+      // « {N}E UNION » teintée + VIVANT·E ou TERMINÉE. Rien d'autre.
+      pills.add(_tintPill(_rankLabel(info.rank), node.foyerColor!));
+      pills.add(info.isActive
+          ? _alivePill(p)
+          : _tintPill('TERMINÉE', t.stoneFaint));
+      return pills;
     } else {
       final badge = _badgeText(node);
       if (badge != null) pills.add(_tintPill(badge, _badgeColor(node)));

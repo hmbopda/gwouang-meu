@@ -99,9 +99,13 @@ class LayoutNode {
   /// (badge initiales 28 px + nom 13 px), pas de carte standard.
   final bool inFoyerBox;
 
-  /// Couleur du foyer (or / rose / vert, cycle) : bordure de la carte épouse,
-  /// teinte des enfants du foyer. Null hors mode foyers.
+  /// Couleur du foyer (or / rose / vert / azure, cycle) : bordure de la carte
+  /// conjoint, teinte des enfants du foyer. Null si union unique.
   final Color? foyerColor;
+
+  /// Épouse d'un GROUPE FOYERS (maquette 2a) : pilule « ÉPOUSE N ».
+  /// Un conjoint coloré HORS mode foyers (maquette 6a) porte « {N}E UNION ».
+  final bool isFoyerWife;
 
   const LayoutNode({
     required this.person,
@@ -114,6 +118,7 @@ class LayoutNode {
     this.isChief = false,
     this.inFoyerBox = false,
     this.foyerColor,
+    this.isFoyerWife = false,
   });
 }
 
