@@ -875,6 +875,7 @@ class _FoyerManagement extends ConsumerWidget {
     const brown = Color(0xFF3B2A16);
     const cream = Color(0xFFF0EBE1);
     final sorted = [...unions]..sort((a, b) => a.unionOrder.compareTo(b.unionOrder));
+    final heirs = _successionOf(sorted);
     final initials =
         '${person.firstName.isNotEmpty ? person.firstName[0] : ''}${person.lastName.isNotEmpty ? person.lastName[0] : ''}'
             .toUpperCase();
@@ -990,6 +991,55 @@ class _FoyerManagement extends ConsumerWidget {
         ),
         const SizedBox(height: 12),
 
+        // ── Ordre de succession (dérivé des enfants, drag décoratif) ──
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(16, 14, 12, 12),
+          decoration: BoxDecoration(
+            color: t.inkCard,
+            borderRadius: BorderRadius.circular(GwTokens.rCard),
+            border: Border.all(color: t.line),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'ORDRE DE SUCCESSION',
+                style: GwType.mono(
+                    fontSize: 9,
+                    letterSpacing: 2,
+                    color: t.stoneFaint,
+                    fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 10),
+              if (heirs.isEmpty)
+                Text(
+                  'Aucun successeur identifié.',
+                  style: GwType.ui(fontSize: 11.5, color: t.stoneDim),
+                )
+              else
+                for (int i = 0; i < heirs.length; i++) ...[
+                  if (i > 0) const SizedBox(height: 8),
+                  _SuccessionRow(
+                    rank: i + 1,
+                    person: heirs[i].$1,
+                    motherFirstName: _wifeFirstNameOf(
+                        sorted[heirs[i].$2], heirs[i].$2 + 1),
+                    foyerColor: _foyerColorOf(heirs[i].$2),
+                    isEldest: i == 0,
+                  ),
+                ],
+              const SizedBox(height: 10),
+              Text(
+                'Glissez pour réordonner. La transmission demande la '
+                'validation de 2 témoins du clan.',
+                style: GwType.ui(fontSize: 11, color: t.stoneFaint),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+
         // ── Épouses & foyers ──
         Container(
           width: double.infinity,
@@ -1011,7 +1061,9 @@ class _FoyerManagement extends ConsumerWidget {
                     fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 4),
-              for (int i = 0; i < sorted.length; i++)
+              for (int i = 0; i < sorted.length; i++) ...[
+                // Séparateur fin ENTRE les lignes (pas après la dernière).
+                if (i > 0) Divider(height: 1, thickness: 1, color: t.line),
                 _WifeRow(
                   union: sorted[i],
                   rank: i + 1,
@@ -1022,6 +1074,7 @@ class _FoyerManagement extends ConsumerWidget {
                     ref.read(treeViewProvider.notifier).selectPerson(wifeId);
                   },
                 ),
+              ],
             ],
           ),
         ),
@@ -1031,21 +1084,21 @@ class _FoyerManagement extends ConsumerWidget {
         SizedBox(
           width: double.infinity,
           height: 34,
-          child: Material(
-            color: Colors.transparent,
-            borderRadius: BorderRadius.circular(GwTokens.rBtn),
-            child: InkWell(
-              onTap: () => _safeDialog(
-                context,
-                AddUnionDialog(
-                    person: person, tree: tree, treeOwnerId: treeOwnerId),
-              ),
+          child: CustomPaint(
+            painter: _DashedBorderPainter(
+              color: t.goldLine,
+              radius: GwTokens.rBtn,
+            ),
+            child: Material(
+              color: Colors.transparent,
               borderRadius: BorderRadius.circular(GwTokens.rBtn),
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(GwTokens.rBtn),
-                  border: Border.all(color: t.goldLine),
+              child: InkWell(
+                onTap: () => _safeDialog(
+                  context,
+                  AddUnionDialog(
+                      person: person, tree: tree, treeOwnerId: treeOwnerId),
                 ),
+                borderRadius: BorderRadius.circular(GwTokens.rBtn),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -1074,6 +1127,41 @@ class _FoyerManagement extends ConsumerWidget {
       if (c.unionId != null && c.unionId == u.id) return true;
       return c.motherId != null && c.motherId == u.wifeId;
     }).length;
+  }
+
+  /// Ordre de succession DÉRIVÉ (pas de table dédiée) : enfants du chef tous
+  /// foyers confondus — rattachés aux épouses via unionId/motherId (même
+  /// logique que [_childCountOf]) — triés par naissance croissante (aîné·e
+  /// d'abord, dates nulles à la fin). Ne retient que les 3 premiers.
+  /// Chaque entrée : (enfant, index de l'union dans la liste triée).
+  List<(PersonGenealogy, int)> _successionOf(List<GenealogyUnion> sorted) {
+    final entries = <(PersonGenealogy, int)>[];
+    for (final c in tree.children) {
+      for (int i = 0; i < sorted.length; i++) {
+        final u = sorted[i];
+        final matches = (c.unionId != null && c.unionId == u.id) ||
+            (c.motherId != null && c.motherId == u.wifeId);
+        if (matches) {
+          entries.add((c, i));
+          break;
+        }
+      }
+    }
+    entries.sort((a, b) {
+      final da = a.$1.birthDate;
+      final db = b.$1.birthDate;
+      if (da == null && db == null) return 0;
+      if (da == null) return 1;
+      if (db == null) return -1;
+      return da.compareTo(db);
+    });
+    return entries.take(3).toList();
+  }
+
+  /// Prénom de l'épouse d'une union (fallback « épouse {rang} » si inconnu).
+  String _wifeFirstNameOf(GenealogyUnion u, int rank) {
+    final name = u.wife?.firstName.trim();
+    return (name != null && name.isNotEmpty) ? name : 'épouse $rank';
   }
 
   void _soon(BuildContext context, String what) {
@@ -1154,6 +1242,97 @@ class _WifeRow extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Ligne « successeur » (maquette 2b) : rang mono or, badge initiales 30 px
+/// teinté de la couleur du foyer maternel, nom gras, sous-ligne
+/// « Foyer {prénom mère} [· aîné·e] », poignée ⋮⋮ décorative — le drag
+/// N'EST PAS fonctionnel, comme la maquette.
+class _SuccessionRow extends StatelessWidget {
+  final int rank;
+  final PersonGenealogy person;
+  final String motherFirstName;
+  final Color foyerColor;
+  final bool isEldest;
+
+  const _SuccessionRow({
+    required this.rank,
+    required this.person,
+    required this.motherFirstName,
+    required this.foyerColor,
+    required this.isEldest,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final t = GwTokens.of(context);
+    final initials =
+        '${person.firstName.isNotEmpty ? person.firstName[0] : ''}${person.lastName.isNotEmpty ? person.lastName[0] : ''}'
+            .toUpperCase();
+    final subtitle =
+        isEldest ? 'Foyer $motherFirstName · aîné·e' : 'Foyer $motherFirstName';
+
+    return Row(
+      children: [
+        // Rang en mono or.
+        SizedBox(
+          width: 14,
+          child: Text(
+            '$rank',
+            style: GwType.mono(
+                fontSize: 11,
+                letterSpacing: 0,
+                color: t.goldText,
+                fontWeight: FontWeight.w700),
+          ),
+        ),
+        const SizedBox(width: 6),
+        // Badge initiales 30 px teinté de la couleur du foyer de la mère.
+        Container(
+          width: 30,
+          height: 30,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: foyerColor.withValues(alpha: 0.16),
+            border: Border.all(color: foyerColor.withValues(alpha: 0.45)),
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            initials,
+            style: GwType.display(
+                fontSize: 11, fontWeight: FontWeight.w700, color: t.stone),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${person.firstName} ${person.lastName}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: GwType.ui(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                    color: t.stone),
+              ),
+              const SizedBox(height: 1),
+              Text(
+                subtitle,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: GwType.ui(fontSize: 11, color: t.stoneDim),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 6),
+        // Poignée ⋮⋮ décorative (drag non fonctionnel).
+        Icon(Symbols.drag_indicator, size: 16, color: t.stoneFaint),
+      ],
     );
   }
 }

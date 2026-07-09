@@ -86,208 +86,213 @@ class _MigrationViewState extends ConsumerState<MigrationView> {
     final journey = buildMigrationJourney(widget.tree, person);
     final firstName =
         person.firstName.trim().isEmpty ? '?' : person.firstName.trim();
-    final fullName =
-        [person.firstName.trim(), person.lastName.trim()]
-            .where((s) => s.isNotEmpty)
-            .join(' ');
 
     return Container(
       color: t.ink,
-      child: Column(
-        children: [
-          // ── En-tête de la zone carte ──
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 14, 20, 10),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Expanded(
-                  child: Wrap(
-                    spacing: 10,
-                    runSpacing: 6,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      Text(
-                        'Migration de $fullName',
-                        style: GwType.display(fontSize: 18, color: t.stone),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: t.goldBg,
-                          borderRadius: BorderRadius.circular(GwTokens.rPill),
-                          border: Border.all(color: t.goldLine),
-                        ),
-                        child: Text(
-                          '${journey.steps.length} ÉTAPES · '
-                          '${journey.alliances.length} ALLIANCES',
-                          style: GwType.mono(
-                              fontSize: 9.5,
-                              letterSpacing: 1.5,
-                              color: t.goldText),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 12),
-                _ModeToggle(
-                  familyMode: _familyMode,
-                  onChanged: (v) => setState(() => _familyMode = v),
-                ),
-              ],
-            ),
-          ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final contentSize = Size(
+            math.max(constraints.maxWidth, 980),
+            math.max(constraints.maxHeight, 620),
+          );
+          final geo = _buildGeometry(
+            journey: journey,
+            familyMode: _familyMode,
+            size: contentSize,
+            tokens: t,
+          );
 
-          // ── Carte ──
-          Expanded(
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final compact = constraints.maxWidth < 720;
-                final contentSize = Size(
-                  math.max(constraints.maxWidth, 980),
-                  math.max(constraints.maxHeight, 620),
-                );
-                final geo = _buildGeometry(
-                  journey: journey,
-                  familyMode: _familyMode,
-                  size: contentSize,
-                  tokens: t,
-                );
-
-                return Stack(
-                  children: [
-                    Positioned.fill(
-                      child: InteractiveViewer(
-                        transformationController: _transformCtrl,
-                        constrained: false,
-                        boundaryMargin: const EdgeInsets.all(200),
-                        minScale: 0.4,
-                        maxScale: 2.5,
-                        child: RepaintBoundary(
-                          child: SizedBox(
-                            width: contentSize.width,
-                            height: contentSize.height,
-                            child: Stack(
-                              clipBehavior: Clip.none,
-                              children: [
-                                // Fond pointillé discret + trajets/alliances.
-                                Positioned.fill(
-                                  child: CustomPaint(
-                                    painter: _MigrationMapPainter(
-                                      curves: geo.curves,
-                                      dotColor:
-                                          t.line.withValues(alpha: 0.5),
-                                    ),
-                                  ),
-                                ),
-
-                                // Nœuds-villages.
-                                for (final node in geo.nodes)
-                                  _VillageNodeWidget(
-                                    key: ValueKey('village-${node.key}'),
-                                    node: node,
-                                    pilierConcession:
-                                        journey.pilierConcession,
-                                  ),
-
-                                // Petits nœuds membres (mode famille).
-                                for (final dot in geo.members)
-                                  _MemberDotWidget(
-                                    key: ValueKey('member-${dot.personId}'),
-                                    dot: dot,
-                                  ),
-
-                                // Pilules-étiquettes des trajets.
-                                for (final chip in geo.chips)
-                                  Positioned(
-                                    left: chip.pos.dx,
-                                    top: chip.pos.dy,
-                                    child: FractionalTranslation(
-                                      translation: const Offset(-0.5, -0.5),
-                                      child: _RouteChipWidget(
-                                          label: chip.label),
-                                    ),
-                                  ),
-                              ],
+          return Stack(
+            children: [
+              Positioned.fill(
+                child: InteractiveViewer(
+                  transformationController: _transformCtrl,
+                  constrained: false,
+                  boundaryMargin: const EdgeInsets.all(200),
+                  minScale: 0.4,
+                  maxScale: 2.5,
+                  child: RepaintBoundary(
+                    child: SizedBox(
+                      width: contentSize.width,
+                      height: contentSize.height,
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          // Fond pointillé discret + trajets/alliances.
+                          Positioned.fill(
+                            child: CustomPaint(
+                              painter: _MigrationMapPainter(
+                                curves: geo.curves,
+                                dotColor: t.line.withValues(alpha: 0.5),
+                              ),
                             ),
                           ),
+
+                          // Nœuds-villages.
+                          for (final node in geo.nodes)
+                            _VillageNodeWidget(
+                              key: ValueKey('village-${node.key}'),
+                              node: node,
+                              pilierConcession: journey.pilierConcession,
+                            ),
+
+                          // Petits nœuds membres (mode famille).
+                          for (final dot in geo.members)
+                            _MemberDotWidget(
+                              key: ValueKey('member-${dot.personId}'),
+                              dot: dot,
+                            ),
+
+                          // Pilules-étiquettes des trajets.
+                          for (final chip in geo.chips)
+                            Positioned(
+                              left: chip.pos.dx,
+                              top: chip.pos.dy,
+                              child: FractionalTranslation(
+                                translation: const Offset(-0.5, -0.5),
+                                child:
+                                    _RouteChipWidget(label: chip.label),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
+              // ── Barre flottante (haut) : même rangée que tree_canvas —
+              // TreeToolbar + pilule « N ÉTAPES · M ALLIANCES » + toggle
+              // « Parcours / Toute la famille » à la place des boutons
+              // d'action de l'arbre. ──
+              Positioned(
+                top: 12,
+                left: 0,
+                right: 0,
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final compact = constraints.maxWidth < 700;
+
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            TreeToolbar(
+                              currentView: currentView,
+                              onViewChanged: notifier.changeView,
+                              compact: compact,
+                            ),
+                            const SizedBox(width: 16),
+                            _StatsPill(
+                              steps: journey.steps.length,
+                              alliances: journey.alliances.length,
+                            ),
+                            const SizedBox(width: 8),
+                            _ModeToggle(
+                              familyMode: _familyMode,
+                              onChanged: (v) =>
+                                  setState(() => _familyMode = v),
+                            ),
+                          ],
                         ),
                       ),
-                    ),
+                    );
+                  },
+                ),
+              ),
 
-                    // ── Toolbar de vue (retour Rivière / Ascendants…) ──
-                    Positioned(
-                      top: 12,
-                      left: 12,
-                      child: TreeToolbar(
-                        currentView: currentView,
-                        onViewChanged: notifier.changeView,
-                        compact: compact,
-                      ),
-                    ),
+              // ── Légende (bas gauche) ──
+              Positioned(
+                bottom: 16,
+                left: 20,
+                child: _MigrationLegend(firstName: firstName),
+              ),
 
-                    // ── Légende (bas gauche) ──
-                    Positioned(
-                      bottom: 16,
-                      left: 20,
-                      child: _MigrationLegend(firstName: firstName),
-                    ),
+              // ── Zoom (bas droite) ──
+              Positioned(
+                bottom: 16,
+                right: 16,
+                child: TreeZoomControls(
+                  onZoomIn: _zoomIn,
+                  onZoomOut: _zoomOut,
+                  onReset: _resetZoom,
+                ),
+              ),
 
-                    // ── Zoom (bas droite) ──
-                    Positioned(
-                      bottom: 16,
-                      right: 16,
-                      child: TreeZoomControls(
-                        onZoomIn: _zoomIn,
-                        onZoomOut: _zoomOut,
-                        onReset: _resetZoom,
-                      ),
+              // ── État vide ──
+              if (geo.nodes.isEmpty)
+                Center(
+                  child: Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: t.inkCard,
+                      borderRadius: BorderRadius.circular(GwTokens.rCard),
+                      border: Border.all(color: t.goldLine),
                     ),
-
-                    // ── État vide ──
-                    if (geo.nodes.isEmpty)
-                      Center(
-                        child: Container(
-                          padding: const EdgeInsets.all(24),
-                          decoration: BoxDecoration(
-                            color: t.inkCard,
-                            borderRadius:
-                                BorderRadius.circular(GwTokens.rCard),
-                            border: Border.all(color: t.goldLine),
-                          ),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Symbols.travel_explore,
-                                  size: 44, color: t.stoneDim),
-                              const SizedBox(height: 12),
-                              Text(
-                                'Aucun lieu connu',
-                                style: GwType.display(
-                                    fontSize: 17,
-                                    fontWeight: FontWeight.w600,
-                                    color: t.stone),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Renseignez les lieux de naissance pour '
-                                'tracer la migration',
-                                style: GwType.ui(
-                                    fontSize: 13, color: t.stoneDim),
-                              ),
-                            ],
-                          ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Symbols.travel_explore,
+                            size: 44, color: t.stoneDim),
+                        const SizedBox(height: 12),
+                        Text(
+                          'Aucun lieu connu',
+                          style: GwType.display(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w600,
+                              color: t.stone),
                         ),
-                      ),
-                  ],
-                );
-              },
-            ),
-          ),
-        ],
+                        const SizedBox(height: 4),
+                        Text(
+                          'Renseignez les lieux de naissance pour '
+                          'tracer la migration',
+                          style: GwType.ui(fontSize: 13, color: t.stoneDim),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+// ═════════════════════════════════════════════════════════════
+//  Pilule « N ÉTAPES · M ALLIANCES » (bordée or, fond blanc)
+// ═════════════════════════════════════════════════════════════
+
+/// Remplace les boutons d'action de l'arbre dans la barre flottante :
+/// même hauteur (44 px) que les `_ActionPill` de tree_canvas.
+class _StatsPill extends StatelessWidget {
+  const _StatsPill({required this.steps, required this.alliances});
+
+  final int steps;
+  final int alliances;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = GwTokens.of(context);
+    return Container(
+      height: 44,
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: t.inkCard,
+        borderRadius: BorderRadius.circular(GwTokens.rPill),
+        border: Border.all(color: t.goldLine),
+      ),
+      child: Text(
+        '$steps ÉTAPES · $alliances ALLIANCES',
+        maxLines: 1,
+        style: GwType.mono(
+            fontSize: 9.5, letterSpacing: 1.5, color: t.goldText),
       ),
     );
   }

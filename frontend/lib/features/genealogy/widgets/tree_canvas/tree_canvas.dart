@@ -253,6 +253,15 @@ class _TreeCanvasState extends ConsumerState<TreeCanvas>
                               onTooltipHideNow: _hideTooltipNow,
                             )),
 
+                        // Ligne « {n} autres foyers masqués · Tout afficher »
+                        // (maquette 2c) — sous les boîtes, quand un filtre
+                        // par foyer est actif.
+                        if (layout.isFoyerMode && layout.hiddenFoyerCount > 0)
+                          _HiddenFoyersLine(
+                            layout: layout,
+                            notifier: notifier,
+                          ),
+
                         // Pilules-étiquettes d'union (maquette 2a) : centrées
                         // sur le connecteur mari↔épouse, « 1RE UNION · 1968 ».
                         ...layout.unionBadges.map(
@@ -341,9 +350,24 @@ class _TreeCanvasState extends ConsumerState<TreeCanvas>
                 ),
               ),
 
-              // ── Fil d'Ariane des re-centrages (haut, sous la toolbar) ──
+              // ── Chips-filtres par foyer (maquette 2c, mode foyers) ──
+              if (layout.isFoyerMode && layout.foyerChips.isNotEmpty)
+                Positioned(
+                  top: 60,
+                  left: 12,
+                  right: 12,
+                  child: _FoyerFilterChips(
+                    chips: layout.foyerChips,
+                    notifier: notifier,
+                  ),
+                ),
+
+              // ── Fil d'Ariane des re-centrages (haut, sous la toolbar ;
+              // décalé sous les chips-filtres 2c quand elles coexistent) ──
               Positioned(
-                top: 60,
+                top: layout.isFoyerMode && layout.foyerChips.isNotEmpty
+                    ? 100
+                    : 60,
                 left: 12,
                 right: 12,
                 child: _FocusBreadcrumb(notifier: notifier),
@@ -612,6 +636,171 @@ class _FoyerLegend extends StatelessWidget {
         const SizedBox(width: 6),
         Text(label, style: GwType.ui(fontSize: 12, color: t.stoneMid)),
       ],
+    );
+  }
+}
+
+// ── Vue filtrée par foyer (maquette 2c) ──────────────────────
+
+/// Crème des textes sur pilule pleine (chips 2c actifs).
+const Color _kFoyerChipCream = Color(0xFFF0EBE1);
+
+/// Brun du chip « Tous les foyers » actif (pilule pleine).
+const Color _kFoyerChipBrown = Color(0xFF3B2A16);
+
+/// Rangée de chips-filtres du mode foyers (maquette 2c) :
+/// « Tous les foyers » puis un chip par épouse (● couleur du foyer + prénom).
+/// Chip actif = pilule PLEINE de la couleur du foyer, texte crème ;
+/// inactifs = fond carte, liseré fin, texte stone.
+class _FoyerFilterChips extends ConsumerWidget {
+  final List<FoyerChipInfo> chips;
+  final TreeViewNotifier notifier;
+
+  const _FoyerFilterChips({required this.chips, required this.notifier});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = GwTokens.of(context);
+    final filter =
+        ref.watch(treeViewProvider.select((s) => s.foyerFilterWifeId));
+    // Filtre inconnu du layout → considéré « Tous les foyers ».
+    final active =
+        chips.any((c) => c.wifeId == filter) ? filter : null;
+
+    Widget chip({
+      required String label,
+      required bool isActive,
+      required Color activeColor,
+      required VoidCallback onTap,
+      Color? dotColor,
+    }) {
+      return Material(
+        color: isActive ? activeColor : t.inkCard,
+        borderRadius: BorderRadius.circular(GwTokens.rPill),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(GwTokens.rPill),
+          child: Container(
+            height: 32,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(GwTokens.rPill),
+              border: isActive ? null : Border.all(color: t.line),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (dotColor != null) ...[
+                  Container(
+                    width: 7,
+                    height: 7,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: isActive ? _kFoyerChipCream : dotColor,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                ],
+                Text(
+                  label,
+                  style: GwType.ui(
+                    fontSize: 12,
+                    fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                    color: isActive ? _kFoyerChipCream : t.stone,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            chip(
+              label: 'Tous les foyers',
+              isActive: active == null,
+              activeColor: _kFoyerChipBrown,
+              onTap: () => notifier.setFoyerFilter(null),
+            ),
+            for (final info in chips) ...[
+              const SizedBox(width: 6),
+              chip(
+                label: info.label.isEmpty ? '?' : info.label,
+                isActive: active == info.wifeId,
+                activeColor: info.color,
+                dotColor: info.color,
+                onTap: () => notifier.setFoyerFilter(info.wifeId),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Ligne « {n} autres foyers masqués · Tout afficher » (maquette 2c), posée
+/// dans le contenu du canvas SOUS la boîte foyer visible. « Tout afficher »
+/// est or et cliquable → réinitialise le filtre.
+class _HiddenFoyersLine extends StatelessWidget {
+  final TreeLayout layout;
+  final TreeViewNotifier notifier;
+
+  const _HiddenFoyersLine({required this.layout, required this.notifier});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = GwTokens.of(context);
+    final n = layout.hiddenFoyerCount;
+    if (n <= 0 || layout.foyerBoxes.isEmpty) return const SizedBox.shrink();
+
+    double left = layout.foyerBoxes.first.rect.left;
+    double bottom = layout.foyerBoxes.first.rect.bottom;
+    for (final box in layout.foyerBoxes) {
+      if (box.rect.left < left) left = box.rect.left;
+      if (box.rect.bottom > bottom) bottom = box.rect.bottom;
+    }
+
+    final label = n == 1 ? '1 autre foyer masqué' : '$n autres foyers masqués';
+
+    return Positioned(
+      left: left,
+      top: bottom + 14,
+      child: Material(
+        color: Colors.transparent,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '$label · ',
+              style: GwType.ui(fontSize: 12, color: t.stoneDim),
+            ),
+            InkWell(
+              onTap: () => notifier.setFoyerFilter(null),
+              borderRadius: BorderRadius.circular(4),
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
+                child: Text(
+                  'Tout afficher',
+                  style: GwType.ui(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: GwTokens.gold,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -212,6 +212,10 @@ class TreeViewState {
   /// La dernière entrée correspond à [focusPersonId].
   final List<FocusCrumb> focusStack;
 
+  /// Filtre « vue par foyer » (maquette 2c) : id de l'épouse dont le foyer
+  /// reste seul visible en MODE FOYERS. `null` = tous les foyers.
+  final String? foyerFilterWifeId;
+
   const TreeViewState({
     this.selectedPersonId,
     this.currentView = TreeView.full,
@@ -220,6 +224,7 @@ class TreeViewState {
     this.hoveredPersonId,
     this.focusPersonId,
     this.focusStack = const [],
+    this.foyerFilterWifeId,
   });
 
   TreeViewState copyWith({
@@ -230,9 +235,11 @@ class TreeViewState {
     String? hoveredPersonId,
     String? focusPersonId,
     List<FocusCrumb>? focusStack,
+    String? foyerFilterWifeId,
     bool clearSelected = false,
     bool clearHovered = false,
     bool clearFocus = false,
+    bool clearFoyerFilter = false,
   }) {
     return TreeViewState(
       selectedPersonId: clearSelected ? null : (selectedPersonId ?? this.selectedPersonId),
@@ -242,6 +249,8 @@ class TreeViewState {
       hoveredPersonId: clearHovered ? null : (hoveredPersonId ?? this.hoveredPersonId),
       focusPersonId: clearFocus ? null : (focusPersonId ?? this.focusPersonId),
       focusStack: clearFocus ? const [] : (focusStack ?? this.focusStack),
+      foyerFilterWifeId:
+          clearFoyerFilter ? null : (foyerFilterWifeId ?? this.foyerFilterWifeId),
     );
   }
 }
@@ -260,7 +269,16 @@ class TreeViewNotifier extends StateNotifier<TreeViewState> {
   }
 
   void changeView(TreeView view) {
-    state = state.copyWith(currentView: view);
+    // Changer de vue réinitialise le filtre par foyer (2c).
+    state = state.copyWith(currentView: view, clearFoyerFilter: true);
+  }
+
+  /// Filtre « vue par foyer » (maquette 2c) : ne garder que le foyer de
+  /// [wifeId] en mode foyers. `null` = « Tous les foyers ».
+  void setFoyerFilter(String? wifeId) {
+    state = wifeId == null
+        ? state.copyWith(clearFoyerFilter: true)
+        : state.copyWith(foyerFilterWifeId: wifeId);
   }
 
   void toggleGeneration(int gen) {
@@ -308,9 +326,10 @@ class TreeViewNotifier extends StateNotifier<TreeViewState> {
     );
   }
 
-  /// « ⌂ Retour à moi » : réinitialise le focus sur le sujet.
+  /// « ⌂ Retour à moi » : réinitialise le focus sur le sujet
+  /// (et le filtre par foyer 2c).
   void clearFocus() {
-    state = state.copyWith(clearFocus: true);
+    state = state.copyWith(clearFocus: true, clearFoyerFilter: true);
   }
 }
 

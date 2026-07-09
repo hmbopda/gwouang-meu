@@ -9,6 +9,20 @@ import 'package:gwangmeu/features/genealogy/models/person_genealogy.dart';
 import 'package:gwangmeu/features/genealogy/models/sibling_genealogy.dart';
 import 'package:gwangmeu/features/genealogy/state/tree_view_state.dart';
 
+/// Entrée d'un chip-filtre « vue par foyer » (maquette 2c) : une épouse du
+/// mode foyers, avec la couleur de SON foyer (or / rose / vert).
+class FoyerChipInfo {
+  final String wifeId;
+  final String label; // prénom de l'épouse
+  final Color color;
+
+  const FoyerChipInfo({
+    required this.wifeId,
+    required this.label,
+    required this.color,
+  });
+}
+
 /// Result of layout computation.
 class TreeLayout {
   final List<LayoutNode> nodes;
@@ -24,6 +38,13 @@ class TreeLayout {
   /// Boîtes pointillées par foyer (maquette 2a). Vide en mode monogame.
   final List<FoyerBox> foyerBoxes;
 
+  /// Chips-filtres du mode foyers (maquette 2c) : TOUTES les épouses,
+  /// même celles masquées par le filtre. Vide en mode monogame.
+  final List<FoyerChipInfo> foyerChips;
+
+  /// Nombre d'épouses (foyers) masquées par le filtre 2c. 0 sans filtre.
+  final int hiddenFoyerCount;
+
   const TreeLayout({
     required this.nodes,
     required this.links,
@@ -32,6 +53,8 @@ class TreeLayout {
     required this.nodeMap,
     this.unionBadges = const [],
     this.foyerBoxes = const [],
+    this.foyerChips = const [],
+    this.hiddenFoyerCount = 0,
   });
 
   /// Mode « foyers polygames » actif (maquette 2a) : le canvas ne peint ni
@@ -49,13 +72,15 @@ class TreeLayout {
 
 // ── Provider ────────────────────────────────────────────────
 
-// select() : n'écoute QUE currentView et hiddenGenerations
+// select() : n'écoute QUE currentView, hiddenGenerations et foyerFilterWifeId
 // selectedPersonId / hoveredPersonId → PAS de recalcul (géré au niveau Painter)
 final treeLayoutProvider = Provider.autoDispose.family<TreeLayout, FamilyTree>(
   (ref, tree) {
     final currentView = ref.watch(treeViewProvider.select((s) => s.currentView));
     final hiddenGenerations = ref.watch(treeViewProvider.select((s) => s.hiddenGenerations));
-    return _computeLayout(tree, currentView, hiddenGenerations);
+    final foyerFilterWifeId =
+        ref.watch(treeViewProvider.select((s) => s.foyerFilterWifeId));
+    return _computeLayout(tree, currentView, hiddenGenerations, foyerFilterWifeId);
   },
 );
 
@@ -67,7 +92,8 @@ const double _vSpacing = 190.0;
 const double _padding = 100.0;
 const double _topPadding = 170.0; // extra top space for floating toolbar
 
-TreeLayout _computeLayout(FamilyTree tree, TreeView currentView, Set<int> hiddenGenerations) {
+TreeLayout _computeLayout(FamilyTree tree, TreeView currentView,
+    Set<int> hiddenGenerations, String? foyerFilterWifeId) {
   // ── Mode FOYERS (maquette 2a) : un homme de l'arbre a ≥ 2 unions ──
   // Mari (chef) centré en haut, épouses en rangée dessous (couleur de foyer
   // or / rose / vert cyclique), enfants EMPILÉS dans une boîte pointillée
@@ -75,7 +101,7 @@ TreeLayout _computeLayout(FamilyTree tree, TreeView currentView, Set<int> hidden
   if (currentView != TreeView.migration) {
     final foyerGroups = _detectFoyerGroups(tree);
     if (foyerGroups.isNotEmpty) {
-      return _computeFoyerLayout(tree, foyerGroups);
+      return _computeFoyerLayout(tree, foyerGroups, foyerFilterWifeId);
     }
   }
 
@@ -791,12 +817,35 @@ String _foyerBoxLabel(PersonGenealogy wife, int childCount) {
 /// boîte pointillée sous chaque mère. Pas de liens de filiation individuels :
 /// la boîte matérialise la fratrie. contentHeight suit la boîte la plus
 /// profonde — jamais de chevauchement possible avec un contenu suivant.
-TreeLayout _computeFoyerLayout(FamilyTree tree, List<_FoyerGroup> groups) {
+///
+/// [foyerFilterWifeId] (maquette 2c) : si non-null et connu, seuls le chef et
+/// l'épouse filtrée (avec sa boîte) sont posés ; les autres épouses comptent
+/// dans [TreeLayout.hiddenFoyerCount]. Filtre inconnu → ignoré (rendu complet).
+TreeLayout _computeFoyerLayout(
+    FamilyTree tree, List<_FoyerGroup> groups, String? foyerFilterWifeId) {
   final nodes = <LayoutNode>[];
   final links = <LayoutLink>[];
   final nodeMap = <String, LayoutNode>{};
   final unionBadges = <UnionBadge>[];
   final foyerBoxes = <FoyerBox>[];
+
+  // ── Chips-filtres (2c) : TOUTES les épouses, couleur de foyer d'ORIGINE ──
+  final foyerChips = <FoyerChipInfo>[];
+  for (final group in groups) {
+    for (int i = 0; i < group.wives.length; i++) {
+      foyerChips.add(FoyerChipInfo(
+        wifeId: group.wives[i].wife.id,
+        label: group.wives[i].wife.firstName,
+        color: _foyerColors[i % _foyerColors.length],
+      ));
+    }
+  }
+
+  // Filtre inconnu (aucune épouse ne matche) → ignoré : rendu complet.
+  final bool filterKnown = foyerFilterWifeId != null &&
+      foyerChips.any((c) => c.wifeId == foyerFilterWifeId);
+  final String? filter = filterKnown ? foyerFilterWifeId : null;
+  int hiddenFoyerCount = 0;
 
   void addNode(LayoutNode node) {
     if (nodeMap.containsKey(node.person.id)) return; // anti-doublon
@@ -808,7 +857,16 @@ TreeLayout _computeFoyerLayout(FamilyTree tree, List<_FoyerGroup> groups) {
   double maxBottom = _topPadding;
 
   for (final group in groups) {
-    final groupW = group.wives.length * _foyerSlotW;
+    // Indices d'ORIGINE des épouses à poser : le filtre 2c ne garde que
+    // l'épouse ciblée, mais couleur et rang restent ceux du rendu complet.
+    final visibleIdx = <int>[];
+    for (int i = 0; i < group.wives.length; i++) {
+      if (filter == null || group.wives[i].wife.id == filter) visibleIdx.add(i);
+    }
+    hiddenFoyerCount += group.wives.length - visibleIdx.length;
+    if (visibleIdx.isEmpty) continue; // groupe entièrement masqué par le filtre
+
+    final groupW = visibleIdx.length * _foyerSlotW;
     final chiefX = groupLeft + groupW / 2;
     const chiefY = _topPadding;
     const wifeY = chiefY + _chiefToWifeV;
@@ -824,11 +882,12 @@ TreeLayout _computeFoyerLayout(FamilyTree tree, List<_FoyerGroup> groups) {
       isChief: true,
     ));
 
-    for (int i = 0; i < group.wives.length; i++) {
+    for (int slot = 0; slot < visibleIdx.length; slot++) {
+      final i = visibleIdx[slot];
       final foyer = group.wives[i];
       final union = foyer.union;
       final color = _foyerColors[i % _foyerColors.length];
-      final wifeX = groupLeft + _foyerSlotW / 2 + i * _foyerSlotW;
+      final wifeX = groupLeft + _foyerSlotW / 2 + slot * _foyerSlotW;
       final wifePos = Offset(wifeX, wifeY);
       final ended = !union.isActive;
 
@@ -913,7 +972,8 @@ TreeLayout _computeFoyerLayout(FamilyTree tree, List<_FoyerGroup> groups) {
   }
 
   // contentHeight recalculée depuis la boîte la plus profonde : les piles
-  // d'enfants ne chevauchent jamais le contenu suivant.
+  // d'enfants ne chevauchent jamais le contenu suivant. contentWidth suit
+  // les seuls foyers posés (filtre 2c → largeur réduite).
   final contentW = groupLeft - _foyerGroupGap + _padding;
   final contentH = maxBottom + _padding;
 
@@ -925,5 +985,7 @@ TreeLayout _computeFoyerLayout(FamilyTree tree, List<_FoyerGroup> groups) {
     nodeMap: nodeMap,
     unionBadges: unionBadges,
     foyerBoxes: foyerBoxes,
+    foyerChips: foyerChips,
+    hiddenFoyerCount: hiddenFoyerCount,
   );
 }
