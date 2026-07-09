@@ -167,7 +167,7 @@ class _Tab extends StatelessWidget {
 
 // ── Person detail tab ──
 
-class _PersonTab extends StatelessWidget {
+class _PersonTab extends StatefulWidget {
   final FamilyTree tree;
   final String? selectedId;
   final String treeOwnerId;
@@ -177,6 +177,26 @@ class _PersonTab extends StatelessWidget {
     required this.selectedId,
     required this.treeOwnerId,
   });
+
+  @override
+  State<_PersonTab> createState() => _PersonTabState();
+}
+
+class _PersonTabState extends State<_PersonTab> {
+  // Contrôleur dédié : barre de défilement TOUJOURS visible et extent borné
+  // (SingleChildScrollView, pas de recyclage ListView → le contenu ne
+  // « disparaît » plus au scroll et on peut toujours remonter).
+  final ScrollController _scrollCtrl = ScrollController();
+
+  FamilyTree get tree => widget.tree;
+  String? get selectedId => widget.selectedId;
+  String get treeOwnerId => widget.treeOwnerId;
+
+  @override
+  void dispose() {
+    _scrollCtrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -201,37 +221,45 @@ class _PersonTab extends StatelessWidget {
 
     return Column(
       children: [
-        // ── Contenu défilant ──
+        // ── Contenu défilant (borné, barre visible) ──
         Expanded(
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
-            children: [
-              _PersonHeader(
-                person: person,
-                isSubject: person.id == tree.subject.id,
+          child: Scrollbar(
+            controller: _scrollCtrl,
+            thumbVisibility: true,
+            child: SingleChildScrollView(
+              controller: _scrollCtrl,
+              padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _PersonHeader(
+                    person: person,
+                    isSubject: person.id == tree.subject.id,
+                  ),
+                  // ── Gestion du foyer (2b) : EN TÊTE pour le chef ──
+                  if (isChief) ...[
+                    const SizedBox(height: 20),
+                    _FoyerManagement(
+                      person: person,
+                      unions: chiefUnions,
+                      tree: tree,
+                      treeOwnerId: treeOwnerId,
+                    ),
+                  ],
+                  const SizedBox(height: 20),
+                  _LifeFiche(
+                    person: person,
+                    unions: personUnions,
+                  ),
+                  const SizedBox(height: 16),
+                  _MiniCardsRow(
+                    person: person,
+                    tree: tree,
+                    unions: personUnions,
+                  ),
+                ],
               ),
-              // ── Gestion du foyer (maquette 2b) : EN TÊTE pour le chef ──
-              if (isChief) ...[
-                const SizedBox(height: 20),
-                _FoyerManagement(
-                  person: person,
-                  unions: chiefUnions,
-                  tree: tree,
-                  treeOwnerId: treeOwnerId,
-                ),
-              ],
-              const SizedBox(height: 20),
-              _LifeFiche(
-                person: person,
-                unions: personUnions,
-              ),
-              const SizedBox(height: 16),
-              _MiniCardsRow(
-                person: person,
-                tree: tree,
-                unions: personUnions,
-              ),
-            ],
+            ),
           ),
         ),
 
@@ -1222,7 +1250,7 @@ PersonGenealogy? _findPersonInTree(FamilyTree tree, String id) {
 /// Onglet « Migration » : parcours de migration de la personne sélectionnée
 /// (sinon du sujet) — badge, timeline « PARCOURS DE MIGRATION », alliances
 /// territoriales et actions carte (maquette 5a).
-class _MigrationTab extends StatelessWidget {
+class _MigrationTab extends StatefulWidget {
   final FamilyTree tree;
   final String? selectedId;
   final String treeOwnerId;
@@ -1234,21 +1262,44 @@ class _MigrationTab extends StatelessWidget {
   });
 
   @override
+  State<_MigrationTab> createState() => _MigrationTabState();
+}
+
+class _MigrationTabState extends State<_MigrationTab> {
+  // Défilement borné + barre visible (même correctif que l'onglet Personne :
+  // plus de contenu qui disparaît, remontée toujours possible).
+  final ScrollController _scrollCtrl = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final tree = widget.tree;
+    final selectedId = widget.selectedId;
     final t = GwTokens.of(context);
     const brown = Color(0xFF3B2A16);
     const cream = Color(0xFFF0EBE1);
 
     // Personne affichée : la sélection si elle existe, sinon le sujet.
     final person = (selectedId != null
-            ? _findPersonInTree(tree, selectedId!)
+            ? _findPersonInTree(tree, selectedId)
             : null) ??
         tree.subject;
     final journey = buildMigrationJourney(tree, person);
 
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
-      children: [
+    return Scrollbar(
+      controller: _scrollCtrl,
+      thumbVisibility: true,
+      child: SingleChildScrollView(
+        controller: _scrollCtrl,
+        padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
         _MigrationHeader(person: person, tree: tree, journey: journey),
         const SizedBox(height: 24),
         _MigrationTimelineCard(journey: journey),
@@ -1268,18 +1319,20 @@ class _MigrationTab extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        _FixedActionBtn(
-          icon: Symbols.ios_share,
-          label: 'Exporter le parcours',
-          backgroundColor: Colors.transparent,
-          foregroundColor: t.goldText,
-          borderColor: t.goldLine,
-          onTap: () => _migrationSnack(
-            context,
-            'Export du parcours — bientôt disponible',
-          ),
+            _FixedActionBtn(
+              icon: Symbols.ios_share,
+              label: 'Exporter le parcours',
+              backgroundColor: Colors.transparent,
+              foregroundColor: t.goldText,
+              borderColor: t.goldLine,
+              onTap: () => _migrationSnack(
+                context,
+                'Export du parcours — bientôt disponible',
+              ),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }
