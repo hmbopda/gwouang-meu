@@ -98,7 +98,9 @@ TreeLayout _computeLayout(FamilyTree tree, TreeView currentView,
   // Mari (chef) centré en haut, épouses en rangée dessous (couleur de foyer
   // or / rose / vert cyclique), enfants EMPILÉS dans une boîte pointillée
   // sous chaque mère. En mode monogame (0 ou 1 union), rendu 1a inchangé.
-  if (currentView != TreeView.migration) {
+  // UNIQUEMENT sur la vue Rivière : Ascendants / Descendants gardent leur
+  // rendu par générations (sinon ces boutons semblaient inactifs).
+  if (currentView == TreeView.full) {
     final foyerGroups = _detectFoyerGroups(tree);
     if (foyerGroups.isNotEmpty) {
       return _computeFoyerLayout(tree, foyerGroups, foyerFilterWifeId);
