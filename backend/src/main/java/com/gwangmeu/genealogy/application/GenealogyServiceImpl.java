@@ -574,6 +574,19 @@ class GenealogyServiceImpl implements GenealogyService {
         String legalCountry = firstNonBlank(req.getLegalCountry(),
                 husband.getResidenceCountry(), wife.getResidenceCountry());
 
+        // ── REGLE : mariage entre personnes de meme sexe selon le pays. ───────
+        // Dans les pays qui ne reconnaissent pas le mariage meme sexe (defaut
+        // pour les pays africains cibles et tout pays inconnu), une union unit
+        // un HOMME et une FEMME. La polygamie (homme + plusieurs femmes) reste
+        // fonctionnelle : chaque union additionnelle reste un couple mari MALE /
+        // epouse FEMALE.
+        if (!complianceService.isSameSexAllowed(legalCountry)
+                && (husband.getGender() != GenderEnum.MALE
+                    || wife.getGender() != GenderEnum.FEMALE)) {
+            throw new IllegalStateException(
+                    "Dans ce pays, une union unit un homme et une femme.");
+        }
+
         // Unions actives existantes des deux conjoints (avant la nouvelle).
         List<GenealogyUnion> husbandActive = unionRepository.findActiveUnionsByPerson(req.getHusbandId());
         List<GenealogyUnion> wifeActive = unionRepository.findActiveUnionsByPerson(req.getWifeId());

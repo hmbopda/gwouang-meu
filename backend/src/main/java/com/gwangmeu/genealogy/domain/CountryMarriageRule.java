@@ -49,6 +49,16 @@ public class CountryMarriageRule {
     @Builder.Default
     private boolean isAdvisory = true;
 
+    /**
+     * Mariage entre personnes de meme sexe reconnu par le droit du pays.
+     * Defaut false : dans la plupart des pays africains cibles (ex. Cameroun),
+     * une union unit un homme et une femme. Les pays absents du referentiel
+     * sont traites comme heterosexuels par prudence pour ce public.
+     */
+    @Column(name = "same_sex_allowed", nullable = false)
+    @Builder.Default
+    private boolean sameSexAllowed = false;
+
     @Column(name = "updated_at")
     private Instant updatedAt;
 }

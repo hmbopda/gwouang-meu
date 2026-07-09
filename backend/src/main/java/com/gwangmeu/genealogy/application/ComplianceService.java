@@ -62,6 +62,19 @@ public class ComplianceService {
         return Optional.ofNullable(cached);
     }
 
+    /**
+     * Le mariage entre personnes de meme sexe est-il reconnu par le droit du
+     * pays ? Lit la regle du referentiel (tolerant ISO-2/ISO-3 via getRule).
+     * Pays inconnu ou absent → false : contexte par defaut heterosexuel, plus
+     * prudent pour ce public (pays africains cibles ou l'union unit un homme et
+     * une femme).
+     */
+    public boolean isSameSexAllowed(String countryCode) {
+        return getRule(countryCode)
+                .map(CountryMarriageRule::isSameSexAllowed)
+                .orElse(false);
+    }
+
     /** Resultat d'une evaluation de conformite. */
     public record ComplianceResult(String status, String note) {}
 

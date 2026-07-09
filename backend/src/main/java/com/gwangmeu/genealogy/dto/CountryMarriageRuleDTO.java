@@ -22,6 +22,8 @@ public class CountryMarriageRuleDTO {
     private String legalBasis;
     private String sourceUrl;
     private boolean isAdvisory;
+    /** Mariage entre personnes de meme sexe reconnu par le pays (defaut false). */
+    private boolean sameSexAllowed;
 
     public static CountryMarriageRuleDTO fromEntity(CountryMarriageRule r) {
         return CountryMarriageRuleDTO.builder()
@@ -32,6 +34,7 @@ public class CountryMarriageRuleDTO {
                 .legalBasis(r.getLegalBasis())
                 .sourceUrl(r.getSourceUrl())
                 .isAdvisory(r.isAdvisory())
+                .sameSexAllowed(r.isSameSexAllowed())
                 .build();
     }
 
@@ -42,6 +45,7 @@ public class CountryMarriageRuleDTO {
                 .polygamy("UNKNOWN")
                 .regimes(List.of())
                 .isAdvisory(true)
+                .sameSexAllowed(false)
                 .build();
     }
 
