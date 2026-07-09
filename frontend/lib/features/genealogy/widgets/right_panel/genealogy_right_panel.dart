@@ -4,8 +4,8 @@ import 'package:material_symbols_icons/symbols.dart';
 
 import 'package:gwangmeu/features/genealogy/models/ai_suggestion.dart';
 import 'package:gwangmeu/features/genealogy/models/family_tree.dart';
+import 'package:gwangmeu/features/genealogy/models/genealogy_union.dart';
 import 'package:gwangmeu/features/genealogy/models/person_genealogy.dart';
-import 'package:gwangmeu/features/genealogy/models/sibling_genealogy.dart';
 import 'package:gwangmeu/features/genealogy/services/genealogy_api_service.dart';
 import 'package:gwangmeu/core/theme/gw_tokens.dart';
 import 'package:gwangmeu/features/genealogy/state/tree_view_state.dart';
@@ -37,7 +37,7 @@ class GenealogyRightPanel extends ConsumerWidget {
       color: t.inkCard,
       child: Column(
         children: [
-          // ── Tabs ──
+          // ── Onglets ──
           Container(
             decoration: BoxDecoration(
               border: Border(bottom: BorderSide(color: t.line)),
@@ -45,20 +45,17 @@ class GenealogyRightPanel extends ConsumerWidget {
             child: Row(
               children: [
                 _Tab(
-                  label: 'Personne',
-                  icon: Symbols.person,
+                  label: 'PERSONNE',
                   selected: rightTab == RightTab.personne,
                   onTap: () => notifier.setRightTab(RightTab.personne),
                 ),
                 _Tab(
-                  label: 'Migration',
-                  icon: Symbols.flight,
+                  label: 'MIGRATION',
                   selected: rightTab == RightTab.migration,
                   onTap: () => notifier.setRightTab(RightTab.migration),
                 ),
                 _Tab(
-                  label: 'IA',
-                  icon: Symbols.auto_awesome,
+                  label: '✦ IA',
                   selected: rightTab == RightTab.ia,
                   onTap: () => notifier.setRightTab(RightTab.ia),
                   badge: tree.pendingSuggestions.isNotEmpty
@@ -94,14 +91,12 @@ class GenealogyRightPanel extends ConsumerWidget {
 
 class _Tab extends StatelessWidget {
   final String label;
-  final IconData icon;
   final bool selected;
   final VoidCallback onTap;
   final String? badge;
 
   const _Tab({
     required this.label,
-    required this.icon,
     required this.selected,
     required this.onTap,
     this.badge,
@@ -110,11 +105,12 @@ class _Tab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = GwTokens.of(context);
+    final fg = selected ? GwTokens.gold : t.stoneDim;
     return Expanded(
       child: InkWell(
         onTap: onTap,
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12),
+          padding: const EdgeInsets.symmetric(vertical: 14),
           decoration: BoxDecoration(
             border: Border(
               bottom: BorderSide(
@@ -126,30 +122,32 @@ class _Tab extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon,
-                  size: 14,
-                  fill: selected ? 1 : 0,
-                  color: selected ? GwTokens.gold : t.stoneDim),
-              const SizedBox(width: 4),
               Text(
                 label,
-                style: TextStyle(
-                  color: selected ? GwTokens.gold : t.stoneDim,
-                  fontSize: 11,
+                style: GwType.mono(
+                  fontSize: 10.5,
+                  letterSpacing: 1.5,
+                  color: fg,
                   fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                 ),
               ),
               if (badge != null) ...[
-                const SizedBox(width: 4),
+                const SizedBox(width: 5),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
                   decoration: BoxDecoration(
                     color: GwTokens.sage,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
                     badge!,
-                    style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w700),
+                    style: GwType.mono(
+                      fontSize: 9,
+                      letterSpacing: 0,
+                      color: const Color(0xFFF0EBE1),
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
               ],
@@ -204,24 +202,38 @@ class _PersonTab extends StatelessWidget {
       );
     }
 
+    // Unions rattachées à cette personne (mari OU épouse).
+    final personUnions = tree.unions
+        .where((u) => u.husbandId == person.id || u.wifeId == person.id)
+        .toList();
+
     return Column(
       children: [
-        // ── Scrollable content ──
+        // ── Contenu défilant ──
         Expanded(
           child: ListView(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
             children: [
               _PersonHeader(
-                  person: person, isSubject: person.id == tree.subject.id),
+                person: person,
+                isSubject: person.id == tree.subject.id,
+              ),
+              const SizedBox(height: 24),
+              _LifeFiche(
+                person: person,
+                unions: personUnions,
+              ),
               const SizedBox(height: 16),
-              _InfoCard(person: person),
-              const SizedBox(height: 12),
-              _RelationsCard(tree: tree, person: person),
+              _MiniCardsRow(
+                person: person,
+                tree: tree,
+                unions: personUnions,
+              ),
             ],
           ),
         ),
 
-        // ── Fixed bottom actions ──
+        // ── Actions fixes en bas ──
         _FixedActions(
           person: person,
           treeOwnerId: treeOwnerId,
@@ -249,6 +261,8 @@ class _PersonTab extends StatelessWidget {
   }
 }
 
+/// En-tête « fiche de vie » : gros badge à initiales centré (anneau or,
+/// point vert « vivant·e »), nom en serif, pilule mono clan + statut.
 class _PersonHeader extends StatelessWidget {
   final PersonGenealogy person;
   final bool isSubject;
@@ -261,152 +275,128 @@ class _PersonHeader extends StatelessWidget {
     final initials =
         '${person.firstName.isNotEmpty ? person.firstName[0] : ''}${person.lastName.isNotEmpty ? person.lastName[0] : ''}'
             .toUpperCase();
-    final avatarColor = t.inkLift;
-    final borderColor = isSubject
+    // Rose pour une lignée alliée (femme non-sujette), or sinon.
+    final ringColor = isSubject
         ? GwTokens.gold
-        : (person.gender == 'MALE' ? GwTokens.gold : GwTokens.rose);
+        : (person.gender == 'FEMALE' ? GwTokens.rose : GwTokens.gold);
 
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Avatar with alive indicator
+        // ── Gros badge circulaire à initiales ──
         Stack(
+          alignment: Alignment.center,
           children: [
             Container(
-              width: 64,
-              height: 64,
+              width: 88,
+              height: 88,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: avatarColor,
-                border: Border.all(color: borderColor, width: 3),
+                color: t.inkLift,
+                border: Border.all(color: ringColor, width: 3),
                 boxShadow: [
                   BoxShadow(
-                    color: borderColor.withValues(alpha: 0.3),
-                    blurRadius: 12,
-                    spreadRadius: 2,
+                    color: ringColor.withValues(alpha: 0.25),
+                    blurRadius: 16,
+                    spreadRadius: 1,
                   ),
                 ],
               ),
+              alignment: Alignment.center,
               child: person.photoUrl != null
                   ? ClipOval(
-                      child:
-                          Image.network(person.photoUrl!, fit: BoxFit.cover))
-                  : Center(
-                      child: Text(
-                        initials,
-                        style: TextStyle(
-                          color: t.stone,
-                          fontSize: 22,
-                          fontWeight: FontWeight.w700,
-                        ),
+                      child: Image.network(
+                        person.photoUrl!,
+                        width: 82,
+                        height: 82,
+                        fit: BoxFit.cover,
+                      ),
+                    )
+                  : Text(
+                      initials,
+                      style: GwType.display(
+                        fontSize: 30,
+                        fontWeight: FontWeight.w700,
+                        color: t.stone,
                       ),
                     ),
             ),
-            // Status dot (alive indicator)
+            // Point vert « vivant·e » en bas-droite.
             if (person.isAlive)
               Positioned(
-                bottom: 2,
-                right: 2,
+                right: 6,
+                bottom: 6,
                 child: Container(
-                  width: 14,
-                  height: 14,
+                  width: 18,
+                  height: 18,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: GwTokens.sage,
-                    border: Border.all(color: t.inkCard, width: 2),
+                    border: Border.all(color: t.inkCard, width: 3),
                   ),
                 ),
               ),
           ],
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 14),
 
-        // Name
+        // ── Nom en serif centré ──
         Text(
           '${person.firstName} ${person.lastName}',
-          style: TextStyle(
-            color: t.stone,
-            fontSize: 18,
+          textAlign: TextAlign.center,
+          style: GwType.display(
+            fontSize: 22,
             fontWeight: FontWeight.w700,
+            color: t.stone,
           ),
         ),
-        if (person.maidenName != null)
+        if (person.maidenName != null && person.maidenName!.isNotEmpty) ...[
+          const SizedBox(height: 2),
           Text(
             'née ${person.maidenName}',
-            style: TextStyle(
-              color: t.stoneDim,
-              fontSize: 11,
-              fontStyle: FontStyle.italic,
-            ),
+            textAlign: TextAlign.center,
+            style: GwType.quote(fontSize: 13, color: t.stoneDim),
           ),
+        ],
+        const SizedBox(height: 10),
+
+        // ── Pilules mono : clan + statut vivant/décédé ──
+        Wrap(
+          spacing: 8,
+          runSpacing: 6,
+          alignment: WrapAlignment.center,
+          children: [
+            if (person.clan != null && person.clan!.isNotEmpty)
+              _MonoPill(label: person.clan!.toUpperCase(), color: t.goldText),
+            _MonoPill(
+              label: person.isAlive
+                  ? (person.gender == 'FEMALE' ? 'VIVANTE' : 'VIVANT')
+                  : (person.gender == 'FEMALE' ? 'DÉCÉDÉE' : 'DÉCÉDÉ'),
+              color: person.isAlive ? t.sageText : t.stoneDim,
+              dotColor: person.isAlive ? GwTokens.sage : t.stoneDim,
+            ),
+          ],
+        ),
       ],
     );
   }
 }
 
-class _InfoCard extends StatelessWidget {
-  final PersonGenealogy person;
-  const _InfoCard({required this.person});
+/// Pilule mono (petites capitales) avec point optionnel — clan, statut…
+class _MonoPill extends StatelessWidget {
+  final String label;
+  final Color color;
+  final Color? dotColor;
+
+  const _MonoPill({required this.label, required this.color, this.dotColor});
 
   @override
   Widget build(BuildContext context) {
-    final t = GwTokens.of(context);
-    final birthInfo = [
-      if (person.birthDate != null)
-        'né(e) ${person.birthDate!.year}',
-      if (person.birthPlace != null) person.birthPlace!,
-    ].join('  ·  ');
-
-    // Tags row
-    final tags = <Widget>[];
-    if (person.clan != null) {
-      tags.add(_tag(person.clan!, t.stoneMid, t.inkHigh));
-    }
-    tags.add(_tag(
-      person.isAlive ? 'Vivant(e)' : 'Décédé(e)',
-      person.isAlive ? GwTokens.sage : t.stoneDim,
-      person.isAlive
-          ? GwTokens.sage.withValues(alpha: 0.12)
-          : t.stoneDim.withValues(alpha: 0.12),
-      dotColor: person.isAlive ? GwTokens.sage : t.stoneDim,
-    ));
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Birth info subtitle
-        if (birthInfo.isNotEmpty)
-          Text(
-            birthInfo,
-            style: TextStyle(color: t.stoneDim, fontSize: 12),
-          ),
-        const SizedBox(height: 8),
-
-        // Tags
-        Wrap(
-          spacing: 6,
-          runSpacing: 6,
-          children: tags,
-        ),
-        const SizedBox(height: 16),
-
-        // Detail rows with icons
-        _iconRow(t, Symbols.language, 'Langue', person.nativeLanguage),
-        _iconRow(t, Symbols.work, 'Profession', person.profession),
-        _iconRow(t, Symbols.location_on, 'Résidence', person.birthPlace),
-        _iconRow(t, Symbols.call, 'Téléphone', person.phone),
-        _iconRow(t, Symbols.favorite, 'Union(s)', null),
-      ],
-    );
-  }
-
-  Widget _tag(String label, Color textColor, Color bgColor, {Color? dotColor}) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
       decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: textColor.withValues(alpha: 0.2)),
+        color: color.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(GwTokens.rPill),
+        border: Border.all(color: color.withValues(alpha: 0.30)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -420,13 +410,14 @@ class _InfoCard extends StatelessWidget {
                 color: dotColor,
               ),
             ),
-            const SizedBox(width: 5),
+            const SizedBox(width: 6),
           ],
           Text(
             label,
-            style: TextStyle(
-              color: textColor,
-              fontSize: 11,
+            style: GwType.mono(
+              fontSize: 10,
+              letterSpacing: 1.5,
+              color: color,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -434,308 +425,246 @@ class _InfoCard extends StatelessWidget {
       ),
     );
   }
+}
 
-  Widget _iconRow(GwTokens t, IconData icon, String label, String? value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Row(
-        children: [
-          Icon(icon, size: 16, color: t.stoneDim),
-          const SizedBox(width: 10),
-          SizedBox(
-            width: 90,
-            child: Text(
-              label,
-              style: TextStyle(color: t.stoneDim, fontSize: 12),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value ?? '—',
-              style: TextStyle(
-                color: value != null ? t.stone : t.stoneDim,
-                fontSize: 12,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+/// Un évènement de vie : puce ronde colorée + titre gras + sous-ligne grise.
+class _LifeEvent {
+  final Color dotColor;
+  final String title;
+  final String subtitle;
+  const _LifeEvent({
+    required this.dotColor,
+    required this.title,
+    required this.subtitle,
+  });
+}
+
+/// Bloc « FICHE DE VIE » : construit la timeline à partir des vraies données
+/// (naissance, unions, résidence). N'affiche que les évènements disponibles.
+class _LifeFiche extends StatelessWidget {
+  final PersonGenealogy person;
+  final List<GenealogyUnion> unions;
+
+  const _LifeFiche({required this.person, required this.unions});
+
+  List<_LifeEvent> _buildEvents() {
+    final events = <_LifeEvent>[];
+
+    // ── Naissance ──
+    if (person.birthDate != null || person.birthPlace != null) {
+      final year = person.birthDate?.year;
+      events.add(_LifeEvent(
+        dotColor: GwTokens.gold,
+        title: year != null ? 'Naissance — $year' : 'Naissance',
+        subtitle: person.birthPlace ?? '—',
+      ));
+    }
+
+    // ── Union(s) ──
+    for (final u in unions) {
+      final partner = u.husbandId == person.id ? u.wife : u.husband;
+      final partnerName = partner != null
+          ? '${partner.firstName} ${partner.lastName}'.trim()
+          : null;
+      final year = u.startDate?.year;
+      final title = year != null ? 'Union — $year' : 'Union';
+      final parts = <String>[];
+      if (partnerName != null && partnerName.isNotEmpty) {
+        parts.add('avec $partnerName');
+      }
+      parts.add(u.isActive ? 'en cours' : 'terminée');
+      events.add(_LifeEvent(
+        dotColor: GwTokens.rose,
+        title: title,
+        subtitle: parts.join(' · '),
+      ));
+    }
+
+    // ── Résidence / langue ──
+    final residence = person.residenceCountry;
+    final language = person.nativeLanguage;
+    if ((residence != null && residence.isNotEmpty) ||
+        (language != null && language.isNotEmpty)) {
+      final parts = <String>[];
+      if (residence != null && residence.isNotEmpty) parts.add(residence);
+      if (language != null && language.isNotEmpty) {
+        parts.add('$language (langue)');
+      }
+      events.add(_LifeEvent(
+        dotColor: GwTokens.sage,
+        title: 'Résidence — auj.',
+        subtitle: parts.join(' · '),
+      ));
+    }
+
+    return events;
   }
-}
-
-class _GrandParentEntry {
-  final PersonGenealogy person;
-  final String side; // 'paternel' or 'maternel'
-  const _GrandParentEntry(this.person, this.side);
-}
-
-class _RelationsCard extends StatelessWidget {
-  final FamilyTree tree;
-  final PersonGenealogy person;
-
-  const _RelationsCard({required this.tree, required this.person});
 
   @override
   Widget build(BuildContext context) {
     final t = GwTokens.of(context);
-    final parents = <PersonGenealogy>[];
-    final grandParents = <_GrandParentEntry>[];
-    final children = <PersonGenealogy>[];
-    final siblings = <SiblingGenealogy>[];
+    final events = _buildEvents();
 
-    final uncles = <PersonGenealogy>[];
-
-    if (person.id == tree.subject.id) {
-      parents.addAll(tree.father);
-      parents.addAll(tree.mother);
-      for (final gp in tree.paternalGP) {
-        grandParents.add(_GrandParentEntry(gp, 'paternel'));
-      }
-      for (final gp in tree.maternalGP) {
-        grandParents.add(_GrandParentEntry(gp, 'maternel'));
-      }
-      children.addAll(tree.children);
-      siblings.addAll(tree.siblings);
-      uncles.addAll(tree.uncles);
-    }
-
-    if (parents.isEmpty && grandParents.isEmpty && children.isEmpty && siblings.isEmpty && uncles.isEmpty) {
-      return const SizedBox.shrink();
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // ── Grands-Parents ──
-        if (grandParents.isNotEmpty) ...[
-          _grandParentBlock(t, grandParents),
-          const SizedBox(height: 12),
-        ],
-
-        // ── Parents ──
-        if (parents.isNotEmpty) ...[
-          _sectionBlock(
-            t: t,
-            icon: Symbols.group,
-            label: 'PARENTS',
-            persons: parents,
-            roleBuilder: (p) => p.gender == 'MALE' ? 'Père' : 'Mère',
-          ),
-          const SizedBox(height: 12),
-        ],
-
-        // ── Enfants ──
-        if (children.isNotEmpty) ...[
-          _sectionBlock(
-            t: t,
-            icon: Symbols.child_care,
-            label: 'ENFANTS',
-            persons: children,
-            roleBuilder: (_) => 'Enfant',
-          ),
-          const SizedBox(height: 12),
-        ],
-
-        // ── Oncles/Tantes ──
-        if (uncles.isNotEmpty) ...[
-          _sectionBlock(
-            t: t,
-            icon: Symbols.groups,
-            label: 'ONCLES / TANTES',
-            persons: uncles,
-            roleBuilder: (p) => p.gender == 'MALE' ? 'Oncle' : 'Tante',
-          ),
-          const SizedBox(height: 12),
-        ],
-
-        // ── Frères/Sœurs ──
-        if (siblings.isNotEmpty)
-          _siblingBlock(t, siblings),
-      ],
-    );
-  }
-
-  Widget _grandParentBlock(GwTokens t, List<_GrandParentEntry> entries) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: t.inkCard,
-        borderRadius: BorderRadius.circular(8.0),
+        color: t.ink,
+        borderRadius: BorderRadius.circular(GwTokens.rCard),
         border: Border.all(color: t.line),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(Symbols.elderly, size: 12, color: t.stoneDim),
-              const SizedBox(width: 6),
-              Text('GRANDS-PARENTS', style: TextStyle(color: t.stoneDim, fontSize: 9, fontWeight: FontWeight.w700, letterSpacing: 1)),
-            ],
+          Text(
+            'FICHE DE VIE',
+            style: GwType.mono(
+              fontSize: 10,
+              letterSpacing: 2,
+              color: t.stoneFaint,
+              fontWeight: FontWeight.w600,
+            ),
           ),
-          const SizedBox(height: 8),
-          ...entries.map((e) {
-            final p = e.person;
-            final side = e.side;
-            final role = p.gender == 'MALE' ? 'Grand-père' : 'Grand-mère';
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 6),
-              child: Row(
-                children: [
-                  Icon(
-                    p.gender == 'MALE' ? Symbols.man : Symbols.woman,
-                    size: 14,
-                    color: p.gender == 'MALE' ? GwTokens.gold : GwTokens.rose,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      '${p.firstName} ${p.lastName}',
-                      style: TextStyle(color: t.stone, fontSize: 11),
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: t.inkHigh,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text('$role $side', style: TextStyle(color: t.stoneMid, fontSize: 9)),
-                  ),
-                ],
-              ),
-            );
-          }),
-        ],
-      ),
-    );
-  }
-
-  Widget _siblingBlock(GwTokens t, List<SiblingGenealogy> siblings) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: t.inkCard,
-        borderRadius: BorderRadius.circular(8.0),
-        border: Border.all(color: t.line),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Symbols.group, size: 12, color: t.stoneDim),
-              const SizedBox(width: 6),
-              Text('FRÈRES / SŒURS', style: TextStyle(color: t.stoneDim, fontSize: 9, fontWeight: FontWeight.w700, letterSpacing: 1)),
-            ],
-          ),
-          const SizedBox(height: 8),
-          ...siblings.map((s) {
-            final p = s.person;
-            final role = _siblingLabel(p.gender, s.type);
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 6),
-              child: Row(
-                children: [
-                  Icon(
-                    p.gender == 'MALE' ? Symbols.man : Symbols.woman,
-                    size: 14,
-                    color: p.gender == 'MALE' ? GwTokens.gold : GwTokens.rose,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      '${p.firstName} ${p.lastName}',
-                      style: TextStyle(color: t.stone, fontSize: 11),
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: t.inkHigh,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(role, style: TextStyle(
-                      color: s.type == 'FULL' ? t.stoneMid : GwTokens.ember,
-                      fontSize: 9,
-                    )),
-                  ),
-                ],
-              ),
-            );
-          }),
-        ],
-      ),
-    );
-  }
-
-  String _siblingLabel(String gender, String type) {
-    final base = gender == 'MALE' ? 'Frère' : 'Sœur';
-    switch (type) {
-      case 'HALF_PATERNAL':
-        return 'Demi-$base (pat.)';
-      case 'HALF_MATERNAL':
-        return 'Demi-$base (mat.)';
-      case 'STEP':
-        return gender == 'MALE' ? 'Beau-frère' : 'Belle-sœur';
-      default:
-        return base;
-    }
-  }
-
-  Widget _sectionBlock({
-    required GwTokens t,
-    required IconData icon,
-    required String label,
-    required List<PersonGenealogy> persons,
-    required String Function(PersonGenealogy) roleBuilder,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: t.inkCard,
-        borderRadius: BorderRadius.circular(8.0),
-        border: Border.all(color: t.line),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, size: 12, color: t.stoneDim),
-              const SizedBox(width: 6),
-              Text(label, style: TextStyle(color: t.stoneDim, fontSize: 9, fontWeight: FontWeight.w700, letterSpacing: 1)),
-            ],
-          ),
-          const SizedBox(height: 8),
-          ...persons.map((p) => Padding(
-                padding: const EdgeInsets.only(bottom: 6),
+          const SizedBox(height: 14),
+          if (events.isEmpty)
+            Text(
+              'Aucun évènement de vie renseigné.',
+              style: GwType.ui(fontSize: 12.5, color: t.stoneDim),
+            )
+          else
+            ...List.generate(events.length, (i) {
+              final e = events[i];
+              return Padding(
+                padding: EdgeInsets.only(
+                    bottom: i == events.length - 1 ? 0 : 16),
                 child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(
-                      p.gender == 'MALE' ? Symbols.man : Symbols.woman,
-                      size: 14,
-                      color: p.gender == 'MALE' ? GwTokens.gold : GwTokens.rose,
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Container(
+                        width: 10,
+                        height: 10,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: e.dotColor,
+                        ),
+                      ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 12),
                     Expanded(
-                      child: Text(
-                        '${p.firstName} ${p.lastName}',
-                        style: TextStyle(color: t.stone, fontSize: 11),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            e.title,
+                            style: GwType.ui(
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w700,
+                              color: t.stone,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            e.subtitle,
+                            style:
+                                GwType.ui(fontSize: 12.5, color: t.stoneDim),
+                          ),
+                        ],
                       ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: t.inkHigh,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(roleBuilder(p), style: TextStyle(color: t.stoneMid, fontSize: 9)),
                     ),
                   ],
                 ),
-              )),
+              );
+            }),
+        ],
+      ),
+    );
+  }
+}
+
+/// Deux mini-cartes côte à côte : « Profession » et « Union(s) ».
+class _MiniCardsRow extends StatelessWidget {
+  final PersonGenealogy person;
+  final FamilyTree tree;
+  final List<GenealogyUnion> unions;
+
+  const _MiniCardsRow({
+    required this.person,
+    required this.tree,
+    required this.unions,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    // Enfants du sujet uniquement (les autres personnes n'exposent pas leurs
+    // enfants dans l'arbre courant).
+    final childCount =
+        person.id == tree.subject.id ? tree.children.length : 0;
+    final unionCount = unions.length;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(
+          child: _MiniCard(
+            label: 'PROFESSION',
+            value: (person.profession != null &&
+                    person.profession!.isNotEmpty)
+                ? person.profession!
+                : '—',
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _MiniCard(
+            label: 'UNION(S)',
+            value: childCount > 0
+                ? '$unionCount · $childCount enfant${childCount > 1 ? 's' : ''}'
+                : '$unionCount',
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _MiniCard extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _MiniCard({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = GwTokens.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      decoration: BoxDecoration(
+        color: t.inkCard,
+        borderRadius: BorderRadius.circular(GwTokens.rBtn),
+        border: Border.all(color: t.line),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: GwType.mono(
+              fontSize: 9,
+              letterSpacing: 1.5,
+              color: t.stoneFaint,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: GwType.ui(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: t.stone,
+            ),
+          ),
         ],
       ),
     );
@@ -768,31 +697,33 @@ class _FixedActions extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = GwTokens.of(context);
+    // Brun patrimonial de la charte (#3b2a16) pour le bouton secondaire fort.
+    const brown = Color(0xFF3B2A16);
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
       decoration: BoxDecoration(
+        color: t.inkCard,
         border: Border(top: BorderSide(color: t.line)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // ── Modifier la fiche ──
+          // ── Modifier la fiche (or plein) ──
           _FixedActionBtn(
-            icon: Symbols.edit_note,
+            icon: Symbols.edit,
             label: 'Modifier la fiche',
             backgroundColor: GwTokens.gold,
-            foregroundColor: const Color(0xFF0C0B0F),
+            foregroundColor: GwTokens.inkOnGold,
             onTap: () => _showEditDialog(context, person, treeOwnerId),
           ),
           const SizedBox(height: 8),
 
-          // ── Voir carte de migration ──
+          // ── Voir carte de migration (brun plein) ──
           _FixedActionBtn(
             icon: Symbols.flight_takeoff,
             label: 'Voir carte de migration',
-            backgroundColor: const Color(0xFF3D1C1C),
-            foregroundColor: const Color(0xFFE57373),
-            borderColor: const Color(0xFF6D2B2B),
+            backgroundColor: brown,
+            foregroundColor: const Color(0xFFF0EBE1),
             onTap: () {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
@@ -804,12 +735,12 @@ class _FixedActions extends StatelessWidget {
           ),
           const SizedBox(height: 8),
 
-          // ── Ajouter un enfant ──
+          // ── Ajouter un enfant (contour) ──
           _FixedActionBtn(
             icon: Symbols.add,
             label: 'Ajouter un enfant',
-            backgroundColor: t.inkCard,
-            foregroundColor: t.stoneMid,
+            backgroundColor: Colors.transparent,
+            foregroundColor: t.goldText,
             borderColor: t.goldLine,
             onTap: () => _safeDialog(
               context,
@@ -843,25 +774,37 @@ class _FixedActionBtn extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       width: double.infinity,
-      child: ElevatedButton.icon(
-        onPressed: onTap,
-        icon: Icon(icon, size: 16),
-        label: Text(
-          label,
-          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-        ),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: backgroundColor,
-          foregroundColor: foregroundColor,
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-            side: borderColor != null
-                ? BorderSide(color: borderColor!)
-                : BorderSide.none,
+      height: 48,
+      child: Material(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(GwTokens.rBtn),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(GwTokens.rBtn),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(GwTokens.rBtn),
+              border: borderColor != null
+                  ? Border.all(color: borderColor!)
+                  : null,
+            ),
+            // Icône alignée verticalement au texte, contenu centré.
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(icon, size: 18, color: foregroundColor),
+                const SizedBox(width: 8),
+                Text(
+                  label,
+                  style: GwType.ui(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w600,
+                    color: foregroundColor,
+                  ),
+                ),
+              ],
+            ),
           ),
-          alignment: Alignment.centerLeft,
-          elevation: 0,
         ),
       ),
     );

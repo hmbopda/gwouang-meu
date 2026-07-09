@@ -99,8 +99,10 @@ class _VerificationBody extends ConsumerWidget {
                   child: SizedBox(
                     width: GwTokens.tapTarget,
                     height: GwTokens.tapTarget,
-                    child: Icon(Symbols.arrow_back,
-                        size: 20, color: t.stoneMid),
+                    child: Center(
+                      child: Icon(Symbols.arrow_back,
+                          size: 20, color: t.stoneMid),
+                    ),
                   ),
                 ),
               ),

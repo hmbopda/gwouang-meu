@@ -301,6 +301,7 @@ class _StandardNode extends StatelessWidget {
               Container(
                 width: 42,
                 height: 42,
+                alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color: GwTokens.sageBg,
                   shape: BoxShape.circle,

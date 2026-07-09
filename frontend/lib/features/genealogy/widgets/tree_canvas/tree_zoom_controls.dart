@@ -43,6 +43,7 @@ class TreeZoomControls extends StatelessWidget {
           child: Container(
             width: GwTokens.tapTarget,
             height: GwTokens.tapTarget,
+            alignment: Alignment.center,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: t.line),

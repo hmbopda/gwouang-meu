@@ -652,7 +652,10 @@ class _AiMemoryCardState extends State<_AiMemoryCard>
                   child: SizedBox(
                     width: 46,
                     height: 46,
-                    child: Icon(Symbols.close, size: 20, color: t.stoneFaint),
+                    child: Center(
+                      child:
+                          Icon(Symbols.close, size: 20, color: t.stoneFaint),
+                    ),
                   ),
                 ),
               ),

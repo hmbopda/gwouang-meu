@@ -86,6 +86,7 @@ class _AddStoryTile extends StatelessWidget {
               child: Container(
                 width: 72,
                 height: 72,
+                alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color: t.inkLift,
                   borderRadius: BorderRadius.circular(24),
