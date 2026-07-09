@@ -26,6 +26,10 @@ jobs:
   deploy-flutter-web:
     name: Deploy Flutter Web
     runs-on: ubuntu-latest
+    # cloudflare/pages-action crée un GitHub Deployment → besoin de deployments:write
+    permissions:
+      contents: read
+      deployments: write
     if: |
       github.event_name == 'push' ||
       github.event.inputs.target == 'all' ||
