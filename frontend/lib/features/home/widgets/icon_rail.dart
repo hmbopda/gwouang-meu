@@ -14,12 +14,17 @@ class NavRailItem {
   const NavRailItem({
     required this.icon,
     required this.label,
+    this.emoji,
     this.route,
     this.hasBadge = false,
     this.isSeparator = false,
   });
 
   final IconData icon;
+
+  /// Icône emoji colorée de la maquette (rail « Héritage clair ») —
+  /// prioritaire sur [icon] quand présente.
+  final String? emoji;
   final String label;
   final String? route;
 
@@ -33,23 +38,32 @@ class NavRailItem {
 
 /// Navigation globale — les 5 mêmes destinations que la bottom nav mobile
 /// (#2d, parité 1:1), puis les entrées futures sous « Plus (bientôt) ».
+/// Icônes emoji colorées, fidèles au rail de la maquette 1a.
 const kNavItems = [
-  NavRailItem(icon: Symbols.home, label: 'Fil', route: Routes.feed),
+  NavRailItem(icon: Symbols.home, emoji: '🏡', label: 'Fil', route: Routes.feed),
   NavRailItem(
-      icon: Symbols.holiday_village, label: 'Villages', route: Routes.villages),
+      icon: Symbols.holiday_village,
+      emoji: '⛰️',
+      label: 'Villages',
+      route: Routes.villages),
   NavRailItem(
-      icon: Symbols.family_history, label: 'Lignées', route: Routes.genealogy),
+      icon: Symbols.family_history,
+      emoji: '🌳',
+      label: 'Lignées',
+      route: Routes.genealogy),
   NavRailItem(
       icon: Symbols.forum,
+      emoji: '💬',
       label: 'Messages',
       route: Routes.messages,
       hasBadge: true),
-  NavRailItem(icon: Symbols.person, label: 'Profil', route: Routes.profile),
+  NavRailItem(
+      icon: Symbols.person, emoji: '👤', label: 'Profil', route: Routes.profile),
   NavRailItem.separator,
-  NavRailItem(icon: Symbols.school, label: 'Formations'),
-  NavRailItem(icon: Symbols.podcasts, label: 'Live'),
-  NavRailItem(icon: Symbols.travel_explore, label: 'Tourisme'),
-  NavRailItem(icon: Symbols.work, label: 'Emploi'),
+  NavRailItem(icon: Symbols.school, emoji: '🎓', label: 'Formations'),
+  NavRailItem(icon: Symbols.podcasts, emoji: '🎙️', label: 'Live'),
+  NavRailItem(icon: Symbols.travel_explore, emoji: '🌍', label: 'Tourisme'),
+  NavRailItem(icon: Symbols.work, emoji: '💼', label: 'Emploi'),
 ];
 
 /// Rail desktop 216 px (#2d) — icônes Material Symbols + labels
@@ -208,13 +222,22 @@ class _RailItem extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // Slot fixe 24 px : l'icône 20 px est centrée dedans, si bien
-                // que tous les labels démarrent à la même abscisse.
+                // Slot fixe 24 px : l'icône est centrée dedans, si bien que
+                // tous les labels démarrent à la même abscisse. Emoji coloré
+                // de la maquette prioritaire ; estompé pour les items futurs.
                 SizedBox(
                   width: 24,
                   child: Center(
-                    child: Icon(item.icon, size: 20, color: color,
-                        fill: isActive ? 1 : 0),
+                    child: item.emoji != null
+                        ? Opacity(
+                            opacity: isFuture ? 0.45 : 1,
+                            child: Text(
+                              item.emoji!,
+                              style: const TextStyle(fontSize: 16, height: 1),
+                            ),
+                          )
+                        : Icon(item.icon, size: 20, color: color,
+                            fill: isActive ? 1 : 0),
                   ),
                 ),
                 const SizedBox(width: 12),

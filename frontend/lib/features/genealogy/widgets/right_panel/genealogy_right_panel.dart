@@ -181,28 +181,10 @@ class _PersonTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = GwTokens.of(context);
-    if (selectedId == null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Symbols.touch_app, size: 40, color: t.stoneDim),
-              const SizedBox(height: 8),
-              Text(
-                'Sélectionnez un membre\npour voir ses détails',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: t.stoneDim, fontSize: 12),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    final person = _findPerson(selectedId!);
-    if (person == null) {
+    // Aucun clic → on affiche le SUJET par défaut (plus d'écran vide) :
+    // la fiche de vie et la gestion du foyer sont visibles immédiatement.
+    final person = _findPerson(selectedId ?? tree.subject.id) ?? tree.subject;
+    if (selectedId != null && _findPerson(selectedId!) == null) {
       return Center(
         child: Text('Personne introuvable', style: TextStyle(color: t.stoneDim)),
       );
@@ -212,6 +194,10 @@ class _PersonTab extends StatelessWidget {
     final personUnions = tree.unions
         .where((u) => u.husbandId == person.id || u.wifeId == person.id)
         .toList();
+    // Chef de foyer polygame : >= 2 unions comme mari (maquette 2b).
+    final chiefUnions =
+        personUnions.where((u) => u.husbandId == person.id).toList();
+    final isChief = person.gender == 'MALE' && chiefUnions.length >= 2;
 
     return Column(
       children: [
@@ -224,7 +210,17 @@ class _PersonTab extends StatelessWidget {
                 person: person,
                 isSubject: person.id == tree.subject.id,
               ),
-              const SizedBox(height: 24),
+              // ── Gestion du foyer (maquette 2b) : EN TÊTE pour le chef ──
+              if (isChief) ...[
+                const SizedBox(height: 20),
+                _FoyerManagement(
+                  person: person,
+                  unions: chiefUnions,
+                  tree: tree,
+                  treeOwnerId: treeOwnerId,
+                ),
+              ],
+              const SizedBox(height: 20),
               _LifeFiche(
                 person: person,
                 unions: personUnions,
@@ -235,20 +231,6 @@ class _PersonTab extends StatelessWidget {
                 tree: tree,
                 unions: personUnions,
               ),
-              // ── Gestion du foyer (maquette 2b) : chef polygame (>= 2 unions) ──
-              if (person.gender == 'MALE' &&
-                  personUnions.where((u) => u.husbandId == person.id).length >=
-                      2) ...[
-                const SizedBox(height: 16),
-                _FoyerManagement(
-                  person: person,
-                  unions: personUnions
-                      .where((u) => u.husbandId == person.id)
-                      .toList(),
-                  tree: tree,
-                  treeOwnerId: treeOwnerId,
-                ),
-              ],
             ],
           ),
         ),
