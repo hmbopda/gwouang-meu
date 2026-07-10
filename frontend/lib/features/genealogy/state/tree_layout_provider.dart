@@ -53,6 +53,11 @@ class TreeLayout {
   /// Libellé mono de l'enclos, ex « VOS UNIONS · 4 · 8 ENFANTS ».
   final String? unionEnclosLabel;
 
+  /// Mode « foyers » PLEIN ÉCRAN (maquette 2a, vue Rivière) : bandes de
+  /// générations masquées, chips 2c affichées. Les vues Ascendants /
+  /// Descendants réutilisent enclos et boîtes SANS ce mode.
+  final bool foyerMode;
+
   const TreeLayout({
     required this.nodes,
     required this.links,
@@ -65,11 +70,12 @@ class TreeLayout {
     this.hiddenFoyerCount = 0,
     this.unionEnclos,
     this.unionEnclosLabel,
+    this.foyerMode = false,
   });
 
   /// Mode « foyers polygames » actif (maquette 2a) : le canvas ne peint ni
   /// bandes de générations ni barres de fratrie, mais chef + épouses + boîtes.
-  bool get isFoyerMode => foyerBoxes.isNotEmpty;
+  bool get isFoyerMode => foyerMode;
 
   static const empty = TreeLayout(
     nodes: [],
@@ -137,6 +143,12 @@ TreeLayout _computeLayout(FamilyTree tree, TreeView currentView,
   final enclosMode =
       currentView == TreeView.ancestors && spouses.length >= 2;
 
+  // Vue DESCENDANTS avec ≥ 2 unions (maquette 9a) : sujet en haut, enclos des
+  // épouses en rangée dessous, puis les ENFANTS DISSOCIÉS PAR FOYER dans des
+  // boîtes pointillées colorées reliées à leur mère.
+  final descEnclosMode =
+      currentView == TreeView.descendants && spouses.length >= 2;
+
   switch (currentView) {
     case TreeView.full:
       _addRow(rows, 0, tree.paternalGP, tree.maternalGP);
@@ -151,8 +163,12 @@ TreeLayout _computeLayout(FamilyTree tree, TreeView currentView,
           rows, 2, tree.subject, const [], enclosMode ? const [] : spouses);
       break;
     case TreeView.descendants:
-      _addSubjectRowWithSpouses(rows, 0, tree.subject, const [], spouses);
-      _addRow(rows, 1, tree.children, const [], lineage1: NodeType.primaryLineage);
+      _addSubjectRowWithSpouses(
+          rows, 0, tree.subject, const [], descEnclosMode ? const [] : spouses);
+      if (!descEnclosMode) {
+        _addRow(rows, 1, tree.children, const [],
+            lineage1: NodeType.primaryLineage);
+      }
       break;
     case TreeView.migration:
       _addSubjectRow(rows, 0, tree.subject, const []);
@@ -168,8 +184,9 @@ TreeLayout _computeLayout(FamilyTree tree, TreeView currentView,
   _ensureUnionSpousesPlaced(
     rows,
     tree,
-    excludeUnionIds:
-        enclosMode ? subjectUnions.map((u) => u.id).toSet() : const {},
+    excludeUnionIds: (enclosMode || descEnclosMode)
+        ? subjectUnions.map((u) => u.id).toSet()
+        : const {},
   );
 
   // Remove empty rows and compact
@@ -285,6 +302,140 @@ TreeLayout _computeLayout(FamilyTree tree, TreeView currentView,
           '${kids > 0 ? ' · $kids ENFANT${kids > 1 ? 'S' : ''}' : ''}';
       outW = math.max(outW, left + enclosW + _padding);
       outH = math.max(outH, top + enclosH + _padding);
+    }
+  }
+
+  // ── DESCENDANTS PAR FOYER (maquette 9a) ─────────────────────
+  // Sujet en haut → enclos des épouses en RANGÉE → une boîte pointillée
+  // colorée par foyer avec les enfants empilés, reliée à sa mère.
+  final descBoxes = <FoyerBox>[];
+  if (descEnclosMode) {
+    var subjNode = nodeMap[tree.subject.id];
+    if (subjNode != null) {
+      const cardW = 230.0, cardH = 84.0, pad = 16.0;
+      const headerH = 26.0, colGap = 40.0;
+      final n = spouses.length;
+      final enclosW = pad * 2 + n * cardW + (n - 1) * colGap;
+      const enclosH = headerH + pad * 2 + cardH;
+
+      // L'enclos est souvent plus large que la rangée générique : on recentre
+      // le SUJET sur la largeur réelle pour éviter tout débord à gauche.
+      final fullW = math.max(contentW, enclosW + 2 * _padding);
+      final cx = fullW / 2;
+      if ((subjNode.position.dx - cx).abs() > 1) {
+        final moved = LayoutNode(
+          person: subjNode.person,
+          position: Offset(cx, subjNode.position.dy),
+          generation: subjNode.generation,
+          type: subjNode.type,
+          hasDotPaid: subjNode.hasDotPaid,
+          isSubject: true,
+          unionInfo: subjNode.unionInfo,
+        );
+        nodes[nodes.indexOf(subjNode)] = moved;
+        nodeMap[tree.subject.id] = moved;
+        subjNode = moved;
+      }
+      outW = math.max(outW, fullW);
+
+      final left = subjNode.position.dx - enclosW / 2;
+      final top = subjNode.position.dy + cardH / 2 + 46;
+      unionEnclos = Rect.fromLTWH(left, top, enclosW, enclosH);
+      unionEnclosLabel = 'VOS UNIONS · $n FOYER${n > 1 ? 'S' : ''}';
+
+      // Lien unique sujet → haut de l'enclos (trait or vertical).
+      links.add(LayoutLink(
+        from: subjNode.position,
+        to: Offset(subjNode.position.dx, top),
+        type: LinkType.filiation,
+        color: GwTokens.gold,
+      ));
+
+      final boxTop = top + enclosH + 44;
+      var maxBoxBottom = boxTop;
+      for (int i = 0; i < n; i++) {
+        final info = spouses[i];
+        final union = subjectUnions[i];
+        final color = _foyerColors[i % _foyerColors.length];
+        final wifeX = left + pad + cardW / 2 + i * (cardW + colGap);
+        final wifeY = top + headerH + pad + cardH / 2;
+
+        // Carte de l'épouse dans l'enclos.
+        final wifeNode = LayoutNode(
+          person: info.person,
+          position: Offset(wifeX, wifeY),
+          generation: 0,
+          type: _nodeType(info.person, tree.subject.id, NodeType.spouse),
+          hasDotPaid: info.hasDotPaid,
+          unionInfo: info.unionInfo,
+          foyerColor: color,
+        );
+        nodes.add(wifeNode);
+        nodeMap[info.person.id] = wifeNode;
+
+        // Enfants de CE foyer (unionId prioritaire, sinon couple exact).
+        final kids = tree.children
+            .where((c) =>
+                _belongsToUnion(c, union, tree.subject.id, info.person.id))
+            .toList()
+          ..sort((a, b) {
+            final da = a.birthDate, db = b.birthDate;
+            if (da != null && db != null) return da.compareTo(db);
+            if (da != null) return -1;
+            if (db != null) return 1;
+            return a.firstName.compareTo(b.firstName);
+          });
+
+        // Boîte pointillée du foyer, centrée sous l'épouse.
+        const boxW = 250.0;
+        final k = kids.length;
+        final boxH = _boxHeaderH +
+            _boxPad * 2 +
+            (k == 0 ? 34.0 : k * _miniCardH);
+        final rect =
+            Rect.fromLTWH(wifeX - boxW / 2, boxTop, boxW, boxH);
+        final firstName = info.person.firstName.trim();
+        descBoxes.add(FoyerBox(
+          rect: rect,
+          color: color,
+          label:
+              'FOYER ${(firstName.isEmpty ? '?' : firstName).toUpperCase()}'
+              ' · ${k == 0 ? 'SANS ENFANT' : '$k ENFANT${k > 1 ? 'S' : ''}'}',
+          childCount: k,
+        ));
+
+        // Descente pointillée épouse → boîte, couleur du foyer.
+        links.add(LayoutLink(
+          from: Offset(wifeX, wifeY + cardH / 2),
+          to: Offset(wifeX, boxTop),
+          type: LinkType.foyerDrop,
+          color: color,
+          ended: !union.isActive,
+        ));
+
+        // Mini-cartes des enfants empilées.
+        for (int j = 0; j < k; j++) {
+          final childY =
+              boxTop + _boxPad + _boxHeaderH + j * _miniCardH + _miniCardH / 2;
+          final childNode = LayoutNode(
+            person: kids[j],
+            position: Offset(wifeX, childY),
+            generation: 1,
+            type:
+                _nodeType(kids[j], tree.subject.id, NodeType.primaryLineage),
+            isSubject: kids[j].id == tree.subject.id,
+            inFoyerBox: true,
+            foyerColor: color,
+          );
+          nodes.add(childNode);
+          nodeMap[kids[j].id] = childNode;
+        }
+
+        if (rect.bottom > maxBoxBottom) maxBoxBottom = rect.bottom;
+      }
+
+      outW = math.max(outW, left + enclosW + _padding);
+      outH = math.max(outH, maxBoxBottom + _padding);
     }
   }
 
@@ -482,9 +633,12 @@ TreeLayout _computeLayout(FamilyTree tree, TreeView currentView,
   }
 
   for (final union in tree.unions) {
-    // Mode enclos : les unions du sujet sont matérialisées par l'enclos
-    // lui-même (un seul lien or) — pas de trait par union.
-    if (enclosMode && subjectUnionColor.containsKey(union.id)) continue;
+    // Modes enclos (8a/9a) : les unions du sujet sont matérialisées par
+    // l'enclos lui-même (un seul lien or) — pas de trait par union.
+    if ((enclosMode || descEnclosMode) &&
+        subjectUnionColor.containsKey(union.id)) {
+      continue;
+    }
     final hNode = nodeMap[union.husbandId];
     final wNode = nodeMap[union.wifeId];
     if (hNode != null && wNode != null) {
@@ -525,6 +679,7 @@ TreeLayout _computeLayout(FamilyTree tree, TreeView currentView,
     nodeMap: nodeMap,
     unionEnclos: unionEnclos,
     unionEnclosLabel: unionEnclosLabel,
+    foyerBoxes: descBoxes,
   );
 }
 
@@ -1124,5 +1279,6 @@ TreeLayout _computeFoyerLayout(
     foyerBoxes: foyerBoxes,
     foyerChips: foyerChips,
     hiddenFoyerCount: hiddenFoyerCount,
+    foyerMode: true,
   );
 }

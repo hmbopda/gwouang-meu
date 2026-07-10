@@ -211,9 +211,9 @@ class _TreeCanvasState extends ConsumerState<TreeCanvas>
                             ),
                           ),
 
-                        // Boîtes foyer (maquette 2a) : rectangle arrondi en
-                        // pointillés 1.5 px de la couleur du foyer, fond 4 %.
-                        if (layout.isFoyerMode)
+                        // Boîtes foyer (maquettes 2a et 9a) : rectangle
+                        // arrondi pointillé 1.5 px couleur du foyer, fond 4 %.
+                        if (layout.foyerBoxes.isNotEmpty)
                           Positioned.fill(
                             child: CustomPaint(
                               painter:
@@ -440,12 +440,13 @@ class _TreeCanvasState extends ConsumerState<TreeCanvas>
               ),
 
               // ── Légende (desktop, bas gauche) : lignées en mode 1a,
-              // foyers colorés + chef de famille en mode 2a ──
+              // foyers colorés dès qu'il y a des boîtes (2a Rivière ou 9a
+              // Descendants par foyer) ──
               if (widget.showLegend)
                 Positioned(
                   bottom: 16,
                   left: 20,
-                  child: layout.isFoyerMode
+                  child: layout.foyerBoxes.isNotEmpty
                       ? const _FoyerLegend()
                       : _LineageLegend(),
                 ),
@@ -1110,7 +1111,10 @@ List<_StrataInfo> _buildStrata(TreeLayout layout, GwTokens t) {
             : 'GÉNÉRATION ${gen + 1} · VOUS')
         : isFirst
             ? 'GÉNÉRATION ${gen + 1} · LES FONDATEURS'
-            : 'GÉNÉRATION ${gen + 1}';
+            // Descendants par foyer (9a) : la génération des enfants.
+            : (layout.foyerBoxes.isNotEmpty && !layout.isFoyerMode)
+                ? 'GÉNÉRATION ${gen + 1} · LES ENFANTS PAR FOYER'
+                : 'GÉNÉRATION ${gen + 1}';
 
     final tp = TextPainter(
       text: TextSpan(
