@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,10 +11,12 @@ import 'package:gwangmeu/features/genealogy/models/genealogy_union.dart';
 import 'package:gwangmeu/features/genealogy/models/person_genealogy.dart';
 import 'package:gwangmeu/features/genealogy/services/genealogy_api_service.dart';
 import 'package:gwangmeu/core/theme/gw_tokens.dart';
+import 'package:gwangmeu/features/genealogy/state/ai_insights.dart';
 import 'package:gwangmeu/features/genealogy/state/migration_journey.dart';
 import 'package:gwangmeu/features/genealogy/state/tree_view_state.dart';
 import 'package:gwangmeu/features/genealogy/widgets/dialogs/add_person_dialog.dart';
 import 'package:gwangmeu/features/genealogy/widgets/dialogs/add_union_dialog.dart';
+import 'package:gwangmeu/features/genealogy/widgets/dialogs/griot_dialog.dart';
 
 /// Défilement inratable pour le panneau : molette, trackpad ET glisser à la
 /// souris (le drag souris est désactivé par défaut sur Flutter web/desktop).
@@ -97,8 +101,9 @@ class GenealogyRightPanel extends ConsumerWidget {
                   treeOwnerId: personId,
                 ),
               RightTab.ia => _IaTab(
-                  suggestions: tree.pendingSuggestions,
-                  personId: personId,
+                  tree: tree,
+                  selectedId: selectedPersonId,
+                  treeOwnerId: personId,
                 ),
             },
           ),
@@ -1899,170 +1904,464 @@ class _DashedBorderPainter extends CustomPainter {
       oldDelegate.color != color || oldDelegate.radius != radius;
 }
 
-// ── IA tab ──
+// ── IA tab (maquette 4a « Affluent IA » + 4c « Veille de l'arbre ») ──
 
-class _IaTab extends ConsumerWidget {
-  final List<AiSuggestion> suggestions;
-  final String personId;
+/// Snackbar flottante générique de l'onglet IA.
+void _iaSnack(BuildContext context, String message) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
+  );
+}
 
-  const _IaTab({required this.suggestions, required this.personId});
+/// Initiales (2 lettres max) d'une personne, « ? » si inconnue.
+String _initialsOf(PersonGenealogy? p) {
+  if (p == null) return '?';
+  final f = p.firstName.isNotEmpty ? p.firstName[0] : '';
+  final l = p.lastName.isNotEmpty ? p.lastName[0] : '';
+  final s = '$f$l'.toUpperCase();
+  return s.isEmpty ? '?' : s;
+}
+
+/// Onglet « ✦ IA » : panneau contextuel « Affluent IA » (récit généré,
+/// liens probables réels, incohérences) + « Veille de l'arbre »
+/// (complétude, doublons) — tout est calculé localement par l'analyseur
+/// [buildTreeInsights] / [buildPersonNarrative] sur les données réelles.
+class _IaTab extends ConsumerStatefulWidget {
+  final FamilyTree tree;
+  final String? selectedId;
+  final String treeOwnerId;
+
+  const _IaTab({
+    required this.tree,
+    required this.selectedId,
+    required this.treeOwnerId,
+  });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_IaTab> createState() => _IaTabState();
+}
+
+class _IaTabState extends ConsumerState<_IaTab> {
+  // Même correctif de défilement que les onglets Personne/Migration :
+  // barre toujours visible, molette + drag souris, extent borné.
+  final ScrollController _scrollCtrl = ScrollController();
+  final GlobalKey _inconsistenciesKey = GlobalKey();
+  bool _savingNarrative = false;
+
+  @override
+  void dispose() {
+    _scrollCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final t = GwTokens.of(context);
-    if (suggestions.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Symbols.auto_awesome, size: 40, color: t.stoneDim),
-              const SizedBox(height: 8),
-              Text(
-                'Aucune suggestion',
-                style: TextStyle(color: t.stone, fontSize: 14, fontWeight: FontWeight.w600),
+    final tree = widget.tree;
+    // Personne analysée : la sélection si elle existe, sinon le sujet.
+    final person = (widget.selectedId != null
+            ? _findPersonInTree(tree, widget.selectedId!)
+            : null) ??
+        tree.subject;
+    // Analyse réelle de l'arbre — calculée une fois par build.
+    final insights = buildTreeInsights(tree);
+    final narrative = buildPersonNarrative(tree, person);
+    final suggestions = tree.pendingSuggestions;
+
+    return Column(
+      children: [
+        Expanded(
+          child: ScrollConfiguration(
+            behavior: const _PanelScrollBehavior(),
+            child: Scrollbar(
+              controller: _scrollCtrl,
+              thumbVisibility: true,
+              child: SingleChildScrollView(
+                controller: _scrollCtrl,
+                primary: false,
+                padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // ── 1) En-tête « Affluent IA » ──
+                    _IaHeader(person: person),
+                    const SizedBox(height: 20),
+
+                    // ── 2) Récit généré ──
+                    _NarrativeCard(
+                      narrative: narrative,
+                      saving: _savingNarrative,
+                      onRegenerate: () => setState(() {}),
+                      onListen: () => _iaSnack(
+                          context, 'Lecture audio — bientôt disponible'),
+                      onAddToFiche: () =>
+                          _addNarrativeToFiche(person, narrative),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // ── 3) Liens probables (suggestions IA réelles) ──
+                    _ProbableLinksCard(
+                      suggestions: suggestions,
+                      onAccept: (s) => _review(s.id, true),
+                      onReject: (s) => _review(s.id, false),
+                    ),
+
+                    // ── 4) Incohérences détectées ──
+                    if (insights.inconsistencies.isNotEmpty) ...[
+                      const SizedBox(height: 16),
+                      Column(
+                        key: _inconsistenciesKey,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          for (int i = 0;
+                              i < insights.inconsistencies.length;
+                              i++) ...[
+                            if (i > 0) const SizedBox(height: 10),
+                            _InconsistencyCard(
+                              inconsistency: insights.inconsistencies[i],
+                              onFix: () => _fixInconsistency(
+                                  insights.inconsistencies[i]),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ],
+                    const SizedBox(height: 24),
+
+                    // ── 5) Veille de l'arbre (maquette 4c) ──
+                    _TreeWatchSection(
+                      insights: insights,
+                      lineageName: tree.subject.lastName,
+                      onCompleteFive: () => _iaSnack(context,
+                          'Compléter en 5 questions — bientôt disponible'),
+                      onMerge: () => _iaSnack(context,
+                          'Fusion des doublons — bientôt disponible'),
+                      onVerify: _scrollToInconsistencies,
+                    ),
+                  ],
+                ),
               ),
-              const SizedBox(height: 4),
+            ),
+          ),
+        ),
+
+        // ── 6) Parler au Griot (fixe en bas) ──
+        Container(
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+          decoration: BoxDecoration(
+            color: t.inkCard,
+            border: Border(top: BorderSide(color: t.line)),
+          ),
+          child: SizedBox(
+            width: double.infinity,
+            height: 38,
+            child: Material(
+              color: const Color(0xFF3B2A16),
+              borderRadius: BorderRadius.circular(GwTokens.rBtn),
+              child: InkWell(
+                onTap: () =>
+                    showGriotDialog(context, tree, widget.treeOwnerId),
+                borderRadius: BorderRadius.circular(GwTokens.rBtn),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text('🗣', style: TextStyle(fontSize: 14)),
+                    const SizedBox(width: 7),
+                    Text(
+                      'Parler au Griot',
+                      style: GwType.ui(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFFF0EBE1),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _review(String id, bool accepted) async {
+    try {
+      await ref
+          .read(genealogyApiServiceProvider)
+          .reviewSuggestion(id, accepted);
+      ref.invalidate(familyTreeProvider(widget.treeOwnerId));
+      if (mounted) {
+        _iaSnack(context, accepted ? 'Lien vérifié et relié' : 'Suggestion ignorée');
+      }
+    } catch (_) {
+      if (mounted) {
+        _iaSnack(context, "La vérification n'a pas abouti — réessayez");
+      }
+    }
+  }
+
+  /// PATCH réel : enregistre le récit dans la biographie de la personne.
+  Future<void> _addNarrativeToFiche(
+      PersonGenealogy person, String narrative) async {
+    if (_savingNarrative || narrative.trim().isEmpty) return;
+    setState(() => _savingNarrative = true);
+    try {
+      await ref
+          .read(genealogyApiServiceProvider)
+          .updatePerson(person.id, {'biography': narrative});
+      ref.invalidate(familyTreeProvider(widget.treeOwnerId));
+      if (mounted) _iaSnack(context, 'Récit ajouté à la fiche');
+    } catch (_) {
+      if (mounted) {
+        _iaSnack(context, "Impossible d'ajouter le récit à la fiche");
+      }
+    } finally {
+      if (mounted) setState(() => _savingNarrative = false);
+    }
+  }
+
+  /// « Corriger → » : ouvre l'édition de la personne concernée si elle est
+  /// dans l'arbre, sinon la sélectionne simplement.
+  void _fixInconsistency(TreeInconsistency inc) {
+    final person = _findPersonInTree(widget.tree, inc.personId);
+    if (person != null) {
+      _showEditDialog(context, person, widget.treeOwnerId);
+    } else {
+      ref.read(treeViewProvider.notifier).selectPerson(inc.personId);
+    }
+  }
+
+  void _scrollToInconsistencies() {
+    final ctx = _inconsistenciesKey.currentContext;
+    if (ctx != null) {
+      Scrollable.ensureVisible(
+        ctx,
+        duration: const Duration(milliseconds: 350),
+        curve: Curves.easeOutCubic,
+        alignment: 0.05,
+      );
+    }
+  }
+}
+
+/// 1) En-tête « Affluent IA » : pastille or ✦, titre serif, sous-ligne
+/// contextuelle, pilule mono « À JOUR » (sage).
+class _IaHeader extends StatelessWidget {
+  final PersonGenealogy person;
+
+  const _IaHeader({required this.person});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = GwTokens.of(context);
+    return Row(
+      children: [
+        Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            color: GwTokens.gold,
+            borderRadius: BorderRadius.circular(11),
+            boxShadow: [
+              BoxShadow(
+                color: GwTokens.gold.withValues(alpha: 0.3),
+                blurRadius: 10,
+              ),
+            ],
+          ),
+          alignment: Alignment.center,
+          child: const Text(
+            '✦',
+            style: TextStyle(fontSize: 16, color: GwTokens.inkOnGold),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
               Text(
-                'L\'IA analysera votre arbre et proposera des liens potentiels.',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: t.stoneDim, fontSize: 11),
+                'Affluent IA',
+                style: GwType.display(
+                  fontSize: 16.5,
+                  fontWeight: FontWeight.w700,
+                  color: t.stone,
+                ),
+              ),
+              const SizedBox(height: 1),
+              Text(
+                'analyse de la fiche de '
+                '${person.firstName} ${person.lastName}'.trim(),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: GwType.ui(fontSize: 11, color: t.stoneDim),
               ),
             ],
           ),
         ),
-      );
-    }
-
-    return ListView.builder(
-      padding: const EdgeInsets.all(12),
-      itemCount: suggestions.length,
-      itemBuilder: (_, i) => _AiSuggestionCard(
-        suggestion: suggestions[i],
-        onAccept: () => _review(ref, suggestions[i].id, true),
-        onReject: () => _review(ref, suggestions[i].id, false),
-      ),
+        const SizedBox(width: 8),
+        _MonoPill(label: 'À JOUR', color: t.sageText, dotColor: GwTokens.sage),
+      ],
     );
-  }
-
-  void _review(WidgetRef ref, String id, bool accepted) async {
-    try {
-      await ref.read(genealogyApiServiceProvider).reviewSuggestion(id, accepted);
-      ref.invalidate(familyTreeProvider(personId));
-    } catch (_) {}
   }
 }
 
-class _AiSuggestionCard extends StatelessWidget {
-  final AiSuggestion suggestion;
-  final VoidCallback onAccept;
-  final VoidCallback onReject;
+/// Bouton compact 32 px de l'onglet IA (plein ou contour), avec état occupé.
+class _IaBtn extends StatelessWidget {
+  final String label;
+  final Color background;
+  final Color foreground;
+  final Color? borderColor;
+  final VoidCallback onTap;
+  final bool busy;
 
-  const _AiSuggestionCard({
-    required this.suggestion,
-    required this.onAccept,
-    required this.onReject,
+  const _IaBtn({
+    required this.label,
+    required this.background,
+    required this.foreground,
+    required this.onTap,
+    this.borderColor,
+    this.busy = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 32,
+      child: Material(
+        color: background,
+        borderRadius: BorderRadius.circular(9),
+        child: InkWell(
+          onTap: busy ? null : onTap,
+          borderRadius: BorderRadius.circular(9),
+          child: Container(
+            alignment: Alignment.center,
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(9),
+              border:
+                  borderColor != null ? Border.all(color: borderColor!) : null,
+            ),
+            child: busy
+                ? SizedBox(
+                    width: 13,
+                    height: 13,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: foreground,
+                    ),
+                  )
+                : FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      label,
+                      maxLines: 1,
+                      style: GwType.ui(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w700,
+                        color: foreground,
+                      ),
+                    ),
+                  ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 2) Carte « RÉCIT GÉNÉRÉ » : récit de l'analyseur en Fraunces italique
+/// entre guillemets français, lien « Régénérer ↻ » et actions
+/// « Écouter 🎙 » / « Ajouter à la fiche » (PATCH réel).
+class _NarrativeCard extends StatelessWidget {
+  final String narrative;
+  final bool saving;
+  final VoidCallback onRegenerate;
+  final VoidCallback onListen;
+  final VoidCallback onAddToFiche;
+
+  const _NarrativeCard({
+    required this.narrative,
+    required this.saving,
+    required this.onRegenerate,
+    required this.onListen,
+    required this.onAddToFiche,
   });
 
   @override
   Widget build(BuildContext context) {
     final t = GwTokens.of(context);
-    final pct = (suggestion.confidence * 100).toStringAsFixed(0);
-    final color = suggestion.confidence >= 0.75
-        ? GwTokens.sage
-        : suggestion.confidence >= 0.5
-            ? GwTokens.ember
-            : GwTokens.ember;
-
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: t.inkCard,
-        borderRadius: BorderRadius.circular(8.0),
-        border: Border.all(color: GwTokens.sage.withValues(alpha: 0.3)),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: t.line),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Relation
           Row(
             children: [
-              const Icon(Symbols.auto_awesome, size: 14, color: GwTokens.sage),
-              const SizedBox(width: 6),
               Expanded(
                 child: Text(
-                  '${suggestion.personA?.firstName ?? "?"} ↔ ${suggestion.personB?.firstName ?? "?"}',
-                  style: TextStyle(color: t.stone, fontSize: 12, fontWeight: FontWeight.w600),
+                  'RÉCIT GÉNÉRÉ',
+                  style: GwType.mono(
+                    fontSize: 9.5,
+                    letterSpacing: 2,
+                    color: t.stoneFaint,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
-              Text(
-                '$pct%',
-                style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.w800),
+              InkWell(
+                onTap: onRegenerate,
+                borderRadius: BorderRadius.circular(6),
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                  child: Text(
+                    'Régénérer ↻',
+                    style: GwType.ui(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: t.goldText,
+                    ),
+                  ),
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 10),
           Text(
-            suggestion.suggestedRelation,
-            style: TextStyle(color: t.stoneMid, fontSize: 11),
-          ),
-
-          // Confidence bar
-          const SizedBox(height: 6),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(3),
-            child: LinearProgressIndicator(
-              value: suggestion.confidence,
-              backgroundColor: t.inkHigh,
-              valueColor: AlwaysStoppedAnimation(color),
-              minHeight: 4,
+            '« $narrative »',
+            style: GwType.quote(
+              fontSize: 13.5,
+              color: t.stone,
+              height: 1.55,
             ),
           ),
-
-          // Reasons
-          if (suggestion.reasons.isNotEmpty) ...[
-            const SizedBox(height: 6),
-            ...suggestion.reasons.map((r) => Padding(
-                  padding: const EdgeInsets.only(top: 2),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('• ', style: TextStyle(color: t.stoneDim, fontSize: 10)),
-                      Expanded(
-                        child: Text(r, style: TextStyle(color: t.stoneMid, fontSize: 10)),
-                      ),
-                    ],
-                  ),
-                )),
-          ],
-
-          // Actions
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           Row(
-            mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              TextButton.icon(
-                onPressed: onReject,
-                icon: const Icon(Symbols.close, size: 14),
-                label: const Text('Rejeter'),
-                style: TextButton.styleFrom(
-                  foregroundColor: GwTokens.ember,
-                  textStyle: const TextStyle(fontSize: 11),
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              Expanded(
+                child: _IaBtn(
+                  label: 'Écouter 🎙',
+                  background: GwTokens.gold,
+                  foreground: GwTokens.inkOnGold,
+                  onTap: onListen,
                 ),
               ),
-              const SizedBox(width: 6),
-              ElevatedButton.icon(
-                onPressed: onAccept,
-                icon: const Icon(Symbols.check, size: 14),
-                label: const Text('Confirmer'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: GwTokens.sage,
-                  foregroundColor: Colors.white,
-                  textStyle: const TextStyle(fontSize: 11),
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _IaBtn(
+                  label: 'Ajouter à la fiche',
+                  background: Colors.transparent,
+                  foreground: t.goldText,
+                  borderColor: t.goldLine,
+                  busy: saving,
+                  onTap: onAddToFiche,
                 ),
               ),
             ],
@@ -2071,6 +2370,575 @@ class _AiSuggestionCard extends StatelessWidget {
       ),
     );
   }
+}
+
+/// 3) Carte « LIENS PROBABLES DÉTECTÉS » : suggestions IA réelles
+/// (tree.pendingSuggestions) avec confiance en or + barre de progression.
+class _ProbableLinksCard extends StatelessWidget {
+  final List<AiSuggestion> suggestions;
+  final void Function(AiSuggestion) onAccept;
+  final void Function(AiSuggestion) onReject;
+
+  const _ProbableLinksCard({
+    required this.suggestions,
+    required this.onAccept,
+    required this.onReject,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final t = GwTokens.of(context);
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: t.inkCard,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: t.line),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'LIENS PROBABLES DÉTECTÉS',
+            style: GwType.mono(
+              fontSize: 9.5,
+              letterSpacing: 2,
+              color: t.stoneFaint,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 10),
+          if (suggestions.isEmpty)
+            Text(
+              "Aucun lien probable pour l'instant.",
+              style: GwType.ui(fontSize: 11.5, color: t.stoneDim),
+            )
+          else
+            for (int i = 0; i < suggestions.length; i++) ...[
+              if (i > 0) ...[
+                const SizedBox(height: 4),
+                Divider(height: 1, thickness: 1, color: t.line),
+                const SizedBox(height: 10),
+              ],
+              _SuggestionRow(
+                suggestion: suggestions[i],
+                onAccept: () => onAccept(suggestions[i]),
+                onReject: () => onReject(suggestions[i]),
+              ),
+            ],
+        ],
+      ),
+    );
+  }
+}
+
+/// Une ligne de lien probable : badge initiales 32 px, nom gras, relation,
+/// % de confiance or + barre fine, actions « Vérifier & relier » / « Ignorer ».
+class _SuggestionRow extends StatelessWidget {
+  final AiSuggestion suggestion;
+  final VoidCallback onAccept;
+  final VoidCallback onReject;
+
+  const _SuggestionRow({
+    required this.suggestion,
+    required this.onAccept,
+    required this.onReject,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final t = GwTokens.of(context);
+    final a = suggestion.personA;
+    final b = suggestion.personB;
+    final aName = a != null
+        ? '${a.firstName} ${a.lastName}'.trim()
+        : 'Personne inconnue';
+    final name = b != null ? '$aName ↔ ${b.firstName}' : aName;
+    final confidence = suggestion.confidence.clamp(0.0, 1.0);
+    final pct = (confidence * 100).round();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            // Badge initiales 32 px, teinté or.
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: GwTokens.gold.withValues(alpha: 0.14),
+                border:
+                    Border.all(color: GwTokens.gold.withValues(alpha: 0.45)),
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                _initialsOf(a),
+                style: GwType.display(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w700,
+                  color: t.stone,
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GwType.ui(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                      color: t.stone,
+                    ),
+                  ),
+                  const SizedBox(height: 1),
+                  Text(
+                    suggestion.suggestedRelation,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GwType.ui(fontSize: 11, color: t.stoneDim),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              '$pct %',
+              style: GwType.ui(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w800,
+                color: t.goldText,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        // Fine barre de progression or.
+        ClipRRect(
+          borderRadius: BorderRadius.circular(2),
+          child: LinearProgressIndicator(
+            value: confidence,
+            backgroundColor: t.line,
+            valueColor: const AlwaysStoppedAnimation(GwTokens.gold),
+            minHeight: 3,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(
+              child: _IaBtn(
+                label: 'Vérifier & relier',
+                background: GwTokens.gold,
+                foreground: GwTokens.inkOnGold,
+                onTap: onAccept,
+              ),
+            ),
+            const SizedBox(width: 8),
+            InkWell(
+              onTap: onReject,
+              borderRadius: BorderRadius.circular(8),
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                child: Text(
+                  'Ignorer',
+                  style: GwType.ui(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w600,
+                    color: t.stoneDim,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+/// 4) Carte incohérence : fond ember 8 % (avertissement doux, jamais de
+/// rouge dur), icône ⚠, titre gras, détail gris, lien « Corriger → ».
+class _InconsistencyCard extends StatelessWidget {
+  final TreeInconsistency inconsistency;
+  final VoidCallback onFix;
+
+  const _InconsistencyCard({
+    required this.inconsistency,
+    required this.onFix,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final t = GwTokens.of(context);
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: GwTokens.ember.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: GwTokens.ember.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 1),
+            child: Icon(Symbols.warning, size: 15, color: t.emberText),
+          ),
+          const SizedBox(width: 9),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  inconsistency.title,
+                  style: GwType.ui(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                    color: t.stone,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  inconsistency.detail,
+                  style: GwType.ui(
+                    fontSize: 11.5,
+                    color: t.stoneDim,
+                    height: 1.35,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                InkWell(
+                  onTap: onFix,
+                  borderRadius: BorderRadius.circular(6),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 2, vertical: 2),
+                    child: Text(
+                      'Corriger →',
+                      style: GwType.ui(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w700,
+                        color: t.emberText,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 5) Section « VEILLE DE L'ARBRE » (maquette 4c) : anneau de complétude,
+/// manques principaux, bouton pointillé « Compléter en 5 questions » et
+/// mini-tuiles doublons (rose) / incohérences (ember).
+class _TreeWatchSection extends StatelessWidget {
+  final TreeInsights insights;
+  final String lineageName;
+  final VoidCallback onCompleteFive;
+  final VoidCallback onMerge;
+  final VoidCallback onVerify;
+
+  const _TreeWatchSection({
+    required this.insights,
+    required this.lineageName,
+    required this.onCompleteFive,
+    required this.onMerge,
+    required this.onVerify,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final t = GwTokens.of(context);
+    final pct = insights.completenessPct.clamp(0, 100);
+    final dupCount = insights.duplicates.length;
+    final incCount = insights.inconsistencies.length;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          "VEILLE DE L'ARBRE",
+          style: GwType.mono(
+            fontSize: 10,
+            letterSpacing: 2,
+            color: t.stoneFaint,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 10),
+
+        // ── Complétude : anneau or + manques principaux ──
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: t.inkCard,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: t.line),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  SizedBox(
+                    width: 64,
+                    height: 64,
+                    child: CustomPaint(
+                      painter: _CompletenessRingPainter(
+                        fraction: pct / 100,
+                        trackColor: t.line,
+                        arcColor: GwTokens.gold,
+                      ),
+                      child: Center(
+                        child: Text(
+                          '$pct%',
+                          style: GwType.display(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: t.stone,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Complétude de la lignée $lineageName',
+                          style: GwType.ui(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w700,
+                            color: t.stone,
+                          ),
+                        ),
+                        if (insights.missingHighlights.isNotEmpty) ...[
+                          const SizedBox(height: 5),
+                          for (final h in insights.missingHighlights)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 2),
+                              child: Text(
+                                '· $h',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: GwType.ui(
+                                    fontSize: 11, color: t.stoneDim),
+                              ),
+                            ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+
+              // ── Compléter en 5 questions (pointillé or) ──
+              SizedBox(
+                width: double.infinity,
+                height: 34,
+                child: CustomPaint(
+                  painter: _DashedBorderPainter(
+                    color: t.goldLine,
+                    radius: GwTokens.rBtn,
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    borderRadius: BorderRadius.circular(GwTokens.rBtn),
+                    child: InkWell(
+                      onTap: onCompleteFive,
+                      borderRadius: BorderRadius.circular(GwTokens.rBtn),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Symbols.help, size: 14, color: t.goldText),
+                          const SizedBox(width: 5),
+                          Text(
+                            'Compléter en 5 questions',
+                            style: GwType.ui(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w600,
+                              color: t.goldText,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // ── Mini-tuiles doublons / incohérences (masquées à 0) ──
+        if (dupCount > 0 || incCount > 0) ...[
+          const SizedBox(height: 12),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (dupCount > 0)
+                Expanded(
+                  child: _WatchTile(
+                    count: dupCount,
+                    label: dupCount > 1
+                        ? 'Doublons probables'
+                        : 'Doublon probable',
+                    tint: GwTokens.rose,
+                    linkLabel: 'Fusionner →',
+                    onTap: onMerge,
+                  ),
+                ),
+              if (dupCount > 0 && incCount > 0) const SizedBox(width: 12),
+              if (incCount > 0)
+                Expanded(
+                  child: _WatchTile(
+                    count: incCount,
+                    label: incCount > 1 ? 'Incohérences' : 'Incohérence',
+                    tint: GwTokens.ember,
+                    linkText: t.emberText,
+                    linkLabel: 'Vérifier →',
+                    onTap: onVerify,
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+/// Mini-tuile de veille : grand nombre serif teinté, libellé, sous-lien.
+class _WatchTile extends StatelessWidget {
+  final int count;
+  final String label;
+  final Color tint;
+  final Color? linkText;
+  final String linkLabel;
+  final VoidCallback onTap;
+
+  const _WatchTile({
+    required this.count,
+    required this.label,
+    required this.tint,
+    required this.linkLabel,
+    required this.onTap,
+    this.linkText,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final t = GwTokens.of(context);
+    final link = linkText ?? tint;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+      decoration: BoxDecoration(
+        color: tint.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: tint.withValues(alpha: 0.25)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '$count',
+            style: GwType.display(
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              color: link,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: GwType.ui(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: t.stone,
+            ),
+          ),
+          const SizedBox(height: 4),
+          InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(6),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 3),
+              child: Text(
+                linkLabel,
+                style: GwType.ui(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: link,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Anneau de complétude : arc or sur piste [trackColor], extrémités rondes.
+class _CompletenessRingPainter extends CustomPainter {
+  final double fraction;
+  final Color trackColor;
+  final Color arcColor;
+
+  const _CompletenessRingPainter({
+    required this.fraction,
+    required this.trackColor,
+    required this.arcColor,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const stroke = 5.0;
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = (math.min(size.width, size.height) - stroke) / 2;
+
+    final track = Paint()
+      ..color = trackColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = stroke;
+    canvas.drawCircle(center, radius, track);
+
+    final f = fraction.clamp(0.0, 1.0);
+    if (f <= 0) return;
+    final arc = Paint()
+      ..color = arcColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = stroke
+      ..strokeCap = StrokeCap.round;
+    canvas.drawArc(
+      Rect.fromCircle(center: center, radius: radius),
+      -math.pi / 2,
+      2 * math.pi * f,
+      false,
+      arc,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _CompletenessRingPainter oldDelegate) =>
+      oldDelegate.fraction != fraction ||
+      oldDelegate.trackColor != trackColor ||
+      oldDelegate.arcColor != arcColor;
 }
 
 // ── Inline Edit Dialog (bypasses separate file) ──
