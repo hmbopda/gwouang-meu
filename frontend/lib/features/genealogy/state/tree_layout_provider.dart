@@ -532,12 +532,14 @@ TreeLayout _computeLayout(FamilyTree tree, TreeView currentView,
   // le sujet (ni un conjoint) à TOUS les enfants. On rattache chaque enfant
   // au bon couple via unionId / motherId / fatherId, avec une barre de
   // fratrie descendante DISTINCTE par union.
+  // En mode DESCENDANTS PAR FOYER (9a), AUCUN trait individuel : les boîtes
+  // matérialisent la fratrie — traits de filiation/fratrie désactivés.
   final subNode = nodeMap[tree.subject.id];
 
   // Enfants restants : ceux qu'aucune union n'a réclamés (données legacy).
   final unclaimed = <PersonGenealogy>{...tree.children};
 
-  for (final union in subjectUnions) {
+  for (final union in descEnclosMode ? const <GenealogyUnion>[] : subjectUnions) {
     // Le conjoint (autre que le sujet) de cette union.
     final spouseId =
         union.husbandId == tree.subject.id ? union.wifeId : union.husbandId;
@@ -606,7 +608,7 @@ TreeLayout _computeLayout(FamilyTree tree, TreeView currentView,
 
   // Enfants non réclamés par une union (monogame sans unionId, ou legacy) :
   // rattachés au sujet seul — on ne casse pas le cas simple.
-  if (subNode != null) {
+  if (subNode != null && !descEnclosMode) {
     for (final child in unclaimed) {
       final cNode = nodeMap[child.id];
       if (cNode != null) {
@@ -1144,6 +1146,38 @@ TreeLayout _computeFoyerLayout(
     nodeMap[node.person.id] = node;
   }
 
+  // ── ASCENDANTS DU SUJET (la Rivière affiche TOUT) ───────────
+  // Parents / grands-parents non déjà présents comme chef ou épouse : posés
+  // en bandes classiques AU-DESSUS du premier groupe (celui du sujet).
+  final placedRoles = <String>{
+    for (final g in groups) g.chief.id,
+    for (final g in groups)
+      for (final w in g.wives) w.wife.id,
+  };
+  final parentInfos = <_NodeInfo>[
+    ...tree.father
+        .where((p) => !placedRoles.contains(p.id))
+        .map((p) => _NodeInfo(p, lineage: NodeType.primaryLineage)),
+    ...tree.mother
+        .where((p) => !placedRoles.contains(p.id))
+        .map((p) => _NodeInfo(p, lineage: NodeType.secondaryLineage)),
+  ];
+  final gpInfos = <_NodeInfo>[
+    ...tree.paternalGP
+        .where((p) => !placedRoles.contains(p.id))
+        .map((p) => _NodeInfo(p, lineage: NodeType.primaryLineage)),
+    ...tree.maternalGP
+        .where((p) => !placedRoles.contains(p.id))
+        .map((p) => _NodeInfo(p, lineage: NodeType.secondaryLineage)),
+  ];
+  final ancestorRows = <List<_NodeInfo>>[
+    if (gpInfos.isNotEmpty) gpInfos,
+    if (parentInfos.isNotEmpty) parentInfos,
+  ];
+  final chiefY = _topPadding + ancestorRows.length * _vSpacing;
+  final wifeY = chiefY + _chiefToWifeV;
+  Offset? subjectChiefPos; // chef du 1er groupe (ancrage des ascendants)
+
   double groupLeft = _padding;
   double maxBottom = _topPadding;
 
@@ -1159,9 +1193,8 @@ TreeLayout _computeFoyerLayout(
 
     final groupW = visibleIdx.length * _foyerSlotW;
     final chiefX = groupLeft + groupW / 2;
-    const chiefY = _topPadding;
-    const wifeY = chiefY + _chiefToWifeV;
     final chiefPos = Offset(chiefX, chiefY);
+    subjectChiefPos ??= chiefPos; // 1er groupe = celui du sujet (trié)
 
     // ── Chef de famille : carte or pâle + pilule « ♛ CHEF DE FAMILLE » ──
     addNode(LayoutNode(
@@ -1220,7 +1253,7 @@ TreeLayout _computeFoyerLayout(
       ));
 
       // ── Boîte foyer pointillée (padding 12, en-tête 26, 56/enfant) ──
-      const boxTop = wifeY + _cardHalfH + _wifeToBoxV;
+      final boxTop = wifeY + _cardHalfH + _wifeToBoxV;
       final childCount = foyer.children.length;
       final boxH = _boxPad + _boxHeaderH + childCount * _miniCardH + _boxPad;
       final rect =
@@ -1263,10 +1296,79 @@ TreeLayout _computeFoyerLayout(
     groupLeft += groupW + _foyerGroupGap;
   }
 
+  // ── Pose des ASCENDANTS au-dessus du chef du 1er groupe + liens ──
+  var ancestorsRight = 0.0;
+  final anchorPos = subjectChiefPos;
+  if (anchorPos != null && ancestorRows.isNotEmpty) {
+    final anchor = anchorPos;
+    for (int r = 0; r < ancestorRows.length; r++) {
+      final row = ancestorRows[r];
+      final y = _topPadding + r * _vSpacing;
+      final totalW = row.length * _hSpacing;
+      final startX = math.max(
+          _padding + 115.0, anchor.dx - totalW / 2 + _hSpacing / 2);
+      for (int j = 0; j < row.length; j++) {
+        final info = row[j];
+        addNode(LayoutNode(
+          person: info.person,
+          position: Offset(startX + j * _hSpacing, y),
+          generation: r - ancestorRows.length, // -2, -1 : au-dessus du chef
+          type: _nodeType(info.person, tree.subject.id, info.lineage),
+        ));
+        ancestorsRight =
+            math.max(ancestorsRight, startX + j * _hSpacing + 115.0);
+      }
+    }
+
+    // Liens : parents → chef ; grands-parents → parent du même côté
+    // (si le parent EST le chef/l'épouse, le lien part de sa carte).
+    void linkTo(List<PersonGenealogy> froms, Offset to, Color color) {
+      for (final p in froms) {
+        final n = nodeMap[p.id];
+        if (n != null && (n.position - to).distance > 1) {
+          links.add(LayoutLink(
+            from: n.position,
+            to: to,
+            type: LinkType.filiation,
+            color: color,
+          ));
+        }
+      }
+    }
+
+    linkTo(tree.father, anchor, GwTokens.gold);
+    linkTo(tree.mother, anchor, GwTokens.rose);
+    for (final f in tree.father) {
+      final fn = nodeMap[f.id];
+      if (fn != null) linkTo(tree.paternalGP, fn.position, GwTokens.gold);
+    }
+    for (final m in tree.mother) {
+      final mn = nodeMap[m.id];
+      if (mn != null) linkTo(tree.maternalGP, mn.position, GwTokens.rose);
+    }
+
+    // Union père ↔ mère (pointillé neutre) quand les deux sont posés côte à
+    // côte dans la bande des parents.
+    if (tree.father.isNotEmpty && tree.mother.isNotEmpty) {
+      final fn = nodeMap[tree.father.first.id];
+      final mn = nodeMap[tree.mother.first.id];
+      if (fn != null &&
+          mn != null &&
+          (fn.position.dy - mn.position.dy).abs() < 1) {
+        links.add(LayoutLink(
+          from: fn.position,
+          to: mn.position,
+          type: LinkType.union,
+        ));
+      }
+    }
+  }
+
   // contentHeight recalculée depuis la boîte la plus profonde : les piles
   // d'enfants ne chevauchent jamais le contenu suivant. contentWidth suit
-  // les seuls foyers posés (filtre 2c → largeur réduite).
-  final contentW = groupLeft - _foyerGroupGap + _padding;
+  // les foyers posés ET les bandes d'ascendants.
+  final contentW =
+      math.max(groupLeft - _foyerGroupGap, ancestorsRight) + _padding;
   final contentH = maxBottom + _padding;
 
   return TreeLayout(
