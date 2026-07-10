@@ -270,10 +270,7 @@ class _PersonTabState extends State<_PersonTab> {
                     ),
                   ],
                   const SizedBox(height: 20),
-                  _LifeFiche(
-                    person: person,
-                    unions: personUnions,
-                  ),
+                  _LifeFiche(person: person),
                   const SizedBox(height: 16),
                   _MiniCardsRow(
                     person: person,
@@ -339,6 +336,33 @@ class _PersonHeader extends StatelessWidget {
     final ringColor = isSubject
         ? GwTokens.gold
         : (person.gender == 'FEMALE' ? GwTokens.rose : GwTokens.gold);
+
+    // ── Méta : l'ORIGINE d'abord (ancre de la lignée). La résidence
+    //    n'apparaît qu'en second segment discret, si différente. ──
+    final originPlace =
+        _cleanText(person.originVillage) ?? _cleanText(person.originCity);
+    final originCountry = _cleanText(person.originCountry);
+    String? originLine;
+    if (originPlace != null) {
+      originLine = originCountry != null
+          ? 'Originaire de $originPlace, ${_countryDisplay(originCountry)}'
+          : 'Originaire de $originPlace';
+    }
+    String? residenceSegment;
+    if (originLine != null) {
+      final resCity = _cleanText(person.residenceCity);
+      final resCountry = _cleanText(person.residenceCountry);
+      final sameCountry = resCountry != null &&
+          originCountry != null &&
+          resCountry.toUpperCase() == originCountry.toUpperCase();
+      final resLabel =
+          resCity ?? (resCountry != null ? _countryDisplay(resCountry) : null);
+      final sameCity = resCity != null &&
+          resCity.toLowerCase() == originPlace!.toLowerCase();
+      if (resLabel != null && !sameCity && !(resCity == null && sameCountry)) {
+        residenceSegment = 'vit à $resLabel';
+      }
+    }
 
     return Column(
       children: [
@@ -417,6 +441,29 @@ class _PersonHeader extends StatelessWidget {
             style: GwType.quote(fontSize: 13, color: t.stoneDim),
           ),
         ],
+        if (originLine != null) ...[
+          const SizedBox(height: 6),
+          Text.rich(
+            TextSpan(
+              children: [
+                TextSpan(
+                  text: originLine,
+                  style: GwType.ui(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w500,
+                    color: t.stoneDim,
+                  ),
+                ),
+                if (residenceSegment != null)
+                  TextSpan(
+                    text: ' · $residenceSegment',
+                    style: GwType.ui(fontSize: 11.5, color: t.stoneFaint),
+                  ),
+              ],
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
         const SizedBox(height: 10),
 
         // ── Pilules mono : clan + statut vivant/décédé ──
@@ -487,83 +534,125 @@ class _MonoPill extends StatelessWidget {
   }
 }
 
-/// Un évènement de vie : puce ronde colorée + titre gras + sous-ligne grise.
-class _LifeEvent {
-  final Color dotColor;
-  final String title;
-  final String subtitle;
-  const _LifeEvent({
-    required this.dotColor,
-    required this.title,
-    required this.subtitle,
-  });
+// ── Helpers origine / pays (ISO-3166 alpha-2) : drapeau + libellé ──
+
+/// Trim + null si vide — normalise les champs texte optionnels.
+String? _cleanText(String? v) {
+  final s = v?.trim();
+  return (s == null || s.isEmpty) ? null : s;
 }
 
-/// Bloc « FICHE DE VIE » : construit la timeline à partir des vraies données
-/// (naissance, unions, résidence). N'affiche que les évènements disponibles.
+/// Drapeau émoji à partir d'un code ISO-2 (« CM » → 🇨🇲), '' si invalide.
+String _flagEmoji(String iso2) {
+  final code = iso2.trim().toUpperCase();
+  if (code.length != 2 || code.codeUnits.any((c) => c < 0x41 || c > 0x5A)) {
+    return '';
+  }
+  return String.fromCharCodes(code.codeUnits.map((c) => 0x1F1E6 + (c - 0x41)));
+}
+
+/// Libellés FR des pays fréquents (repli : code ISO brut).
+const Map<String, String> _countryNamesFr = {
+  'CM': 'Cameroun',
+  'FR': 'France',
+  'BE': 'Belgique',
+  'DE': 'Allemagne',
+  'GB': 'Royaume-Uni',
+  'US': 'États-Unis',
+  'CA': 'Canada',
+  'SN': 'Sénégal',
+  'CI': "Côte d'Ivoire",
+  'GA': 'Gabon',
+  'TD': 'Tchad',
+  'NG': 'Nigeria',
+  'GH': 'Ghana',
+  'CG': 'Congo',
+  'CD': 'RD Congo',
+  'CF': 'Centrafrique',
+  'GQ': 'Guinée équatoriale',
+  'IT': 'Italie',
+  'ES': 'Espagne',
+  'PT': 'Portugal',
+  'CH': 'Suisse',
+  'NL': 'Pays-Bas',
+  'MA': 'Maroc',
+  'DZ': 'Algérie',
+  'TN': 'Tunisie',
+  'ZA': 'Afrique du Sud',
+  'AU': 'Australie',
+  'CN': 'Chine',
+  'JP': 'Japon',
+};
+
+/// « 🇨🇲 Cameroun » — drapeau + libellé pour un code ISO-2.
+String _countryDisplay(String iso2) {
+  final code = iso2.trim().toUpperCase();
+  final name = _countryNamesFr[code] ?? code;
+  final flag = _flagEmoji(code);
+  return flag.isEmpty ? name : '$flag $name';
+}
+
+/// Une ligne de fiche : libellé + valeur. [anchor] = champ d'ORIGINE
+/// (ancre de la lignée) : à null il affiche « À renseigner » au lieu
+/// d'être masqué comme les autres champs.
+class _FicheField {
+  final String label;
+  final String? value;
+  final bool anchor;
+  const _FicheField(this.label, this.value, {this.anchor = false});
+}
+
+/// Fiche de vie réorganisée en DEUX blocs :
+/// « ORIGINE — ANCRE DE LA LIGNÉE » (village, ville, région, pays d'origine,
+/// clan, totem, langue, naissance) et « ÉVOLUTION — AUJOURD'HUI »
+/// (résidence, profession, religion, statut marital, contacts).
 class _LifeFiche extends StatelessWidget {
   final PersonGenealogy person;
-  final List<GenealogyUnion> unions;
 
-  const _LifeFiche({required this.person, required this.unions});
-
-  List<_LifeEvent> _buildEvents() {
-    final events = <_LifeEvent>[];
-
-    // ── Naissance ──
-    if (person.birthDate != null || person.birthPlace != null) {
-      final year = person.birthDate?.year;
-      events.add(_LifeEvent(
-        dotColor: GwTokens.gold,
-        title: year != null ? 'Naissance — $year' : 'Naissance',
-        subtitle: person.birthPlace ?? '—',
-      ));
-    }
-
-    // ── Union(s) ──
-    for (final u in unions) {
-      final partner = u.husbandId == person.id ? u.wife : u.husband;
-      final partnerName = partner != null
-          ? '${partner.firstName} ${partner.lastName}'.trim()
-          : null;
-      final year = u.startDate?.year;
-      final title = year != null ? 'Union — $year' : 'Union';
-      final parts = <String>[];
-      if (partnerName != null && partnerName.isNotEmpty) {
-        parts.add('avec $partnerName');
-      }
-      parts.add(u.isActive ? 'en cours' : 'terminée');
-      events.add(_LifeEvent(
-        dotColor: GwTokens.rose,
-        title: title,
-        subtitle: parts.join(' · '),
-      ));
-    }
-
-    // ── Résidence / langue ──
-    final residence = person.residenceCountry;
-    final language = person.nativeLanguage;
-    if ((residence != null && residence.isNotEmpty) ||
-        (language != null && language.isNotEmpty)) {
-      final parts = <String>[];
-      if (residence != null && residence.isNotEmpty) parts.add(residence);
-      if (language != null && language.isNotEmpty) {
-        parts.add('$language (langue)');
-      }
-      events.add(_LifeEvent(
-        dotColor: GwTokens.sage,
-        title: 'Résidence — auj.',
-        subtitle: parts.join(' · '),
-      ));
-    }
-
-    return events;
-  }
+  const _LifeFiche({required this.person});
 
   @override
   Widget build(BuildContext context) {
     final t = GwTokens.of(context);
-    final events = _buildEvents();
+
+    final originCountry = _cleanText(person.originCountry);
+    final originFields = <_FicheField>[
+      _FicheField("Village d'origine", _cleanText(person.originVillage),
+          anchor: true),
+      _FicheField("Ville d'origine", _cleanText(person.originCity),
+          anchor: true),
+      _FicheField("Région d'origine", _cleanText(person.originRegion),
+          anchor: true),
+      _FicheField(
+        "Pays d'origine",
+        originCountry != null ? _countryDisplay(originCountry) : null,
+        anchor: true,
+      ),
+      _FicheField('Clan', _cleanText(person.clan)),
+      _FicheField('Totem', _cleanText(person.totem)),
+      _FicheField('Langue maternelle', _cleanText(person.nativeLanguage)),
+      _FicheField('Lieu de naissance', _cleanText(person.birthPlace)),
+    ];
+
+    final resCity = _cleanText(person.residenceCity);
+    final resCountry = _cleanText(person.residenceCountry);
+    final residence = [
+      if (resCity != null) resCity,
+      if (resCountry != null) _countryDisplay(resCountry),
+    ].join(' · ');
+    final phone = _cleanText(person.phone);
+    final email = _cleanText(person.email);
+    final contacts = [
+      if (phone != null) phone,
+      if (email != null) email,
+    ].join(' · ');
+    final evolutionFields = <_FicheField>[
+      _FicheField('Résidence', residence.isEmpty ? null : residence),
+      _FicheField('Profession', _cleanText(person.profession)),
+      _FicheField('Religion', _cleanText(person.religion)),
+      _FicheField('Statut marital', _cleanText(person.maritalStatus)),
+      _FicheField('Contacts', contacts.isEmpty ? null : contacts),
+    ];
 
     return Container(
       padding: const EdgeInsets.all(14),
@@ -575,69 +664,103 @@ class _LifeFiche extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'FICHE DE VIE',
-            style: GwType.mono(
-              fontSize: 9.5,
-              letterSpacing: 2,
-              color: t.stoneFaint,
-              fontWeight: FontWeight.w600,
-            ),
+          _FicheSection(
+            title: 'ORIGINE — ANCRE DE LA LIGNÉE',
+            titleColor: t.goldText,
+            fields: originFields,
           ),
           const SizedBox(height: 12),
-          if (events.isEmpty)
-            Text(
-              'Aucun évènement de vie renseigné.',
-              style: GwType.ui(fontSize: 12.5, color: t.stoneDim),
-            )
-          else
-            ...List.generate(events.length, (i) {
-              final e = events[i];
-              return Padding(
-                padding: EdgeInsets.only(
-                    bottom: i == events.length - 1 ? 0 : 12),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: Container(
-                        width: 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: e.dotColor,
-                        ),
-                      ),
+          Container(height: 1, color: t.line),
+          const SizedBox(height: 12),
+          _FicheSection(
+            title: "ÉVOLUTION — AUJOURD'HUI",
+            titleColor: t.sageText,
+            fields: evolutionFields,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Section de fiche : intitulé mono MAJ + lignes libellé/valeur.
+/// Valeur nulle : « À renseigner » (italique gris discret) pour les champs
+/// [anchor] (origine), ligne masquée pour les autres — comme avant.
+class _FicheSection extends StatelessWidget {
+  final String title;
+  final Color titleColor;
+  final List<_FicheField> fields;
+
+  const _FicheSection({
+    required this.title,
+    required this.titleColor,
+    required this.fields,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final t = GwTokens.of(context);
+    final visible = fields.where((f) => f.value != null || f.anchor).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: GwType.mono(
+            fontSize: 9.5,
+            letterSpacing: 2,
+            color: titleColor,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 10),
+        if (visible.isEmpty)
+          Text(
+            'Aucun élément renseigné.',
+            style: GwType.ui(fontSize: 11.5, color: t.stoneFaint),
+          )
+        else
+          ...List.generate(visible.length, (i) {
+            final f = visible[i];
+            final missing = f.value == null;
+            return Padding(
+              padding:
+                  EdgeInsets.only(bottom: i == visible.length - 1 ? 0 : 8),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    width: 112,
+                    child: Text(
+                      f.label,
+                      style: GwType.ui(fontSize: 11, color: t.stoneDim),
                     ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            e.title,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: missing
+                        ? Text(
+                            'À renseigner',
                             style: GwType.ui(
-                              fontSize: 12.5,
-                              fontWeight: FontWeight.w700,
+                              fontSize: 11.5,
+                              color: t.stoneFaint,
+                            ).copyWith(fontStyle: FontStyle.italic),
+                          )
+                        : Text(
+                            f.value!,
+                            style: GwType.ui(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
                               color: t.stone,
                             ),
                           ),
-                          const SizedBox(height: 2),
-                          Text(
-                            e.subtitle,
-                            style:
-                                GwType.ui(fontSize: 11.5, color: t.stoneDim),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }),
-        ],
-      ),
+                  ),
+                ],
+              ),
+            );
+          }),
+      ],
     );
   }
 }
@@ -2957,10 +3080,24 @@ class _InlineEditDialogState extends ConsumerState<_InlineEditDialog> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _firstNameCtrl;
   late final TextEditingController _lastNameCtrl;
-  late final TextEditingController _birthPlaceCtrl;
   late final TextEditingController _dateCtrl;
-  late final TextEditingController _phoneCtrl;
+  // ── Origine — ancre de la lignée ──
+  late final TextEditingController _originVillageCtrl;
+  late final TextEditingController _originCityCtrl;
+  late final TextEditingController _originRegionCtrl;
+  late final TextEditingController _originCountryCtrl;
+  late final TextEditingController _clanCtrl;
+  late final TextEditingController _totemCtrl;
+  late final TextEditingController _languageCtrl;
+  late final TextEditingController _birthPlaceCtrl;
+  // ── Évolution — aujourd'hui ──
+  late final TextEditingController _residenceCityCtrl;
+  late final TextEditingController _residenceCountryCtrl;
   late final TextEditingController _professionCtrl;
+  late final TextEditingController _religionCtrl;
+  late final TextEditingController _maritalStatusCtrl;
+  late final TextEditingController _phoneCtrl;
+  late final TextEditingController _emailCtrl;
   late String _status;
   late String _privacy;
   DateTime? _birthDate;
@@ -2972,9 +3109,23 @@ class _InlineEditDialogState extends ConsumerState<_InlineEditDialog> {
     final p = widget.person;
     _firstNameCtrl = TextEditingController(text: p.firstName);
     _lastNameCtrl = TextEditingController(text: p.lastName);
+    _originVillageCtrl = TextEditingController(text: p.originVillage ?? '');
+    _originCityCtrl = TextEditingController(text: p.originCity ?? '');
+    _originRegionCtrl = TextEditingController(text: p.originRegion ?? '');
+    _originCountryCtrl =
+        TextEditingController(text: p.originCountry?.toUpperCase() ?? '');
+    _clanCtrl = TextEditingController(text: p.clan ?? '');
+    _totemCtrl = TextEditingController(text: p.totem ?? '');
+    _languageCtrl = TextEditingController(text: p.nativeLanguage ?? '');
     _birthPlaceCtrl = TextEditingController(text: p.birthPlace ?? '');
-    _phoneCtrl = TextEditingController(text: p.phone ?? '');
+    _residenceCityCtrl = TextEditingController(text: p.residenceCity ?? '');
+    _residenceCountryCtrl =
+        TextEditingController(text: p.residenceCountry?.toUpperCase() ?? '');
     _professionCtrl = TextEditingController(text: p.profession ?? '');
+    _religionCtrl = TextEditingController(text: p.religion ?? '');
+    _maritalStatusCtrl = TextEditingController(text: p.maritalStatus ?? '');
+    _phoneCtrl = TextEditingController(text: p.phone ?? '');
+    _emailCtrl = TextEditingController(text: p.email ?? '');
     _birthDate = p.birthDate;
     _dateCtrl = TextEditingController(
       text: p.birthDate != null ? '${p.birthDate!.day.toString().padLeft(2, '0')}/${p.birthDate!.month.toString().padLeft(2, '0')}/${p.birthDate!.year}' : '',
@@ -2988,15 +3139,57 @@ class _InlineEditDialogState extends ConsumerState<_InlineEditDialog> {
   void dispose() {
     _firstNameCtrl.dispose();
     _lastNameCtrl.dispose();
-    _birthPlaceCtrl.dispose();
     _dateCtrl.dispose();
-    _phoneCtrl.dispose();
+    _originVillageCtrl.dispose();
+    _originCityCtrl.dispose();
+    _originRegionCtrl.dispose();
+    _originCountryCtrl.dispose();
+    _clanCtrl.dispose();
+    _totemCtrl.dispose();
+    _languageCtrl.dispose();
+    _birthPlaceCtrl.dispose();
+    _residenceCityCtrl.dispose();
+    _residenceCountryCtrl.dispose();
     _professionCtrl.dispose();
+    _religionCtrl.dispose();
+    _maritalStatusCtrl.dispose();
+    _phoneCtrl.dispose();
+    _emailCtrl.dispose();
     super.dispose();
+  }
+
+  /// Intitulé de section mono MAJ (mêmes intitulés que la fiche de vie).
+  Widget _sectionTitle(String label, Color color) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 20, bottom: 4),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Text(
+          label,
+          style: GwType.mono(
+            fontSize: 9.5,
+            letterSpacing: 2,
+            color: color,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Validation douce d'un code pays ISO-3166 alpha-2 (vide accepté).
+  static String? _validateIso2(String? v) {
+    final s = v?.trim() ?? '';
+    if (s.isEmpty) return null;
+    if (s.length != 2 || s.toUpperCase().codeUnits.any((c) => c < 0x41 || c > 0x5A)) {
+      return 'Code ISO-2 (ex : CM, FR)';
+    }
+    return null;
   }
 
   @override
   Widget build(BuildContext context) {
+    final t = GwTokens.of(context);
     return AlertDialog(
       title: const Row(
         children: [
@@ -3053,10 +3246,77 @@ class _InlineEditDialogState extends ConsumerState<_InlineEditDialog> {
                     ),
                   ),
                 ),
+
+                // ── ORIGINE — ANCRE DE LA LIGNÉE ──
+                _sectionTitle('ORIGINE — ANCRE DE LA LIGNÉE', t.goldText),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _originVillageCtrl,
+                  decoration: const InputDecoration(labelText: "Village d'origine", prefixIcon: Icon(Symbols.holiday_village)),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _originCityCtrl,
+                  decoration: const InputDecoration(labelText: "Ville d'origine", prefixIcon: Icon(Symbols.location_city)),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _originRegionCtrl,
+                  decoration: const InputDecoration(labelText: "Région d'origine", prefixIcon: Icon(Symbols.map)),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _originCountryCtrl,
+                  maxLength: 2,
+                  textCapitalization: TextCapitalization.characters,
+                  decoration: const InputDecoration(
+                    labelText: "Pays d'origine (ISO-2)",
+                    hintText: 'CM, FR…',
+                    counterText: '',
+                    prefixIcon: Icon(Symbols.flag),
+                  ),
+                  validator: _validateIso2,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _clanCtrl,
+                  decoration: const InputDecoration(labelText: 'Clan', prefixIcon: Icon(Symbols.groups)),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _totemCtrl,
+                  decoration: const InputDecoration(labelText: 'Totem', prefixIcon: Icon(Symbols.pets)),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _languageCtrl,
+                  decoration: const InputDecoration(labelText: 'Langue maternelle', prefixIcon: Icon(Symbols.language)),
+                ),
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: _birthPlaceCtrl,
-                  decoration: const InputDecoration(labelText: 'Lieu de résidence', prefixIcon: Icon(Symbols.location_on)),
+                  decoration: const InputDecoration(labelText: 'Lieu de naissance', prefixIcon: Icon(Symbols.location_on)),
+                ),
+
+                // ── ÉVOLUTION — AUJOURD'HUI ──
+                _sectionTitle("ÉVOLUTION — AUJOURD'HUI", t.sageText),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _residenceCityCtrl,
+                  decoration: const InputDecoration(labelText: 'Ville de résidence', prefixIcon: Icon(Symbols.home)),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _residenceCountryCtrl,
+                  maxLength: 2,
+                  textCapitalization: TextCapitalization.characters,
+                  decoration: const InputDecoration(
+                    labelText: 'Pays de résidence (ISO-2)',
+                    hintText: 'CM, FR…',
+                    counterText: '',
+                    prefixIcon: Icon(Symbols.flag),
+                  ),
+                  validator: _validateIso2,
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
@@ -3065,9 +3325,25 @@ class _InlineEditDialogState extends ConsumerState<_InlineEditDialog> {
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
+                  controller: _religionCtrl,
+                  decoration: const InputDecoration(labelText: 'Religion', prefixIcon: Icon(Symbols.church)),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _maritalStatusCtrl,
+                  decoration: const InputDecoration(labelText: 'Statut marital', prefixIcon: Icon(Symbols.favorite)),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
                   controller: _phoneCtrl,
                   decoration: const InputDecoration(labelText: 'Téléphone', prefixIcon: Icon(Symbols.call)),
                   keyboardType: TextInputType.phone,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _emailCtrl,
+                  decoration: const InputDecoration(labelText: 'Email', prefixIcon: Icon(Symbols.mail)),
+                  keyboardType: TextInputType.emailAddress,
                 ),
                 const SizedBox(height: 12),
                 // Privacy — plain DropdownButton
@@ -3133,6 +3409,7 @@ class _InlineEditDialogState extends ConsumerState<_InlineEditDialog> {
 
     try {
       final api = ref.read(genealogyApiServiceProvider);
+      final p = widget.person;
       final data = <String, dynamic>{
         'firstName': _firstNameCtrl.text.trim(),
         'lastName': _lastNameCtrl.text.trim(),
@@ -3142,15 +3419,36 @@ class _InlineEditDialogState extends ConsumerState<_InlineEditDialog> {
       if (_birthDate != null) {
         data['birthDate'] = _birthDate!.toIso8601String().split('T').first;
       }
-      if (_birthPlaceCtrl.text.trim().isNotEmpty) {
-        data['birthPlace'] = _birthPlaceCtrl.text.trim();
+
+      // Seuls les champs modifiés ET non vides partent (clés camelCase).
+      void addIfChanged(String key, String raw, String? original,
+          {bool upper = false}) {
+        var v = raw.trim();
+        if (upper) v = v.toUpperCase();
+        if (v.isEmpty) return;
+        if (v == (original ?? '').trim()) return;
+        data[key] = v;
       }
-      if (_professionCtrl.text.trim().isNotEmpty) {
-        data['profession'] = _professionCtrl.text.trim();
-      }
-      if (_phoneCtrl.text.trim().isNotEmpty) {
-        data['phone'] = _phoneCtrl.text.trim();
-      }
+
+      // ── Origine — ancre de la lignée ──
+      addIfChanged('originVillage', _originVillageCtrl.text, p.originVillage);
+      addIfChanged('originCity', _originCityCtrl.text, p.originCity);
+      addIfChanged('originRegion', _originRegionCtrl.text, p.originRegion);
+      addIfChanged('originCountry', _originCountryCtrl.text,
+          p.originCountry?.toUpperCase(), upper: true);
+      addIfChanged('clan', _clanCtrl.text, p.clan);
+      addIfChanged('totem', _totemCtrl.text, p.totem);
+      addIfChanged('nativeLanguage', _languageCtrl.text, p.nativeLanguage);
+      addIfChanged('birthPlace', _birthPlaceCtrl.text, p.birthPlace);
+      // ── Évolution — aujourd'hui ──
+      addIfChanged('residenceCity', _residenceCityCtrl.text, p.residenceCity);
+      addIfChanged('residenceCountry', _residenceCountryCtrl.text,
+          p.residenceCountry?.toUpperCase(), upper: true);
+      addIfChanged('profession', _professionCtrl.text, p.profession);
+      addIfChanged('religion', _religionCtrl.text, p.religion);
+      addIfChanged('maritalStatus', _maritalStatusCtrl.text, p.maritalStatus);
+      addIfChanged('phone', _phoneCtrl.text, p.phone);
+      addIfChanged('email', _emailCtrl.text, p.email);
 
       await api.updatePerson(widget.person.id, data);
       ref.invalidate(familyTreeProvider(widget.treeOwnerId));

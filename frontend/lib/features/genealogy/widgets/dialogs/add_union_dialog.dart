@@ -838,7 +838,7 @@ class _AddUnionDialogState extends ConsumerState<AddUnionDialog> {
             isExpanded: true,
             style: GwType.ui(fontSize: 14, color: t.stone),
             decoration: gwInputDecoration(context,
-                label: 'Pays de résidence / célébration',
+                label: 'Droit applicable (pays de résidence)',
                 prefixIcon: Symbols.public,
                 dense: true),
             items: countries

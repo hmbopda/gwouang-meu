@@ -48,8 +48,9 @@ class DuplicateCandidate {
 
 /// Synthèse de l'analyse de l'arbre.
 class TreeInsights {
-  /// Pourcentage (0-100) de champs remplis sur l'ensemble des membres
-  /// (birthDate, birthPlace, clan, photoUrl, residenceCountry).
+  /// Pourcentage (0-100) de champs d'ancrage remplis sur l'ensemble des
+  /// membres : birthDate, birthPlace, clan, photoUrl et origine
+  /// (originVillage, originCity ou originCountry renseigné).
   final int completenessPct;
 
   /// 2-3 libellés lisibles, ex. « 5 dates de naissance manquantes ».
@@ -92,7 +93,7 @@ TreeInsights buildTreeInsights(FamilyTree tree) {
   var missingBirthPlace = 0;
   var missingClan = 0;
   var missingPhoto = 0;
-  var missingResidence = 0;
+  var missingOrigin = 0;
 
   for (final p in members) {
     if (p.birthDate != null) {
@@ -115,10 +116,13 @@ TreeInsights buildTreeInsights(FamilyTree tree) {
     } else {
       missingPhoto++;
     }
-    if (_hasText(p.residenceCountry)) {
+    // Origine (ancrage de la lignée) : village, ville ou pays d'origine.
+    if (_hasText(p.originVillage) ||
+        _hasText(p.originCity) ||
+        _hasText(p.originCountry)) {
       filled++;
     } else {
-      missingResidence++;
+      missingOrigin++;
     }
   }
 
@@ -136,8 +140,8 @@ TreeInsights buildTreeInsights(FamilyTree tree) {
         (n) => n == 1 ? '1 lieu de naissance manquant' : '$n lieux de naissance manquants'),
     MapEntry(missingClan,
         (n) => n == 1 ? '1 clan non renseigné' : '$n clans non renseignés'),
-    MapEntry(missingResidence,
-        (n) => n == 1 ? '1 pays de résidence manquant' : '$n pays de résidence manquants'),
+    MapEntry(missingOrigin,
+        (n) => n == 1 ? '1 origine à renseigner' : '$n origines à renseigner'),
   ]..sort((a, b) => b.key.compareTo(a.key));
   for (final entry in missingCounts) {
     if (entry.key > 0 && highlights.length < 3) {
@@ -199,8 +203,13 @@ TreeInsights buildTreeInsights(FamilyTree tree) {
   );
 }
 
-/// Récit narratif en français (2-3 phrases) construit uniquement à partir
-/// des champs réellement disponibles — aucun champ inventé.
+/// Récit narratif en français construit uniquement à partir des champs
+/// réellement disponibles — aucun champ inventé.
+///
+/// Structure « origine d'abord, évolution ensuite » : l'ancrage de la lignée
+/// (village, ville, région, pays d'origine) ouvre le récit ; la résidence
+/// actuelle (évolution) le clôt. Sans origine renseignée, une phrase douce
+/// invite à la compléter.
 String buildPersonNarrative(FamilyTree tree, PersonGenealogy p) {
   final index = _personIndex(tree);
   final female = _isFemale(p);
@@ -214,19 +223,60 @@ String buildPersonNarrative(FamilyTree tree, PersonGenealogy p) {
 
   final sentences = <String>[];
 
-  // ── Phrase 1 : naissance + clan(s) ──
-  final ne = female ? 'Née' : 'Né';
+  // ── Phrase 1 : origine (ancrage) d'abord, puis naissance + clan(s) ──
+  final originPlace = _hasText(p.originVillage)
+      ? p.originVillage!.trim()
+      : _hasText(p.originCity)
+          ? p.originCity!.trim()
+          : null;
+  final originRegion =
+      _hasText(p.originRegion) ? p.originRegion!.trim() : null;
+  final originCountry =
+      _hasText(p.originCountry) ? p.originCountry!.trim() : null;
+  final hasOrigin = originPlace != null || originCountry != null;
+
+  String? originFragment;
+  if (originPlace != null) {
+    final details = <String>[
+      if (originRegion != null) originRegion,
+      if (originCountry != null) _countryName(originCountry),
+    ];
+    originFragment = details.isEmpty
+        ? 'Originaire de $originPlace'
+        : 'Originaire de $originPlace (${details.join(', ')})';
+  } else if (originCountry != null) {
+    originFragment = originRegion != null
+        ? 'Originaire de $originRegion (${_countryName(originCountry)})'
+        : 'Originaire ${_countryOriginLabel(originCountry)}';
+  }
+
   final place = p.birthPlace?.trim();
   final year = p.birthDate?.year;
   String opening;
-  if (place != null && place.isNotEmpty && year != null) {
-    opening = '$ne à $place en $year, ${p.firstName}';
-  } else if (place != null && place.isNotEmpty) {
-    opening = '$ne à $place, ${p.firstName}';
-  } else if (year != null) {
-    opening = '$ne en $year, ${p.firstName}';
+  if (originFragment != null) {
+    final ne = female ? 'née' : 'né';
+    String birth;
+    if (place != null && place.isNotEmpty && year != null) {
+      birth = ', $ne à $place en $year';
+    } else if (place != null && place.isNotEmpty) {
+      birth = ', $ne à $place';
+    } else if (year != null) {
+      birth = ', $ne en $year';
+    } else {
+      birth = '';
+    }
+    opening = '$originFragment$birth, ${p.firstName}';
   } else {
-    opening = '${p.firstName} ${p.lastName}';
+    final ne = female ? 'Née' : 'Né';
+    if (place != null && place.isNotEmpty && year != null) {
+      opening = '$ne à $place en $year, ${p.firstName}';
+    } else if (place != null && place.isNotEmpty) {
+      opening = '$ne à $place, ${p.firstName}';
+    } else if (year != null) {
+      opening = '$ne en $year, ${p.firstName}';
+    } else {
+      opening = '${p.firstName} ${p.lastName}';
+    }
   }
 
   final fatherClan = father?.clan?.trim();
@@ -258,10 +308,20 @@ String buildPersonNarrative(FamilyTree tree, PersonGenealogy p) {
         '$pronoun est $filiation de ${father.firstName} ${father.lastName}.');
   }
 
-  // ── Phrase 3 : résidence / profession si connues ──
-  final residence = _hasText(p.residenceCountry)
+  // ── Phrase 3 (clôture) : évolution — résidence actuelle / profession ──
+  final residenceCity =
+      _hasText(p.residenceCity) ? p.residenceCity!.trim() : null;
+  final residenceCountry = _hasText(p.residenceCountry)
       ? _residenceLabel(p.residenceCountry!.trim())
       : null;
+  final String? residence;
+  if (residenceCity != null && residenceCountry != null) {
+    residence = 'à $residenceCity, $residenceCountry';
+  } else if (residenceCity != null) {
+    residence = 'à $residenceCity';
+  } else {
+    residence = residenceCountry;
+  }
   final profession = _hasText(p.profession) ? p.profession!.trim() : null;
   final lives = p.isAlive;
   if (residence != null && profession != null) {
@@ -278,7 +338,45 @@ String buildPersonNarrative(FamilyTree tree, PersonGenealogy p) {
         : '$pronoun exerçait la profession de $profession.');
   }
 
-  return sentences.take(3).join(' ');
+  final narrative = sentences.take(3).join(' ');
+  if (hasOrigin) return narrative;
+  return "$narrative Son village d'origine reste à renseigner.";
+}
+
+/// Libellé locatif d'un pays de résidence ISO-3166 alpha-2 (« au Cameroun »,
+/// « en France ») — pour formuler l'évolution (résidence actuelle).
+String countryResidenceLabel(String code) => _residenceLabel(code);
+
+/// Nom nu d'un pays ISO-3166 alpha-2 (« Cameroun », « États-Unis ») — pour
+/// les libellés d'ancrage compacts (cartes de l'arbre, entête de lignée).
+String countryDisplayName(String code) => _countryName(code);
+
+/// Libellé d'ancrage d'une personne — l'origine de la lignée : village ou
+/// ville d'origine avec (région, pays) en précision, région (pays) sinon,
+/// ou pays seul en locatif (« au Cameroun »). Retourne null si aucune
+/// origine n'est renseignée.
+String? personOriginLabel(PersonGenealogy p) {
+  final place = _hasText(p.originVillage)
+      ? p.originVillage!.trim()
+      : _hasText(p.originCity)
+          ? p.originCity!.trim()
+          : null;
+  final region = _hasText(p.originRegion) ? p.originRegion!.trim() : null;
+  final country = _hasText(p.originCountry) ? p.originCountry!.trim() : null;
+
+  if (place != null) {
+    final details = <String>[
+      if (region != null) region,
+      if (country != null) _countryName(country),
+    ];
+    return details.isEmpty ? place : '$place (${details.join(', ')})';
+  }
+  if (country != null) {
+    return region != null
+        ? '$region (${_countryName(country)})'
+        : _residenceLabel(country);
+  }
+  return region;
 }
 
 /// Chemin de parenté (BFS) de [fromId] vers [toId] sur les relations
@@ -673,3 +771,23 @@ const Map<String, String> _countryLabels = {
 
 String _residenceLabel(String code) =>
     _countryLabels[code.toUpperCase()] ?? 'dans le pays $code';
+
+/// Nom nu du pays (« Cameroun », « États-Unis ») dérivé du libellé locatif.
+String _countryName(String code) {
+  final label = _countryLabels[code.toUpperCase()];
+  if (label == null) return code.toUpperCase();
+  return label.replaceFirst(RegExp(r'^(aux |au |en |à )'), '');
+}
+
+/// Forme génitive pour « Originaire … » : « du Cameroun », « de France »,
+/// « d'Italie », « des États-Unis ».
+String _countryOriginLabel(String code) {
+  final label = _countryLabels[code.toUpperCase()];
+  if (label == null) return 'du pays ${code.toUpperCase()}';
+  if (label.startsWith('aux ')) return 'des ${label.substring(4)}';
+  if (label.startsWith('au ')) return 'du ${label.substring(3)}';
+  final name = label.replaceFirst(RegExp(r'^(en |à )'), '');
+  if (name.startsWith('République')) return 'de la $name';
+  final vowel = RegExp('^[aeiouyéèàâêîôû]', caseSensitive: false);
+  return vowel.hasMatch(name) ? "d'$name" : 'de $name';
+}

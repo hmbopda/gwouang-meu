@@ -4,7 +4,13 @@
 // structures immuables et la fonction [buildMigrationJourney].
 //
 // Il n'existe pas de table « migration » en base — tout est dérivé des
-// lieux présents dans l'arbre (birthPlace, residenceCountry, unions).
+// lieux présents dans l'arbre (origine, birthPlace, résidence, unions).
+//
+// RÈGLE MÉTIER : la lignée S'ANCRE sur l'ORIGINE (originVillage /
+// originCity / originRegion / originCountry). La RÉSIDENCE
+// (residenceCity / residenceCountry) est distincte : elle ne sert qu'à
+// l'ÉVOLUTION (migration, situation actuelle). birthPlace reste un FAIT
+// (lieu de naissance), ni origine ni résidence.
 
 import 'package:gwangmeu/features/genealogy/models/family_tree.dart';
 import 'package:gwangmeu/features/genealogy/models/person_genealogy.dart';
@@ -75,6 +81,7 @@ class MigrationJourney {
     required this.person,
     this.pilierPlace,
     this.pilierConcession,
+    this.pilierOriginDetail,
     this.steps = const [],
     this.alliances = const [],
     this.familyPlaces = const [],
@@ -83,12 +90,18 @@ class MigrationJourney {
   /// Personne dont on décrit le parcours.
   final PersonGenealogy person;
 
-  /// Lieu-pilier (concession d'origine) : birthPlace du père, sinon de la
-  /// mère, sinon de la personne elle-même.
+  /// Lieu-pilier : l'ORIGINE de la personne — originVillage, sinon
+  /// originCity, sinon l'origine du père (originVillage puis birthPlace),
+  /// sinon le repli historique (birthPlace de la mère, puis de la
+  /// personne elle-même).
   final String? pilierPlace;
 
   /// Nom de la concession : lastName du père — null si père inconnu.
   final String? pilierConcession;
+
+  /// Sous-libellé du pilier « {région} · {pays d'origine} » (originRegion
+  /// et/ou originCountry) — null si aucun des deux n'est renseigné.
+  final String? pilierOriginDetail;
 
   /// Étapes chronologiques (naissance → retour → résidence actuelle).
   final List<MigrationStep> steps;
@@ -134,11 +147,24 @@ MigrationJourney buildMigrationJourney(
   final father = tree.father.isNotEmpty ? tree.father.first : null;
   final mother = tree.mother.isNotEmpty ? tree.mother.first : null;
 
-  // ── Pilier ──────────────────────────────────────────────────────────
-  final pilierPlace = _clean(father?.birthPlace) ??
+  // ── Pilier : point d'ancrage = ORIGINE ──────────────────────────────
+  // Priorité : originVillage > originCity > (père : originVillage >
+  // birthPlace) > repli historique (birthPlace mère, puis personne).
+  final pilierPlace = _clean(person.originVillage) ??
+      _clean(person.originCity) ??
+      _clean(father?.originVillage) ??
+      _clean(father?.birthPlace) ??
       _clean(mother?.birthPlace) ??
       _clean(person.birthPlace);
   final pilierConcession = _clean(father?.lastName);
+
+  // Sous-libellé « {région} · {pays d'origine} » quand disponible.
+  final originDetailParts = [
+    _clean(person.originRegion),
+    _clean(person.originCountry)?.toUpperCase(),
+  ].whereType<String>().toList();
+  final pilierOriginDetail =
+      originDetailParts.isEmpty ? null : originDetailParts.join(' · ');
 
   // ── Étapes chronologiques ───────────────────────────────────────────
   final steps = <MigrationStep>[];
@@ -190,17 +216,26 @@ MigrationJourney buildMigrationJourney(
     );
   }
 
-  // 3. Résidence actuelle : residenceCountry, sinon birthPlace de repli
+  // 3. Résidence actuelle (ÉVOLUTION) : residenceCity en libellé principal
+  //    quand présent, sinon residenceCountry, sinon birthPlace de repli
   //    SEULEMENT s'il diffère du pilier.
-  final residence = _clean(person.residenceCountry) ??
+  final residenceCity = _clean(person.residenceCity);
+  final residenceCountry = _clean(person.residenceCountry)?.toUpperCase();
+  final residence = residenceCity ??
+      residenceCountry ??
       (!_samePlace(birthPlace, pilierPlace) ? birthPlace : null);
   final profession = _clean(person.profession);
+  final residenceSubtitle = StringBuffer('résidence actuelle');
+  if (residenceCity != null && residenceCountry != null) {
+    residenceSubtitle.write(' · $residenceCountry');
+  }
+  if (profession != null) {
+    residenceSubtitle.write(' — $profession');
+  }
   addStep(
     place: residence,
     title: 'Résidence actuelle',
-    subtitle: profession != null
-        ? 'résidence actuelle — $profession'
-        : 'résidence actuelle',
+    subtitle: residenceSubtitle.toString(),
     kind: MigrationStepKind.residence,
   );
 
@@ -278,6 +313,7 @@ MigrationJourney buildMigrationJourney(
     person: person,
     pilierPlace: pilierPlace,
     pilierConcession: pilierConcession,
+    pilierOriginDetail: pilierOriginDetail,
     steps: List.unmodifiable(steps),
     alliances: List.unmodifiable(alliances),
     familyPlaces: List.unmodifiable(familyPlaces),

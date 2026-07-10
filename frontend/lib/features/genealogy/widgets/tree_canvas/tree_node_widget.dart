@@ -4,6 +4,8 @@ import 'package:material_symbols_icons/symbols.dart';
 
 import 'package:gwangmeu/core/theme/gw_tokens.dart';
 import 'package:gwangmeu/features/genealogy/models/person_genealogy.dart';
+import 'package:gwangmeu/features/genealogy/state/ai_insights.dart'
+    show countryDisplayName;
 import 'package:gwangmeu/features/genealogy/state/tree_view_state.dart';
 
 // ── Géométrie des cartes (contrat avec tree_layout_provider) ──
@@ -760,13 +762,27 @@ String _metaLine(LayoutNode node) {
   return base;
 }
 
+/// Lieu affiché sur la carte : l'ORIGINE de la lignée prime — village
+/// d'origine, sinon ville d'origine, sinon pays d'origine ; fallback :
+/// lieu de naissance (un fait, comportement historique). La résidence
+/// n'apparaît jamais ici : elle relève de l'évolution (vue Migration).
+String? _anchorPlace(PersonGenealogy p) {
+  final village = p.originVillage?.trim();
+  if (village != null && village.isNotEmpty) return village;
+  final city = p.originCity?.trim();
+  if (city != null && city.isNotEmpty) return city;
+  final country = p.originCountry?.trim();
+  if (country != null && country.isNotEmpty) return countryDisplayName(country);
+  return p.birthPlace;
+}
+
 /// Dates · lieu (maquette) :
-/// - vivant·e : « né·e en 1944 · Yaoundé » ;
+/// - vivant·e : « né·e en 1944 · Bana » ;
 /// - décédé·e : « 1912 – ✦ · Bafoussam » — tiret demi-cadratin, le « ✦ »
 ///   tient lieu d'année de décès (non portée par le modèle), jamais de noir.
 String _lifeline(PersonGenealogy p) {
   final birth = p.birthDate?.year;
-  final place = p.birthPlace;
+  final place = _anchorPlace(p);
   final parts = <String>[];
   if (!p.isAlive) {
     if (birth != null) parts.add('$birth – ✦');
@@ -780,11 +796,12 @@ String _lifeline(PersonGenealogy p) {
   return parts.isEmpty ? '—' : parts.join(' · ');
 }
 
-/// Sous-ligne d'une mini-carte enfant : « 1969 · Yaoundé ».
+/// Sous-ligne d'une mini-carte enfant : « 1969 · Bana » (origine d'abord).
 String _miniLifeline(PersonGenealogy p) {
+  final place = _anchorPlace(p);
   final parts = <String>[
     if (p.birthDate != null) '${p.birthDate!.year}',
-    if (p.birthPlace != null && p.birthPlace!.isNotEmpty) p.birthPlace!,
+    if (place != null && place.isNotEmpty) place,
   ];
   return parts.isEmpty ? '—' : parts.join(' · ');
 }

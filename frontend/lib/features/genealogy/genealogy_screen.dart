@@ -11,7 +11,10 @@ import 'package:gwangmeu/features/home/home_screen.dart';
 import 'package:gwangmeu/features/genealogy/genealogy_notifier.dart';
 import 'package:gwangmeu/features/genealogy/models/ai_suggestion.dart';
 import 'package:gwangmeu/features/genealogy/models/family_tree.dart';
+import 'package:gwangmeu/features/genealogy/models/person_genealogy.dart';
 import 'package:gwangmeu/features/genealogy/services/genealogy_api_service.dart';
+import 'package:gwangmeu/features/genealogy/state/ai_insights.dart'
+    show countryDisplayName;
 import 'package:gwangmeu/features/genealogy/state/tree_view_state.dart';
 import 'package:gwangmeu/features/genealogy/widgets/dialogs/add_person_dialog.dart';
 import 'package:gwangmeu/features/genealogy/widgets/dialogs/add_union_dialog.dart';
@@ -106,6 +109,9 @@ class _MobileLayout extends ConsumerWidget {
     final aiConfirmed = suggestion != null &&
         ref.watch(confirmedSuggestionsProvider).contains(suggestion.id);
     final memberCount = _memberCount(tree) + (aiConfirmed ? 1 : 0);
+    // Ancrage de la lignée : l'ORIGINE (village, région, pays d'origine) —
+    // jamais la résidence, qui relève de l'évolution (vue Migration).
+    final anchor = _lineageAnchor(tree);
 
     return Column(
       children: [
@@ -133,6 +139,20 @@ class _MobileLayout extends ConsumerWidget {
                           'Clan ${tree.subject.clan}',
                       ].join(' · '),
                       style: GwType.ui(fontSize: 13, color: t.stoneFaint),
+                    ),
+                    const SizedBox(height: 3),
+                    // Ligne d'ANCRAGE mono discrète — origine de la lignée.
+                    Text(
+                      anchor != null
+                          ? 'ANCRAGE · $anchor'
+                          : 'ANCRAGE À RENSEIGNER',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GwType.mono(
+                        fontSize: 10,
+                        letterSpacing: 1.5,
+                        color: anchor != null ? t.stoneDim : t.stoneFaint,
+                      ),
                     ),
                   ],
                 ),
@@ -415,6 +435,9 @@ class _DesktopLayout extends ConsumerWidget {
     final aiConfirmed = suggestion != null &&
         ref.watch(confirmedSuggestionsProvider).contains(suggestion.id);
     final memberCount = _memberCount(tree) + (aiConfirmed ? 1 : 0);
+    // Ancrage de la lignée : l'ORIGINE (village, région, pays d'origine) —
+    // jamais la résidence, qui relève de l'évolution (vue Migration).
+    final anchor = _lineageAnchor(tree);
 
     return Column(
       children: [
@@ -440,6 +463,22 @@ class _DesktopLayout extends ConsumerWidget {
                     'Clan ${tree.subject.clan}',
                 ].join(' · '),
                 style: GwType.ui(fontSize: 13, color: t.stoneFaint),
+              ),
+              const SizedBox(width: 16),
+              // Ligne d'ANCRAGE mono discrète — origine de la lignée.
+              Flexible(
+                child: Text(
+                  anchor != null
+                      ? 'ANCRAGE · $anchor'
+                      : 'ANCRAGE À RENSEIGNER',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GwType.mono(
+                    fontSize: 10,
+                    letterSpacing: 1.5,
+                    color: anchor != null ? t.stoneDim : t.stoneFaint,
+                  ),
+                ),
               ),
               const Spacer(),
               _pill(
@@ -696,6 +735,45 @@ List<dynamic> _allPersons(FamilyTree tree) => [
       ...tree.children,
       ...tree.uncles,
     ];
+
+/// Libellé d'ancrage d'une personne : « {village} — {région}, {pays} »,
+/// dérivé de son ORIGINE uniquement (originVillage/originCity, originRegion,
+/// originCountry) — jamais de la résidence. Null si rien n'est renseigné.
+String? _personAnchor(PersonGenealogy p) {
+  String? txt(String? s) {
+    final v = s?.trim();
+    return (v == null || v.isEmpty) ? null : v;
+  }
+
+  final place = txt(p.originVillage) ?? txt(p.originCity);
+  final region = txt(p.originRegion);
+  final code = txt(p.originCountry);
+  final country = code == null ? null : countryDisplayName(code);
+
+  if (place == null && region == null && country == null) return null;
+  final tail = [
+    if (region != null) region,
+    if (country != null) country,
+  ].join(', ');
+  if (place == null) return tail;
+  return tail.isEmpty ? place : '$place — $tail';
+}
+
+/// Ancrage de la lignée : origine du SUJET en priorité, sinon l'origine la
+/// plus fréquente parmi les membres de l'arbre, sinon null
+/// (→ « ANCRAGE À RENSEIGNER »).
+String? _lineageAnchor(FamilyTree tree) {
+  final subjectAnchor = _personAnchor(tree.subject);
+  if (subjectAnchor != null) return subjectAnchor;
+
+  final counts = <String, int>{};
+  for (final p in _allPersons(tree)) {
+    final a = _personAnchor(p as PersonGenealogy);
+    if (a != null) counts[a] = (counts[a] ?? 0) + 1;
+  }
+  if (counts.isEmpty) return null;
+  return counts.entries.reduce((a, b) => b.value > a.value ? b : a).key;
+}
 
 // ── Error View ──
 

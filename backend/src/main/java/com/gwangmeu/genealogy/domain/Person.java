@@ -82,7 +82,31 @@ public class Person {
     @Column(name = "marital_status", length = 30)
     private MaritalStatusEnum maritalStatus;
 
-    /** Pays de residence, ISO-3166 alpha-2 (ex: CM, FR). */
+    // ── Origine : ancre de la lignee (village/ville/region/pays d'origine) ──
+
+    /** Village d'origine (texte libre, complete le lien structure person_villages). */
+    @Column(name = "origin_village", length = 150)
+    private String originVillage;
+
+    /** Ville d'origine. */
+    @Column(name = "origin_city", length = 150)
+    private String originCity;
+
+    /** Region d'origine. */
+    @Column(name = "origin_region", length = 150)
+    private String originRegion;
+
+    /** Pays d'origine, ISO-3166 alpha-2 (ex: CM, FR). */
+    @Column(name = "origin_country", length = 2)
+    private String originCountry;
+
+    // ── Residence : evolution (migration, situation actuelle) ──
+
+    /** Ville de residence actuelle. */
+    @Column(name = "residence_city", length = 150)
+    private String residenceCity;
+
+    /** Pays de residence actuelle, ISO-3166 alpha-2 (ex: CM, FR) — droit applicable des unions. */
     @Column(name = "residence_country", length = 2)
     private String residenceCountry;
 

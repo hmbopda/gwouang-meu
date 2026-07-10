@@ -63,6 +63,12 @@ class GenealogyServiceImpl implements GenealogyService {
                 .profession(req.getProfession())
                 .deathDate(req.getDeathDate())
                 .biography(req.getBiography())
+                .originVillage(req.getOriginVillage())
+                .originCity(req.getOriginCity())
+                .originRegion(req.getOriginRegion())
+                .originCountry(normalizeCountryCode(req.getOriginCountry()))
+                .residenceCity(req.getResidenceCity())
+                .residenceCountry(normalizeCountryCode(req.getResidenceCountry()))
                 .privacy(req.getPrivacy() != null ? req.getPrivacy() : PrivacyEnum.FAMILY_ONLY)
                 .createdBy(createdBy)
                 .build();
@@ -103,6 +109,13 @@ class GenealogyServiceImpl implements GenealogyService {
         if (req.getBiography() != null) person.setBiography(req.getBiography());
         if (req.getPhotoUrl() != null) person.setPhotoUrl(req.getPhotoUrl());
         if (req.getPrivacy() != null) person.setPrivacy(req.getPrivacy());
+        // Origine (ancre de la lignee) / residence (evolution)
+        if (req.getOriginVillage() != null) person.setOriginVillage(req.getOriginVillage());
+        if (req.getOriginCity() != null) person.setOriginCity(req.getOriginCity());
+        if (req.getOriginRegion() != null) person.setOriginRegion(req.getOriginRegion());
+        if (req.getOriginCountry() != null) person.setOriginCountry(normalizeCountryCode(req.getOriginCountry()));
+        if (req.getResidenceCity() != null) person.setResidenceCity(req.getResidenceCity());
+        if (req.getResidenceCountry() != null) person.setResidenceCountry(normalizeCountryCode(req.getResidenceCountry()));
 
         if (req.getVillageIds() != null) {
             validateAncestorVillages(personId, req.getVillageIds());
@@ -233,13 +246,25 @@ class GenealogyServiceImpl implements GenealogyService {
                         .lastName(req.getLastName())
                         .gender(req.getGender())
                         .birthDate(req.getBirthDate())
+                        .birthPlace(req.getBirthPlace())
                         .clan(req.getClan())
+                        .totem(req.getTotem())
+                        .nativeLanguage(req.getNativeLanguage())
                         .email(req.getEmail())
+                        .originVillage(req.getOriginVillage())
+                        .originCity(req.getOriginCity())
+                        .originRegion(req.getOriginRegion())
+                        .originCountry(normalizeCountryCode(req.getOriginCountry()))
+                        .residenceCity(req.getResidenceCity())
+                        .residenceCountry(normalizeCountryCode(req.getResidenceCountry()))
                         .createdBy(createdBy)
                         .build();
                 child = personRepository.save(child);
                 log.info("Enfant cree: {} {} (id={})", child.getFirstName(), child.getLastName(), child.getId());
-                eventPublisher.publishEvent(new PersonCreatedEvent(child.getId(), List.of(), createdBy));
+
+                List<UUID> childVillageIds = req.getVillageIds() != null ? req.getVillageIds() : List.of();
+                savePersonVillages(child.getId(), childVillageIds);
+                eventPublisher.publishEvent(new PersonCreatedEvent(child.getId(), childVillageIds, createdBy));
             }
         }
 
@@ -1347,6 +1372,14 @@ class GenealogyServiceImpl implements GenealogyService {
     private Person findPersonOrThrow(UUID personId) {
         return personRepository.findById(personId)
                 .orElseThrow(() -> new IllegalArgumentException("Person not found: " + personId));
+    }
+
+    /** Normalise un code pays ISO-3166 alpha-2 : trim + MAJUSCULES, tronque a 2 caracteres. */
+    private String normalizeCountryCode(String code) {
+        if (code == null) return null;
+        String normalized = code.trim().toUpperCase(java.util.Locale.ROOT);
+        if (normalized.isEmpty()) return null;
+        return normalized.length() > 2 ? normalized.substring(0, 2) : normalized;
     }
 
     private List<PersonDTO> nodeListToDTO(List<PersonNode> nodes) {

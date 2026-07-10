@@ -49,6 +49,12 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
   final _clanCtrl = TextEditingController();
   final _totemCtrl = TextEditingController();
   final _birthPlaceCtrl = TextEditingController();
+  // Origine — ancre de la lignée (texte libre, complète villageIds).
+  final _originVillageCtrl = TextEditingController();
+  final _originCityCtrl = TextEditingController();
+  final _originRegionCtrl = TextEditingController();
+  // Résidence actuelle — évolution (migration, situation actuelle).
+  final _residenceCityCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
   // Genre initialise en fonction du role par defaut dans initState (deduit du
@@ -60,6 +66,12 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
   CountryModel? _selectedCountry;
   List<VillageModel> _selectedVillages = [];
   LanguageModel? _selectedLanguage;
+  // Pays d'origine (ISO-2) — l'arbre s'ancre sur l'origine, pas la résidence.
+  CountryModel? _originCountry;
+  // Pays de résidence actuelle — évolution uniquement (droit des unions).
+  CountryModel? _residenceCountry;
+  // Section « Résidence actuelle » repliée par défaut (discrète).
+  bool _residenceExpanded = false;
   String? _selectedPhoneCode;
   DateTime? _birthDate;
   // Date de deces : reste NULL tant que l'utilisateur n'a pas explicitement
@@ -95,6 +107,10 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
     _clanCtrl.dispose();
     _totemCtrl.dispose();
     _birthPlaceCtrl.dispose();
+    _originVillageCtrl.dispose();
+    _originCityCtrl.dispose();
+    _originRegionCtrl.dispose();
+    _residenceCityCtrl.dispose();
     _emailCtrl.dispose();
     _phoneCtrl.dispose();
     super.dispose();
@@ -691,6 +707,8 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          const _FormSectionHeader(label: 'IDENTITÉ'),
+          const SizedBox(height: 10),
           TextFormField(
             controller: _firstNameCtrl,
             style: GwType.ui(fontSize: 14, color: t.stone),
@@ -780,7 +798,11 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
               ],
             ),
           ],
-          const SizedBox(height: 14),
+          const SizedBox(height: 20),
+
+          // ── NAISSANCE : un fait — ni origine, ni résidence ──
+          const _FormSectionHeader(label: 'NAISSANCE'),
+          const SizedBox(height: 10),
           InkWell(
             onTap: () async {
               final picked = await showDatePicker(
@@ -811,25 +833,25 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
           ),
           const SizedBox(height: 12),
           TextFormField(
-            controller: _clanCtrl,
+            controller: _birthPlaceCtrl,
             style: GwType.ui(fontSize: 14, color: t.stone),
             decoration: gwInputDecoration(
               context,
-              label: 'Clan / Grande famille',
-              prefixIcon: Symbols.shield,
+              label: 'Lieu de naissance',
+              prefixIcon: Symbols.location_city,
+              hint: 'Ex: Douala, Paris, Yaoundé...',
             ),
           ),
-          const SizedBox(height: 12),
-          TextFormField(
-            controller: _totemCtrl,
-            style: GwType.ui(fontSize: 14, color: t.stone),
-            decoration: gwInputDecoration(
-              context,
-              label: 'Totem',
-              prefixIcon: Symbols.pets,
-            ),
+          const SizedBox(height: 20),
+
+          // ── ORIGINE : c'est ici que la lignée s'ancre ──
+          const _FormSectionHeader(label: 'ORIGINE — ANCRE DE LA LIGNÉE'),
+          const SizedBox(height: 4),
+          Text(
+            'La lignée s\'ancre sur l\'origine : village, ville, région, pays.',
+            style: GwType.ui(fontSize: 12, color: t.stoneDim),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           CountryVillageSelector(
             selectedCountry: _selectedCountry,
             selectedVillages: _selectedVillages,
@@ -842,18 +864,137 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
             onVillagesChanged: (v) => setState(() => _selectedVillages = v),
           ),
           const SizedBox(height: 12),
-          _buildLanguageDropdown(),
-          const SizedBox(height: 12),
           TextFormField(
-            controller: _birthPlaceCtrl,
+            controller: _originVillageCtrl,
             style: GwType.ui(fontSize: 14, color: t.stone),
             decoration: gwInputDecoration(
               context,
-              label: 'Lieu de naissance',
-              prefixIcon: Symbols.location_city,
-              hint: 'Ex: Douala, Paris, Yaoundé...',
+              label: 'Village d\'origine',
+              prefixIcon: Symbols.holiday_village,
+              hint: 'Ex: Bana, Bafou...',
             ),
           ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: TextFormField(
+                  controller: _originCityCtrl,
+                  style: GwType.ui(fontSize: 14, color: t.stone),
+                  decoration: gwInputDecoration(
+                    context,
+                    label: 'Ville d\'origine',
+                    prefixIcon: Symbols.location_city,
+                    dense: true,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: TextFormField(
+                  controller: _originRegionCtrl,
+                  style: GwType.ui(fontSize: 14, color: t.stone),
+                  decoration: gwInputDecoration(
+                    context,
+                    label: 'Région d\'origine',
+                    prefixIcon: Symbols.map,
+                    dense: true,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _buildCountryDropdown(
+            label: 'Pays d\'origine',
+            keyPrefix: 'origincountry',
+            value: _originCountry,
+            onChanged: (c) => setState(() => _originCountry = c),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: TextFormField(
+                  controller: _clanCtrl,
+                  style: GwType.ui(fontSize: 14, color: t.stone),
+                  decoration: gwInputDecoration(
+                    context,
+                    label: 'Clan / Grande famille',
+                    prefixIcon: Symbols.shield,
+                    dense: true,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: TextFormField(
+                  controller: _totemCtrl,
+                  style: GwType.ui(fontSize: 14, color: t.stone),
+                  decoration: gwInputDecoration(
+                    context,
+                    label: 'Totem',
+                    prefixIcon: Symbols.pets,
+                    dense: true,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _buildLanguageDropdown(),
+          const SizedBox(height: 20),
+
+          // ── RÉSIDENCE ACTUELLE : évolution, repliée par défaut ──
+          InkWell(
+            onTap: () =>
+                setState(() => _residenceExpanded = !_residenceExpanded),
+            borderRadius: BorderRadius.circular(GwTokens.rBtn),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(
+                children: [
+                  const Expanded(
+                    child: _FormSectionHeader(
+                        label: 'RÉSIDENCE ACTUELLE — ÉVOLUTION'),
+                  ),
+                  Icon(
+                    _residenceExpanded
+                        ? Symbols.expand_less
+                        : Symbols.expand_more,
+                    size: 18,
+                    color: t.stoneDim,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (_residenceExpanded) ...[
+            const SizedBox(height: 4),
+            Text(
+              'Migration et situation actuelle — distincte de l\'origine. '
+              'Sert au droit applicable des unions.',
+              style: GwType.ui(fontSize: 12, color: t.stoneDim),
+            ),
+            const SizedBox(height: 10),
+            _buildCountryDropdown(
+              label: 'Pays de résidence',
+              keyPrefix: 'residencecountry',
+              value: _residenceCountry,
+              onChanged: (c) => setState(() => _residenceCountry = c),
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _residenceCityCtrl,
+              style: GwType.ui(fontSize: 14, color: t.stone),
+              decoration: gwInputDecoration(
+                context,
+                label: 'Ville de résidence',
+                prefixIcon: Symbols.home,
+                hint: 'Ex: Paris, Douala...',
+              ),
+            ),
+          ],
           const SizedBox(height: 16),
           SwitchListTile(
             title: Text('Encore en vie ?',
@@ -1025,6 +1166,45 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
           onChanged: (l) => setState(() => _selectedLanguage = l),
         );
       },
+    );
+  }
+
+  /// Dropdown pays (ISO-3166 alpha-2) — même source que le reste du projet
+  /// (countriesNotifierProvider, cf. add_union_dialog / indicatifs).
+  Widget _buildCountryDropdown({
+    required String label,
+    required String keyPrefix,
+    required CountryModel? value,
+    required ValueChanged<CountryModel?> onChanged,
+  }) {
+    final t = GwTokens.of(context);
+    final countriesAsync = ref.watch(countriesNotifierProvider);
+    return countriesAsync.when(
+      loading: () => LinearProgressIndicator(
+          color: t.goldText, backgroundColor: t.inkLift),
+      error: (_, __) => const SizedBox.shrink(),
+      data: (countries) => DropdownButtonFormField<CountryModel>(
+        key: ValueKey('${keyPrefix}_${value?.isoCode}'),
+        initialValue: value,
+        decoration: gwInputDecoration(
+          context,
+          label: label,
+          prefixIcon: Symbols.public,
+        ),
+        dropdownColor: t.inkCard,
+        style: GwType.ui(fontSize: 14, color: t.stone),
+        isExpanded: true,
+        items: countries
+            .map((c) => DropdownMenuItem(
+                  value: c,
+                  child: Text(
+                    '${c.flagEmoji ?? ''} ${c.name}'.trim(),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ))
+            .toList(),
+        onChanged: onChanged,
+      ),
     );
   }
 
@@ -1448,6 +1628,17 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
           ? _selectedVillages.map((v) => v.id).toList()
           : null;
 
+      // Origine — ancre de la lignée (tout optionnel, null si vide).
+      String? nonEmpty(TextEditingController c) =>
+          c.text.trim().isNotEmpty ? c.text.trim() : null;
+      final originVillage = nonEmpty(_originVillageCtrl);
+      final originCity = nonEmpty(_originCityCtrl);
+      final originRegion = nonEmpty(_originRegionCtrl);
+      final originCountry = _originCountry?.isoCode;
+      // Résidence — évolution.
+      final residenceCity = nonEmpty(_residenceCityCtrl);
+      final residenceCountry = _residenceCountry?.isoCode;
+
       if (widget.isParent) {
         await notifier.addParent(
           childId: widget.personId,
@@ -1460,6 +1651,12 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
           nativeLanguage: nativeLanguage,
           birthPlace: birthPlace,
           villageIds: villageIds,
+          originVillage: originVillage,
+          originCity: originCity,
+          originRegion: originRegion,
+          originCountry: originCountry,
+          residenceCity: residenceCity,
+          residenceCountry: residenceCountry,
           sendInvite: _isAlive,
           email: _isAlive ? email : null,
           phone: _isAlive && phone.isNotEmpty ? phone : null,
@@ -1477,6 +1674,12 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
           birthPlace: birthPlace,
           birthDate: birthDateStr,
           villageIds: villageIds,
+          originVillage: originVillage,
+          originCity: originCity,
+          originRegion: originRegion,
+          originCountry: originCountry,
+          residenceCity: residenceCity,
+          residenceCountry: residenceCountry,
           sendInvite: _isAlive && _showValidationSection,
           email: _isAlive && _showEmail ? email : null,
           phone: _isAlive && _showPhone && phone.isNotEmpty ? phone : null,
@@ -1513,6 +1716,34 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
 }
 
 // ── Helper widgets ──
+
+/// Intitulé de section du formulaire : mono MAJUSCULES, letterSpacing 1.6,
+/// suivi d'un filet discret (charte Tissage / GwTokens).
+class _FormSectionHeader extends StatelessWidget {
+  const _FormSectionHeader({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = GwTokens.of(context);
+    return Row(
+      children: [
+        Text(
+          label,
+          style: GwType.mono(
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 1.6,
+            color: t.goldText,
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(child: Container(height: 1, color: t.line)),
+      ],
+    );
+  }
+}
 
 /// Bouton or plein inline (hauteur 48, rayon 14).
 class _GoldButton extends StatelessWidget {

@@ -34,7 +34,19 @@ public class PersonDTO {
     private String email;
     private String phone;
     private String maritalStatus;
-    /** Pays de residence, ISO-3166 alpha-2 (ex: CM, FR). */
+    // ── Origine : ancre de la lignee ──
+    /** Village d'origine (texte libre, complete villageIds). */
+    private String originVillage;
+    /** Ville d'origine. */
+    private String originCity;
+    /** Region d'origine. */
+    private String originRegion;
+    /** Pays d'origine, ISO-3166 alpha-2 (ex: CM, FR). */
+    private String originCountry;
+    // ── Residence : evolution (migration, situation actuelle) ──
+    /** Ville de residence actuelle. */
+    private String residenceCity;
+    /** Pays de residence actuelle, ISO-3166 alpha-2 (ex: CM, FR) — droit applicable des unions. */
     private String residenceCountry;
     /** Regime matrimonial declare (MONOGAMY, POLYGAMY, CUSTOMARY, DE_FACTO, UNKNOWN). */
     private String maritalRegime;

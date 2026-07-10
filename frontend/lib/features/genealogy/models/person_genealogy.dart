@@ -25,7 +25,20 @@ class PersonGenealogy with _$PersonGenealogy {
     String? phone,
     String? religion,
     String? maritalStatus,
-    // Pays de résidence, ISO-3166 alpha-2 (ex : CM, FR).
+    // ── Origine (ancre de la lignée : village, ville, région, pays d'origine) ──
+    // Village d'origine (texte libre — complète villageIds, le lien structuré).
+    String? originVillage,
+    // Ville d'origine (ancre de la lignée).
+    String? originCity,
+    // Région d'origine (ancre de la lignée).
+    String? originRegion,
+    // Pays d'origine, ISO-3166 alpha-2 (ex : CM, FR) — ancre de la lignée.
+    String? originCountry,
+    // ── Résidence (évolution : migration, situation actuelle) ──
+    // Ville de résidence actuelle (évolution).
+    String? residenceCity,
+    // Pays de résidence, ISO-3166 alpha-2 (ex : CM, FR) — évolution
+    // et droit applicable des unions.
     String? residenceCountry,
     // Régime matrimonial déclaré : MONOGAMY, POLYGAMY, CUSTOMARY, DE_FACTO, UNKNOWN.
     String? maritalRegime,

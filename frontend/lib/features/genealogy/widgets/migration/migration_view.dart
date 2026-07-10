@@ -173,33 +173,55 @@ class _MigrationViewState extends ConsumerState<MigrationView> {
                   builder: (context, constraints) {
                     final compact = constraints.maxWidth < 700;
 
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        alignment: Alignment.centerLeft,
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            TreeToolbar(
-                              currentView: currentView,
-                              onViewChanged: notifier.changeView,
-                              compact: compact,
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Padding(
+                          padding:
+                              const EdgeInsets.symmetric(horizontal: 12),
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                TreeToolbar(
+                                  currentView: currentView,
+                                  onViewChanged: notifier.changeView,
+                                  compact: compact,
+                                ),
+                                const SizedBox(width: 16),
+                                _StatsPill(
+                                  steps: journey.steps.length,
+                                  alliances: journey.alliances.length,
+                                ),
+                                const SizedBox(width: 8),
+                                _ModeToggle(
+                                  familyMode: _familyMode,
+                                  onChanged: (v) =>
+                                      setState(() => _familyMode = v),
+                                ),
+                              ],
                             ),
-                            const SizedBox(width: 16),
-                            _StatsPill(
-                              steps: journey.steps.length,
-                              alliances: journey.alliances.length,
-                            ),
-                            const SizedBox(width: 8),
-                            _ModeToggle(
-                              familyMode: _familyMode,
-                              onChanged: (v) =>
-                                  setState(() => _familyMode = v),
-                            ),
-                          ],
+                          ),
                         ),
-                      ),
+
+                        // Micro-légende : origine = ancrage, résidence
+                        // = évolution.
+                        Padding(
+                          padding: const EdgeInsets.only(
+                              left: 16, right: 16, top: 6),
+                          child: Text(
+                            'L\'arbre s\'ancre sur l\'origine — la '
+                            'résidence trace l\'évolution.',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GwType.ui(
+                                fontSize: 11.5, color: t.stoneDim),
+                          ),
+                        ),
+                      ],
                     );
                   },
                 ),
@@ -453,7 +475,7 @@ String _stepMonoLabel(MigrationStep step) {
     MigrationStepKind.naissance => 'NAISSANCE',
     MigrationStepKind.retour => 'RETOUR',
     MigrationStepKind.installation => 'INSTALLATION',
-    MigrationStepKind.residence => 'RÉSIDENCE ACTUELLE',
+    MigrationStepKind.residence => 'AUJOURD\'HUI',
   };
   return step.year != null ? '$base · ${step.year}' : base;
 }
@@ -521,10 +543,11 @@ _MapGeometry _buildGeometry({
   }
 
   // ── 1. Nœuds ────────────────────────────────────────────────
-  // Pilier : le plus gros, anneau double or, centre-haut décalé.
+  // Pilier (= ORIGINE) : le plus gros, anneau double or, centre-haut
+  // décalé. Sous-libellé « {région} · {pays d'origine} » quand dispo.
   final pilierPlace = journey.pilierPlace;
   if (pilierPlace != null) {
-    ensure(
+    final pilierNode = ensure(
       pilierPlace,
       diameter: 90,
       ring: GwTokens.gold,
@@ -532,6 +555,11 @@ _MapGeometry _buildGeometry({
       pilier: true,
       wantedFraction: const Offset(0.55, 0.38),
     );
+    final originDetail = journey.pilierOriginDetail;
+    if (originDetail != null) {
+      pilierNode.subLabels
+          .add(_SubLabel(originDetail.toUpperCase(), tokens.stoneDim));
+    }
   }
 
   // Étapes : naissance bas-gauche, résidence actuelle à droite.
@@ -873,8 +901,9 @@ class _VillageNodeWidget extends StatelessWidget {
             ),
             const SizedBox(height: 6),
 
-            // Étiquette : chip brune pour le pilier, sinon nom + méta.
-            if (node.isPilier)
+            // Étiquette : chip brune pour le pilier (+ sous-libellé
+            // « région · pays d'origine »), sinon nom + méta.
+            if (node.isPilier) ...[
               Container(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
@@ -895,8 +924,22 @@ class _VillageNodeWidget extends StatelessWidget {
                     height: 1.5,
                   ),
                 ),
-              )
-            else ...[
+              ),
+              for (final sub in node.subLabels)
+                Padding(
+                  padding: const EdgeInsets.only(top: 3),
+                  child: Text(
+                    sub.text,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: GwType.mono(
+                        fontSize: 8.5,
+                        letterSpacing: 1.5,
+                        color: sub.color),
+                  ),
+                ),
+            ] else ...[
               Text(
                 node.place,
                 maxLines: 1,

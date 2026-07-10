@@ -4,10 +4,13 @@
 /// Moteur de réponse à règles :
 /// 1. extraction du nom dans la question (containsIgnoreAccents + fallback
 ///    [findPersonByName] sur les mots significatifs) ;
-/// 2. personne trouvée → [buildPersonNarrative] + chaîne de parenté
-///    ([findKinshipPath]) rendue en chips + « Ouvrir dans l'arbre » ;
-/// 3. « chef » / « transmet » → ordre de succession dérivé (aînesse) ;
-/// 4. sinon → invitation à réessayer avec des exemples réels de l'arbre.
+/// 2. personne trouvée + question « où vit / habite / réside » → réponse
+///    RÉSIDENCE (évolution), distincte de l'origine (ancrage de la lignée) ;
+/// 3. personne trouvée → [buildPersonNarrative] (origine d'abord, évolution
+///    ensuite) + chaîne de parenté ([findKinshipPath]) rendue en chips +
+///    « Ouvrir dans l'arbre » ;
+/// 4. « chef » / « transmet » → ordre de succession dérivé (aînesse) ;
+/// 5. sinon → invitation à réessayer avec des exemples réels de l'arbre.
 library;
 
 import 'package:flutter/material.dart';
@@ -103,7 +106,7 @@ class _GriotDialogState extends ConsumerState<_GriotDialog> {
     );
     _messages.add(_GriotMsg.griot(
       "Demandez-moi d'où vient un membre de la famille, "
-      'ou votre lien avec lui.',
+      "où il vit aujourd'hui, ou votre lien avec lui.",
       suggestions: _welcomeSuggestions(),
     ));
   }
@@ -200,6 +203,7 @@ class _GriotDialogState extends ConsumerState<_GriotDialog> {
     'nous', 'famille', 'chef', 'transmet', 'transmission', 'arbre',
     'origine', 'comment', 'pourquoi', 'histoire', 'raconte', 'moi',
     'membre', 'lignee', 'clan', 'entre', 'aussi', 'donc', 'alors',
+    'habite', 'habitent', 'reside', 'residence',
   };
 
   PersonGenealogy? _matchPerson(String question) {
@@ -239,7 +243,12 @@ class _GriotDialogState extends ConsumerState<_GriotDialog> {
   _GriotMsg _answer(String question) {
     final person = _matchPerson(question);
 
-    // ── Règle 2 : personne reconnue → récit + chaîne de parenté ──
+    // ── Règle 2 : personne reconnue + question de résidence → évolution ──
+    if (person != null && _asksResidence(question)) {
+      return _residenceAnswer(person);
+    }
+
+    // ── Règle 3 : personne reconnue → récit (origine d'abord) + parenté ──
     if (person != null) {
       final narrative = buildPersonNarrative(widget.tree, person);
       final path = person.id == _subject.id
@@ -253,13 +262,13 @@ class _GriotDialogState extends ConsumerState<_GriotDialog> {
       );
     }
 
-    // ── Règle 3 : succession (« chef » / « transmet ») ──
+    // ── Règle 4 : succession (« chef » / « transmet ») ──
     final qn = _norm(question);
     if (qn.contains('chef') || qn.contains('transmet')) {
       return _successionAnswer();
     }
 
-    // ── Règle 4 : nom non reconnu ──
+    // ── Règle 5 : nom non reconnu ──
     final examples = _members
         .where((p) => p.id != _subject.id)
         .take(3)
@@ -269,6 +278,51 @@ class _GriotDialogState extends ConsumerState<_GriotDialog> {
       "Je n'ai pas reconnu ce nom dans l'arbre. Essayez avec le prénom "
       "d'un membre — par exemple $examples.",
       suggestions: _followUpSuggestions(_subject.id),
+    );
+  }
+
+  /// La question porte-t-elle sur la RÉSIDENCE (évolution) plutôt que sur
+  /// l'origine (ancrage) ? — « où vit », « habite », « réside ».
+  static bool _asksResidence(String question) {
+    final qn = _norm(question);
+    return qn.contains('ou vit') ||
+        qn.contains('habite') ||
+        qn.contains('reside');
+  }
+
+  /// Réponse RÉSIDENCE : le lieu de vie actuel (évolution), jamais confondu
+  /// avec l'origine qui ancre la lignée.
+  _GriotMsg _residenceAnswer(PersonGenealogy p) {
+    final city = p.residenceCity?.trim();
+    final countryCode = p.residenceCountry?.trim();
+    final hasCity = city != null && city.isNotEmpty;
+    final hasCountry = countryCode != null && countryCode.isNotEmpty;
+
+    final String text;
+    if (hasCity || hasCountry) {
+      final String where;
+      if (hasCity && hasCountry) {
+        where = 'à $city, ${countryResidenceLabel(countryCode)}';
+      } else if (hasCity) {
+        where = 'à $city';
+      } else {
+        where = countryResidenceLabel(countryCode!);
+      }
+      text = p.isAlive
+          ? "${p.firstName} vit aujourd'hui $where."
+          : '${p.firstName} a vécu $where.';
+    } else {
+      final origin = personOriginLabel(p);
+      text = origin != null
+          ? "Sa résidence actuelle n'est pas renseignée — son ancrage "
+              'est $origin.'
+          : "Sa résidence actuelle n'est pas renseignée — son village "
+              "d'origine reste aussi à renseigner.";
+    }
+    return _GriotMsg.griot(
+      text,
+      openPerson: p,
+      suggestions: _followUpSuggestions(p.id),
     );
   }
 
