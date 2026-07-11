@@ -26,6 +26,12 @@ public interface VillageService {
 
     VillageSubscription join(UUID userId, UUID villageId, VillageSubscription.SubscriptionType type);
 
+    /**
+     * Matérialise une chefferie du référentiel en communauté (find-or-create par
+     * chefferie_id) puis inscrit l'utilisateur comme membre. Idempotent.
+     */
+    Village foundFromChefferie(UUID chefferieId, UUID userId);
+
     void leave(UUID userId, UUID villageId);
 
     List<VillageSubscription> getMemberships(UUID userId);

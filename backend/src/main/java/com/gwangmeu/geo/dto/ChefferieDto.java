@@ -4,6 +4,7 @@ import com.gwangmeu.geo.domain.Chefferie;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.util.Locale;
+import java.util.UUID;
 import java.util.regex.Pattern;
 
 /**
@@ -11,6 +12,7 @@ import java.util.regex.Pattern;
  */
 @Schema(description = "Chefferie traditionnelle")
 public record ChefferieDto(
+        @Schema(description = "Identifiant référentiel de la chefferie") UUID id,
         @Schema(description = "Degre de la chefferie", example = "2") Short degre,
         @Schema(description = "Nom de la region") String regionName,
         @Schema(description = "Nom du departement") String departmentName,
@@ -21,7 +23,7 @@ public record ChefferieDto(
 ) {
     public static ChefferieDto from(Chefferie c) {
         return new ChefferieDto(
-                c.getDegre(), c.getRegionName(), c.getDepartmentName(),
+                c.getId(), c.getDegre(), c.getRegionName(), c.getDepartmentName(),
                 c.getDepartmentCode(), c.getNumero(), c.getDenomination(),
                 cleanLabel(c.getDenomination())
         );
@@ -36,7 +38,7 @@ public record ChefferieDto(
      * Libellé lisible : retire le préfixe administratif et normalise la casse
      * si la dénomination est tout en majuscules ('Chefferie BANDENKOP' → 'Bandenkop').
      */
-    static String cleanLabel(String denomination) {
+    public static String cleanLabel(String denomination) {
         if (denomination == null || denomination.isBlank()) return denomination;
         String s = PREFIX.matcher(denomination.trim()).replaceFirst("").trim();
         if (s.isEmpty()) s = denomination.trim();

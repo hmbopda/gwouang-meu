@@ -1,5 +1,8 @@
 package com.gwangmeu.village.application;
 
+import com.gwangmeu.geo.domain.Chefferie;
+import com.gwangmeu.geo.dto.ChefferieDto;
+import com.gwangmeu.geo.infrastructure.ChefferieRepository;
 import com.gwangmeu.village.domain.Village;
 import com.gwangmeu.village.domain.VillageSubscription;
 import com.gwangmeu.village.events.UserJoinedVillageEvent;
@@ -24,6 +27,7 @@ class VillageServiceImpl implements VillageService {
 
     private final VillageRepository villageRepository;
     private final VillageSubscriptionRepository subscriptionRepository;
+    private final ChefferieRepository chefferieRepository;
     private final ApplicationEventPublisher eventPublisher;
 
     @Override
@@ -88,6 +92,36 @@ class VillageServiceImpl implements VillageService {
     @Transactional(readOnly = true)
     public List<Village> search(String query) {
         return villageRepository.findByNameContainingIgnoreCase(query);
+    }
+
+    @Override
+    public Village foundFromChefferie(UUID chefferieId, UUID userId) {
+        Chefferie chefferie = chefferieRepository.findById(chefferieId)
+                .orElseThrow(() -> new IllegalArgumentException("Chefferie introuvable: " + chefferieId));
+
+        // find-or-create : une chefferie ne se matérialise qu'une fois.
+        Village village = villageRepository.findByChefferieId(chefferieId).orElseGet(() -> {
+            Village v = Village.builder()
+                    .name(ChefferieDto.cleanLabel(chefferie.getDenomination()))
+                    .country(chefferie.getCountryIso2())
+                    .region(chefferie.getRegionName())
+                    .chefferieId(chefferieId)
+                    .creatorId(userId)
+                    .verified(true) // adossé au référentiel MINAT
+                    .build();
+            Village saved = villageRepository.save(v);
+            eventPublisher.publishEvent(
+                    new VillageCreatedEvent(saved.getId(), saved.getName(), saved.getCountry()));
+            log.info("Village materialise depuis chefferie {}: {} ({})",
+                    chefferieId, saved.getName(), saved.getId());
+            return saved;
+        });
+
+        // Auto-adhésion comme membre si pas déjà inscrit.
+        if (!subscriptionRepository.existsByUserIdAndVillageId(userId, village.getId())) {
+            join(userId, village.getId(), VillageSubscription.SubscriptionType.MEMBER);
+        }
+        return village;
     }
 
     @Override

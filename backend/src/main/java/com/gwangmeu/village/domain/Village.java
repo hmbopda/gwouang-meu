@@ -63,4 +63,8 @@ public class Village extends AuditEntity {
 
     @Column(name = "country_id")
     private UUID countryId;
+
+    /** Chefferie du référentiel matérialisée en communauté (dédoublonnage). */
+    @Column(name = "chefferie_id")
+    private UUID chefferieId;
 }

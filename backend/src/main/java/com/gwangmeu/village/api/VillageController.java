@@ -103,6 +103,28 @@ public class VillageController {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.created(dto));
     }
 
+    @PostMapping("/from-chefferie")
+    @PreAuthorize("hasRole('MEMBRE') or hasRole('AMBASSADEUR') or hasRole('MODERATEUR') or hasRole('SUPER_ADMIN')")
+    @Operation(summary = "Fonder / rejoindre un village depuis une chefferie du referentiel",
+            description = "Materialise la chefferie (referentiel) en communaute si elle n'existe pas encore, "
+                    + "puis inscrit l'utilisateur comme membre. Idempotent.")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Village fonde/rejoint"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "chefferieId manquant ou invalide"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Non authentifie")
+    })
+    public ResponseEntity<ApiResponse<VillageDto>> foundFromChefferie(
+            @CurrentUser Jwt jwt,
+            @RequestBody Map<String, String> body) {
+        UUID userId = resolveUserId(jwt);
+        String raw = body.get("chefferieId");
+        if (raw == null || raw.isBlank()) {
+            throw new IllegalArgumentException("chefferieId requis");
+        }
+        Village village = villageService.foundFromChefferie(UUID.fromString(raw), userId);
+        return ResponseEntity.ok(ApiResponse.ok(villageMapper.toDto(village), "Village rejoint"));
+    }
+
     @GetMapping("/{villageId}")
     @Operation(summary = "Obtenir un village", description = "Retourne les informations publiques d'un village.")
     @ApiResponses({

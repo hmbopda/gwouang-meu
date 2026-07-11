@@ -9,9 +9,13 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface VillageRepository extends JpaRepository<Village, UUID> {
+
+    /** Communauté déjà matérialisée pour une chefferie du référentiel (dédoublonnage). */
+    Optional<Village> findByChefferieId(UUID chefferieId);
 
     List<Village> findByCountryIgnoreCase(String country);
 
