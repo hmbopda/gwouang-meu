@@ -33,7 +33,8 @@ import 'package:gwangmeu/features/villages/my_villages_screen.dart'
     deferred as my_villages;
 import 'package:gwangmeu/features/villages/village_detail_screen.dart'
     deferred as village_detail;
-import 'package:gwangmeu/features/villages/villages_screen.dart' deferred as villages;
+import 'package:gwangmeu/features/villages/villages_hub_screen.dart'
+    deferred as villages_hub;
 
 import 'package:gwangmeu/core/router/route_names.dart';
 
@@ -97,12 +98,13 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const FeedScreen(),
           ),
 
-          // Villages (deferred)
+          // Villages — l'onglet ouvre le NOUVEL écran village (hub) sur le
+          // premier village de l'utilisateur, pas la liste d'exploration.
           GoRoute(
             path: Routes.villages,
             builder: (context, state) => DeferredWidget(
-              loader: villages.loadLibrary,
-              builder: () => villages.VillagesScreen(),
+              loader: villages_hub.loadLibrary,
+              builder: () => villages_hub.VillagesHubScreen(),
             ),
           ),
 
