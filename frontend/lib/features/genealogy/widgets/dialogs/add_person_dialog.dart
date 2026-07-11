@@ -16,6 +16,7 @@ import 'package:gwangmeu/features/genealogy/models/clan_model.dart';
 import 'package:gwangmeu/features/genealogy/models/genealogy_union.dart';
 import 'package:gwangmeu/features/genealogy/models/person_genealogy.dart';
 import 'package:gwangmeu/features/genealogy/services/genealogy_api_service.dart';
+import 'package:gwangmeu/features/genealogy/widgets/dialogs/origin_cascade_selector.dart';
 
 enum AddPersonStep { chooseAction, lookupContact, selectFromTree, selectClan, selectPerson, createForm, checkDuplicate, selectCoParent }
 
@@ -49,10 +50,8 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
   final _clanCtrl = TextEditingController();
   final _totemCtrl = TextEditingController();
   final _birthPlaceCtrl = TextEditingController();
-  // Origine — ancre de la lignée (texte libre, complète villageIds).
-  final _originVillageCtrl = TextEditingController();
-  final _originCityCtrl = TextEditingController();
-  final _originRegionCtrl = TextEditingController();
+  // Origine — ancre de la lignée (référentiel territorial en cascade).
+  OriginSelection _origin = const OriginSelection();
   // Résidence actuelle — évolution (migration, situation actuelle).
   final _residenceCityCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
@@ -107,9 +106,6 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
     _clanCtrl.dispose();
     _totemCtrl.dispose();
     _birthPlaceCtrl.dispose();
-    _originVillageCtrl.dispose();
-    _originCityCtrl.dispose();
-    _originRegionCtrl.dispose();
     _residenceCityCtrl.dispose();
     _emailCtrl.dispose();
     _phoneCtrl.dispose();
@@ -863,46 +859,12 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
             }),
             onVillagesChanged: (v) => setState(() => _selectedVillages = v),
           ),
-          const SizedBox(height: 12),
-          TextFormField(
-            controller: _originVillageCtrl,
-            style: GwType.ui(fontSize: 14, color: t.stone),
-            decoration: gwInputDecoration(
-              context,
-              label: 'Village d\'origine',
-              prefixIcon: Symbols.holiday_village,
-              hint: 'Ex: Bana, Bafou...',
-            ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: TextFormField(
-                  controller: _originCityCtrl,
-                  style: GwType.ui(fontSize: 14, color: t.stone),
-                  decoration: gwInputDecoration(
-                    context,
-                    label: 'Ville d\'origine',
-                    prefixIcon: Symbols.location_city,
-                    dense: true,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: TextFormField(
-                  controller: _originRegionCtrl,
-                  style: GwType.ui(fontSize: 14, color: t.stone),
-                  decoration: gwInputDecoration(
-                    context,
-                    label: 'Région d\'origine',
-                    prefixIcon: Symbols.map,
-                    dense: true,
-                  ),
-                ),
-              ),
-            ],
+          const SizedBox(height: 14),
+          // Référentiel territorial camerounais en cascade — remplace les
+          // anciens champs libres Région / Ville / Village d'origine.
+          OriginCascadeSelector(
+            initial: _origin,
+            onChanged: (sel) => _origin = sel,
           ),
           const SizedBox(height: 12),
           _buildCountryDropdown(
@@ -1628,13 +1590,18 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
           ? _selectedVillages.map((v) => v.id).toList()
           : null;
 
-      // Origine — ancre de la lignée (tout optionnel, null si vide).
+      // Origine — ancre de la lignée (référentiel territorial en cascade).
       String? nonEmpty(TextEditingController c) =>
           c.text.trim().isNotEmpty ? c.text.trim() : null;
-      final originVillage = nonEmpty(_originVillageCtrl);
-      final originCity = nonEmpty(_originCityCtrl);
-      final originRegion = nonEmpty(_originRegionCtrl);
-      final originCountry = _originCountry?.isoCode;
+      // Mapping référentiel → champs backend :
+      //   originRegion  = région ; originVillage = chefferie / village ;
+      //   originCity    = commune/arrondissement, sinon département.
+      final originVillage = _origin.chefferieName;
+      final originCity =
+          _origin.arrondissementName ?? _origin.departmentName;
+      final originRegion = _origin.regionName;
+      // Pays d'origine : garde le dropdown existant, défaut Cameroun.
+      final originCountry = _originCountry?.isoCode ?? 'CM';
       // Résidence — évolution.
       final residenceCity = nonEmpty(_residenceCityCtrl);
       final residenceCountry = _residenceCountry?.isoCode;
