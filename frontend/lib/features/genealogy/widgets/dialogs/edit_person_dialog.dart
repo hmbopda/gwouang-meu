@@ -5,6 +5,8 @@ import 'package:intl/intl.dart';
 import 'package:gwangmeu/shared/models/country_model.dart';
 import 'package:gwangmeu/shared/models/village_model.dart';
 import 'package:gwangmeu/shared/widgets/country_village_selector.dart';
+import 'package:gwangmeu/shared/widgets/country_selector.dart';
+import 'package:gwangmeu/features/genealogy/widgets/dialogs/origin_cascade_selector.dart';
 import 'package:gwangmeu/features/genealogy/models/person_genealogy.dart';
 import 'package:gwangmeu/features/genealogy/services/genealogy_api_service.dart';
 
@@ -37,6 +39,9 @@ class _EditPersonDialogState extends ConsumerState<EditPersonDialog> {
   DateTime? _birthDate;
   CountryModel? _selectedCountry;
   List<VillageModel> _selectedVillages = [];
+  // Origine référentielle (ancre de la lignée) — atteint Bandenkop.
+  OriginSelection _origin = const OriginSelection();
+  CountryModel? _originCountry;
   bool _loading = false;
 
   static const _privacyOptions = {
@@ -68,6 +73,12 @@ class _EditPersonDialogState extends ConsumerState<EditPersonDialog> {
       _privacy = _privacyOptions.containsKey(p.privacy)
           ? p.privacy
           : 'FAMILY_ONLY';
+      // Origine référentielle (ancre de la lignée) — pré-remplissage.
+      _origin = OriginSelection(
+        regionName: p.originRegion,
+        departmentName: p.originCity,
+        chefferieName: p.originVillage,
+      );
       debugPrint('[EDIT_DIALOG] initState OK — status=$_status, privacy=$_privacy');
     } catch (e, st) {
       debugPrint('[EDIT_DIALOG] initState ERROR: $e');
@@ -234,6 +245,21 @@ class _EditPersonDialogState extends ConsumerState<EditPersonDialog> {
           ),
           const SizedBox(height: 16),
 
+          // ── Origine référentielle (ancre de la lignée — atteint Bandenkop) ──
+          _sectionLabel('ORIGINE — ANCRE DE LA LIGNÉE'),
+          const SizedBox(height: 8),
+          OriginCascadeSelector(
+            initial: _origin,
+            onChanged: (sel) => _origin = sel,
+          ),
+          const SizedBox(height: 12),
+          CountrySelector(
+            label: 'Pays d\'origine',
+            value: _originCountry,
+            onChanged: (c) => setState(() => _originCountry = c),
+          ),
+          const SizedBox(height: 16),
+
           // ── Résidence & Profession ──
           _sectionLabel('RÉSIDENCE & PROFESSION'),
           const SizedBox(height: 8),
@@ -387,6 +413,15 @@ class _EditPersonDialogState extends ConsumerState<EditPersonDialog> {
       if (_selectedVillages.isNotEmpty) {
         data['villageIds'] = _selectedVillages.map((v) => v.id).toList();
       }
+      // Origine référentielle (ancre de la lignée).
+      if (_origin.chefferieName != null) {
+        data['originVillage'] = _origin.chefferieName;
+      }
+      final originCity = _origin.arrondissementName ?? _origin.departmentName;
+      if (originCity != null) data['originCity'] = originCity;
+      if (_origin.regionName != null) data['originRegion'] = _origin.regionName;
+      final originCountry = _originCountry?.iso2 ?? widget.person.originCountry;
+      if (originCountry != null) data['originCountry'] = originCountry;
 
       await api.updatePerson(widget.person.id, data);
       ref.invalidate(familyTreeProvider(widget.treeOwnerId));
