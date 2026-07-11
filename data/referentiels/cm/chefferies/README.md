@@ -8,10 +8,26 @@ novembre 2015 — 12 PDF officiels téléchargés le 2026-07-10.
 | Degré | Fichier | Chefferies | Statut |
 |---|---|---|---|
 | 1er (national) | `chefferies_1er_degre.csv` | 79 | ✅ extrait et vérifié (séquence 1..79) |
-| 2e (national) | `chefferies_2e_degre.csv` | ~700–900 | ⏳ à extraire |
+| 2e (national) | `chefferies_2e_degre.csv` | 867 | ✅ extrait et vérifié (séquence 1..867, régions contiguës) |
 | 3e (par région) | `chefferies_3e_degre.csv` | ~12 000 | ⏳ à extraire |
 
 Total attendu (les 3 degrés) : **≈ 13 500** chefferies (l'étude cite 13 536).
+
+### 2e degré — répartition par région (867 au total)
+
+Centre 181 · Extrême-Nord 166 · Sud 113 · Nord-Ouest 112 · Ouest 107 · Est 55 ·
+Littoral 45 · Sud-Ouest 44 · Nord 37 · Adamaoua 7.
+
+**Qualité** : numérotation 1..867 continue sans trou ni doublon ; chaque chefferie
+rattachée à un département officiel (jointure complète vers `../departements.csv`) ;
+régions en blocs de N° strictement contigus (ordre alphabétique du MINAT), ce qui
+valide l'affectation. **25 dénominations (3 %)** proviennent de lignes *doublement
+corrompues* dans le PDF source (le nom lui-même a des caractères entrelacés) : leur
+numéro, département et région sont exacts, mais l'orthographe du nom est approximative
+et à vérifier — N° 123, 144, 196, 199, 206, 232, 233, 290, 291, 383, 411, 412, 419,
+420, 433, 453, 469, 642, 676, 677, 693, 747, 775, 853, 861. L'affectation
+départementale est dérivée des libellés de colonne du MINAT ; de rares imprécisions de
+frontière restent possibles (la région, elle, est vérifiée).
 
 ## Schéma
 
@@ -38,11 +54,18 @@ Base : `https://minat.gov.cm/wp-content/uploads/2020/07/`
 
 Les PDF sont extraits en texte via `pdftotext -layout`, puis convertis en CSV.
 **Difficulté** : la mise en page est irrégulière (numéros parfois collés au nom, entrées
-coupées par les sauts de page, colonnes arrondissement/canton/groupement variables selon
-les régions). Un parsing purement positionnel produit trop d'erreurs ; l'extraction fiable
-demande une lecture **sémantique** (page par page). Le 1er degré, plus régulier, est fait
-et vérifié.
+coupées par les sauts de page, colonnes arrondissement/canton/groupement variables, et
+surtout des libellés de colonne *entrelacés caractère par caractère* dans le mot
+« Chefferie » et parfois dans le nom lui-même — corruption présente dans le PDF source,
+indépendante du mode d'extraction).
 
-Reste à finaliser (2e degré + 3e degré) par une passe sémantique, puis QA d'intégrité
-(séquences `numero` 1..N par département, zéro doublon, jointure `departement` → référentiel
-administratif) avant intégration.
+Le **1er degré** (régulier) et le **2e degré** sont faits et vérifiés. Le 2e degré a été
+reconstruit par un parseur dédié (ancrage sur le N° continu 1..867 ; désentrelacement du
+titre Chefferie/Lawanat/Lamidat/Sultanat/Groupement en le consommant lettre à lettre ;
+département dérivé des libellés de colonne officiels avec concaténation des labels sur
+2 lignes) puis contrôle d'intégrité (séquence complète, jointure départements, blocs de
+région contigus).
+
+**Reste** : le **3e degré** (~12 000 chefferies, un PDF par région, mêmes difficultés)
+à extraire par la même méthode, avec QA d'intégrité (séquences `numero` par département,
+jointure vers `../arrondissements.csv` quand la granularité le permet).

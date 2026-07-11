@@ -16,7 +16,7 @@ et les **chefferies traditionnelles** rattachées.
 | `departements.csv` | 58 départements + chef-lieu + coordonnées, liés à la région | 58 | ✅ complet, vérifié |
 | `arrondissements.csv` | ~360 arrondissements/communes, liés au département | 360 | ✅ complet, vérifié |
 | `chefferies/chefferies_1er_degre.csv` | chefferies de 1er degré (nationales) | 79 | ✅ complet, vérifié |
-| `chefferies/chefferies_2e_degre.csv` | chefferies de 2e degré | — | ⏳ à extraire |
+| `chefferies/chefferies_2e_degre.csv` | chefferies de 2e degré (nationales) | 867 | ✅ complet, vérifié |
 | `chefferies/chefferies_3e_degre.csv` | chefferies de 3e degré (~12 000) | — | ⏳ à extraire |
 
 ## Schémas (CSV, séparateur `;`, UTF-8, en-tête inclus)
