@@ -18,6 +18,7 @@ abstract class Routes {
   // Routes détail (hors shell)
   static const village = '/villages/:id';
   static const createVillage = '/villages/create';
+  static const addVillage = '/villages/add';
   static const editVillage = '/villages/:id/edit';
   static const myVillages = '/my-villages';
   static const invite = '/invite';

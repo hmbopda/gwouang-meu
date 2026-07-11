@@ -25,6 +25,8 @@ import 'package:gwangmeu/features/genealogy/invitation_screen.dart'
     deferred as invitation;
 import 'package:gwangmeu/features/profile/profile_screen.dart' deferred as profile;
 import 'package:gwangmeu/features/search/search_screen.dart' deferred as search;
+import 'package:gwangmeu/features/villages/add_village_screen.dart'
+    deferred as add_village;
 import 'package:gwangmeu/features/villages/create_village_screen.dart'
     deferred as create_village;
 import 'package:gwangmeu/features/villages/edit_village_screen.dart'
@@ -152,6 +154,16 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => DeferredWidget(
               loader: my_villages.loadLibrary,
               builder: () => my_villages.MyVillagesScreen(),
+            ),
+          ),
+
+          // Ajouter un village — villages hérités + invitations
+          // (AVANT /:id pour éviter collision)
+          GoRoute(
+            path: Routes.addVillage,
+            builder: (context, state) => DeferredWidget(
+              loader: add_village.loadLibrary,
+              builder: () => add_village.AddVillageScreen(),
             ),
           ),
 

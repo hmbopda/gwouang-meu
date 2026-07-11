@@ -1,6 +1,8 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:gwangmeu/core/network/api_client.dart';
+import 'package:gwangmeu/shared/models/village_model.dart';
 
 /// Gouvernance de village — permissions, adhésion MEMBRE, rôles délégués,
 /// demandes d'adhésion et validations (clan / chefferie / lignée / succession).
@@ -158,6 +160,62 @@ class VillageValidation {
       );
 }
 
+/// Chef d'un village — porteur de la chefferie (créateur ou successeur validé).
+/// [since] = année d'accession ; [isCreator] = a fondé le village.
+class VillageChief {
+  const VillageChief({
+    required this.userId,
+    required this.displayName,
+    this.avatarUrl,
+    this.since,
+    this.isCreator = false,
+  });
+
+  final String userId;
+  final String displayName;
+  final String? avatarUrl;
+  final int? since;
+  final bool isCreator;
+
+  factory VillageChief.fromJson(Map<String, dynamic> json) => VillageChief(
+        userId: json['userId']?.toString() ?? '',
+        displayName: json['displayName'] as String? ?? '',
+        avatarUrl: json['avatarUrl'] as String?,
+        since: (json['since'] as num?)?.toInt(),
+        isCreator: json['isCreator'] as bool? ?? false,
+      );
+}
+
+/// Invitation reçue à rejoindre un village.
+/// [status] ∈ PENDING | ACCEPTED | DECLINED.
+class VillageInvitation {
+  const VillageInvitation({
+    required this.id,
+    required this.villageId,
+    required this.villageName,
+    required this.invitedByName,
+    required this.status,
+    this.message,
+  });
+
+  final String id;
+  final String villageId;
+  final String villageName;
+  final String invitedByName;
+  final String status;
+  final String? message;
+
+  factory VillageInvitation.fromJson(Map<String, dynamic> json) =>
+      VillageInvitation(
+        id: json['id']?.toString() ?? '',
+        villageId: json['villageId']?.toString() ?? '',
+        villageName: json['villageName'] as String? ?? '',
+        invitedByName: json['invitedByName'] as String? ?? '',
+        status: json['status']?.toString() ?? '',
+        message: json['message'] as String?,
+      );
+}
+
 // ── Service ─────────────────────────────────────────────────
 
 class VillageGovernanceService {
@@ -277,6 +335,51 @@ class VillageGovernanceService {
       data: {'approve': approve},
     );
   }
+
+  // ── Chefferie / adhésion héritée / invitations ─────────────
+
+  /// GET /{villageId}/chief — chef du village.
+  /// Renvoie `null` si le village n'a pas (encore) de chef (404).
+  Future<VillageChief?> chief(String villageId) async {
+    try {
+      final response = await _api.get('${_v(villageId)}/chief');
+      final data = response['data'];
+      if (data == null) return null;
+      return VillageChief.fromJson(data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404) return null;
+      rethrow;
+    }
+  }
+
+  /// GET /eligible — villages où un parent est déjà membre (« hérités »),
+  /// que l'utilisateur peut rejoindre en admission automatique.
+  Future<List<VillageModel>> eligibleVillages() async {
+    final response = await _api.get('$_base/eligible');
+    final list = response['data'] as List? ?? const [];
+    return list
+        .map((e) => VillageModel.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// GET /invitations — invitations reçues par l'utilisateur courant.
+  Future<List<VillageInvitation>> myInvitations() async {
+    final response = await _api.get('$_base/invitations');
+    final list = response['data'] as List? ?? const [];
+    return list
+        .map((e) => VillageInvitation.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// POST /invitations/{id}/accept
+  Future<void> acceptInvitation(String id) async {
+    await _api.post('$_base/invitations/$id/accept');
+  }
+
+  /// POST /invitations/{id}/decline
+  Future<void> declineInvitation(String id) async {
+    await _api.post('$_base/invitations/$id/decline');
+  }
 }
 
 // ── Providers ───────────────────────────────────────────────
@@ -328,4 +431,24 @@ final villageValidationsProvider = FutureProvider.family<List<VillageValidation>
   return ref
       .read(villageGovernanceServiceProvider)
       .validations(arg.villageId, kind: arg.kind);
+});
+
+/// Chef d'un village (null si aucun chef). Invalidable après succession.
+final villageChiefProvider =
+    FutureProvider.family<VillageChief?, String>((ref, villageId) {
+  return ref.read(villageGovernanceServiceProvider).chief(villageId);
+});
+
+/// Villages hérités — un parent y est déjà membre (admission automatique).
+/// Invalidable après avoir rejoint un village.
+final eligibleVillagesProvider =
+    FutureProvider<List<VillageModel>>((ref) {
+  return ref.read(villageGovernanceServiceProvider).eligibleVillages();
+});
+
+/// Invitations reçues par l'utilisateur courant.
+/// Invalidable après accept/decline.
+final villageInvitationsProvider =
+    FutureProvider<List<VillageInvitation>>((ref) {
+  return ref.read(villageGovernanceServiceProvider).myInvitations();
 });

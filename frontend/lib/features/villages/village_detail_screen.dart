@@ -147,7 +147,7 @@ class _LeftPanel extends ConsumerWidget {
                           color: t.stoneDim)),
                 ),
                 GestureDetector(
-                  onTap: () => context.push(Routes.villages),
+                  onTap: () => context.push(Routes.addVillage),
                   child: Container(
                     width: 28,
                     height: 28,
@@ -269,7 +269,7 @@ class _LeftPanel extends ConsumerWidget {
   Widget _buildExploreItem(BuildContext context) {
     final t = GwTokens.of(context);
     return GestureDetector(
-      onTap: () => context.push(Routes.villages),
+      onTap: () => context.push(Routes.addVillage),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         child: Row(
@@ -2563,6 +2563,146 @@ class _ChefCardState extends ConsumerState<_ChefCard> {
     );
   }
 
+  /// Initiales calculées d'un nom complet (1 à 2 lettres, MAJ).
+  String _initials(String name) {
+    final parts = name
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((p) => p.isNotEmpty)
+        .toList();
+    if (parts.isEmpty) return '?';
+    if (parts.length == 1) {
+      final w = parts.first;
+      return (w.length >= 2 ? w.substring(0, 2) : w).toUpperCase();
+    }
+    return (parts.first[0] + parts.last[0]).toUpperCase();
+  }
+
+  /// En-tête chef : avatar (image ou initiales) + nom serif + rôle + ancienneté.
+  /// [chief] null → « Chef non désigné » discret.
+  Widget _header(BuildContext context, VillageChief? chief) {
+    final t = GwTokens.of(context);
+    final hasChief = chief != null && chief.displayName.trim().isNotEmpty;
+    final name = hasChief ? chief.displayName.trim() : 'Chef non désigné';
+    final avatarUrl = chief?.avatarUrl;
+
+    return Row(
+      children: [
+        Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Container(
+              width: 54,
+              height: 54,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: hasChief
+                    ? const LinearGradient(
+                        colors: [GwTokens.goldLight, GwTokens.gold])
+                    : null,
+                color: hasChief ? null : t.inkLift,
+                border: Border.all(
+                    color: hasChief ? t.goldLine : t.lineMid, width: 1.5),
+                image: (avatarUrl != null && avatarUrl.isNotEmpty)
+                    ? DecorationImage(
+                        image: NetworkImage(avatarUrl), fit: BoxFit.cover)
+                    : null,
+              ),
+              child: (avatarUrl != null && avatarUrl.isNotEmpty)
+                  ? null
+                  : Center(
+                      child: Text(hasChief ? _initials(name) : '—',
+                          style: GwType.display(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                              color: hasChief
+                                  ? GwTokens.inkOnGold
+                                  : t.stoneFaint))),
+            ),
+            if (hasChief)
+              const Positioned(
+                  top: -12,
+                  left: 0,
+                  right: 0,
+                  child: Center(
+                      child: Text('👑', style: TextStyle(fontSize: 14)))),
+          ],
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(name,
+                  style: GwType.display(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: hasChief ? t.stone : t.stoneDim),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis),
+              const SizedBox(height: 2),
+              Row(
+                children: [
+                  Text(hasChief ? 'Chef du village' : 'Aucun chef désigné',
+                      style: GwType.ui(
+                          fontSize: 12,
+                          color: hasChief ? t.goldText : t.stoneFaint)),
+                  if (hasChief) ...[
+                    const SizedBox(width: 6),
+                    Container(
+                        width: 6,
+                        height: 6,
+                        decoration: const BoxDecoration(
+                            color: GwTokens.gold, shape: BoxShape.circle)),
+                  ],
+                ],
+              ),
+              if (hasChief && chief.since != null) ...[
+                const SizedBox(height: 2),
+                Text('En fonction depuis ${chief.since}',
+                    style: GwType.mono(fontSize: 9, color: t.stoneFaint)),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Squelette discret pendant le chargement du chef.
+  Widget _headerSkeleton(BuildContext context) {
+    final t = GwTokens.of(context);
+    Widget bar(double w) => Container(
+          width: w,
+          height: 10,
+          decoration: BoxDecoration(
+              color: t.inkLift, borderRadius: BorderRadius.circular(3)),
+        );
+    return Row(
+      children: [
+        Container(
+          width: 54,
+          height: 54,
+          decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: t.inkLift,
+              border: Border.all(color: t.lineMid, width: 1.5)),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              bar(120),
+              const SizedBox(height: 8),
+              bar(80),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = GwTokens.of(context);
@@ -2572,6 +2712,7 @@ class _ChefCardState extends ConsumerState<_ChefCard> {
     final isMember = permsAsync.valueOrNull?.let(
             (p) => p.chief || p.superAdmin || p.permissions.isNotEmpty) ??
         false;
+    final chiefAsync = ref.watch(villageChiefProvider(widget.village.id));
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
@@ -2584,67 +2725,12 @@ class _ChefCardState extends ConsumerState<_ChefCard> {
         ),
         child: Column(
           children: [
-            Row(
-              children: [
-                Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    Container(
-                      width: 54,
-                      height: 54,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: const LinearGradient(
-                            colors: [GwTokens.goldLight, GwTokens.gold]),
-                        border: Border.all(color: t.goldLine, width: 1.5),
-                      ),
-                      child: Center(
-                          child: Text('ND',
-                              style: GwType.display(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w600,
-                                  color: GwTokens.inkOnGold))),
-                    ),
-                    const Positioned(
-                        top: -12,
-                        left: 0,
-                        right: 0,
-                        child: Center(
-                            child: Text('👑', style: TextStyle(fontSize: 14)))),
-                  ],
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Ndoumbe Bassa II',
-                          style: GwType.display(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: t.stone)),
-                      const SizedBox(height: 2),
-                      Row(
-                        children: [
-                          Text('Chef du village',
-                              style: GwType.ui(
-                                  fontSize: 12, color: t.goldText)),
-                          const SizedBox(width: 6),
-                          Container(
-                              width: 6,
-                              height: 6,
-                              decoration: const BoxDecoration(
-                                  color: GwTokens.gold,
-                                  shape: BoxShape.circle)),
-                        ],
-                      ),
-                      const SizedBox(height: 2),
-                      Text('En fonction depuis 2008',
-                          style: GwType.mono(fontSize: 9, color: t.stoneFaint)),
-                    ],
-                  ),
-                ),
-              ],
+            chiefAsync.when(
+              // Erreur : on ne plante pas, on retombe sur un chef générique.
+              error: (_, __) => _header(context, null),
+              // Chargement : squelette discret (avatar + lignes grisées).
+              loading: () => _headerSkeleton(context),
+              data: (chief) => _header(context, chief),
             ),
             const SizedBox(height: 12),
             Row(children: [
