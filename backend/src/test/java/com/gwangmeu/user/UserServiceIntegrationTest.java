@@ -208,6 +208,7 @@ class UserServiceIntegrationTest extends BaseIntegrationTest {
                     null, null, null, null,
                     null, null, null, null,
                     null, null,
+                    null, null, null, null, null,
                     "Developpeur", null, "Douala", null
             );
 
@@ -239,6 +240,7 @@ class UserServiceIntegrationTest extends BaseIntegrationTest {
                     "Marie(e)", "Monogamie",
                     3, "Omnivore",
                     "Bassa", "Bakoko",
+                    "CM", "Ouest", "Koung-Khi", "Bayangam", "Bandenkop",
                     "Ingenieur", "Gwang Meu Inc.",
                     "Paris", "France"
             );
@@ -265,7 +267,9 @@ class UserServiceIntegrationTest extends BaseIntegrationTest {
                     "Nom", null, null, null, null, null, null,
                     null, null, null, null,
                     null, null, null, null,
-                    null, null, null, null, null, null
+                    null, null,
+                    null, null, null, null, null,
+                    null, null, null, null
             );
 
             assertThatThrownBy(() -> userService.updateProfile("inexistant", request))

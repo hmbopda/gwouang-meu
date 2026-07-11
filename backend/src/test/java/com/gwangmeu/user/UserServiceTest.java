@@ -79,6 +79,7 @@ class UserServiceTest {
                 null, null, null, null,
                 null, null, null, null,
                 null, null,
+                null, null, null, null, null,
                 null, null, null, null,
                 Instant.now()
         );
@@ -285,8 +286,11 @@ class UserServiceTest {
         void shouldUpdateOnlyNonNullFields() {
             UpdateUserRequest request = new UpdateUserRequest(
                     "Nouveau Nom", null, null, null, null, null, null,
-                    null, null, null, null, null, null, null,
-                    null, null, null, null, null, null, null
+                    null, null, null, null,
+                    null, null, null, null,
+                    null, null,
+                    null, null, null, null, null,
+                    null, null, null, null
             );
 
             User existingUser = User.builder()
@@ -323,6 +327,7 @@ class UserServiceTest {
                     "Nouvelle Mere", "Oyem",
                     "Celibataire", "N/A", 0, "Vegetarien",
                     "Fang", "Essakane",
+                    "GA", "Estuaire", "Komo", "Libreville", "Oyem",
                     "Medecin", "Hopital Central", "Libreville", "Gabon"
             );
 
@@ -351,8 +356,11 @@ class UserServiceTest {
         void shouldThrowWhenUserNotFound() {
             UpdateUserRequest request = new UpdateUserRequest(
                     "Nom", null, null, null, null, null, null,
-                    null, null, null, null, null, null, null,
-                    null, null, null, null, null, null, null
+                    null, null, null, null,
+                    null, null, null, null,
+                    null, null,
+                    null, null, null, null, null,
+                    null, null, null, null
             );
             when(userRepository.findBySupabaseId("unknown")).thenReturn(Optional.empty());
 
