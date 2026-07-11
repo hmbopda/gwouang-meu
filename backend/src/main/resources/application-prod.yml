@@ -1,5 +1,10 @@
 spring:
   jpa:
+    # Flyway est la SOURCE DE VERITE du schema en prod. On desactive la
+    # validation Hibernate au demarrage (fragile : ex. CHAR vs VARCHAR faisait
+    # crasher le boot). Les migrations garantissent la coherence.
+    hibernate:
+      ddl-auto: none
     show-sql: false
     properties:
       hibernate:
