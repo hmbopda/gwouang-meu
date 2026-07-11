@@ -20,7 +20,7 @@ public interface ChefferieRepository extends JpaRepository<Chefferie, UUID> {
             SELECT c FROM Chefferie c
             WHERE c.countryIso2 = :countryIso2
               AND c.departmentCode = :departmentCode
-              AND (:q IS NULL OR c.denomination ILIKE CONCAT('%', :q, '%'))
+              AND (:q IS NULL OR LOWER(c.denomination) LIKE LOWER(CONCAT('%', :q, '%')))
             ORDER BY c.numero
             """)
     List<Chefferie> searchByDepartment(
@@ -37,7 +37,7 @@ public interface ChefferieRepository extends JpaRepository<Chefferie, UUID> {
             SELECT c FROM Chefferie c
             WHERE c.countryIso2 = :countryIso2
               AND c.regionName = :regionName
-              AND (:q IS NULL OR c.denomination ILIKE CONCAT('%', :q, '%'))
+              AND (:q IS NULL OR LOWER(c.denomination) LIKE LOWER(CONCAT('%', :q, '%')))
             ORDER BY c.numero
             """)
     List<Chefferie> searchByRegion(
