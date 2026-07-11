@@ -15,6 +15,7 @@ import 'package:gwangmeu/features/profile/profile_edit_sheet.dart';
 import 'package:gwangmeu/features/profile/profile_notifier.dart';
 import 'package:gwangmeu/features/villages/villages_notifier.dart';
 import 'package:gwangmeu/shared/models/user_model.dart';
+import 'package:gwangmeu/shared/models/village_model.dart';
 
 /// Profil « Héritage clair » — conçu dans le même langage patrimonial que
 /// la fiche de vie de Lignée : gros badge à initiales (anneau or, point vert
@@ -115,6 +116,10 @@ class _ProfileView extends ConsumerWidget {
           const _SectionLabel('MA LIGNÉE'),
           const SizedBox(height: 8),
           _ActionsBlock(user: user),
+          const SizedBox(height: 24),
+          const _SectionLabel('MES VILLAGES'),
+          const SizedBox(height: 8),
+          const _MyVillagesCard(),
           const SizedBox(height: 24),
           const _SectionLabel('RÉGLAGES'),
           const SizedBox(height: 8),
@@ -634,6 +639,188 @@ class _LifeRow extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────
+//  3 bis) Mes villages — liste branchée (myVillagesNotifierProvider),
+//     chaque rangée ouvre le détail du village ; pied « Ajouter un village ».
+// ─────────────────────────────────────────────────────────────────
+
+class _MyVillagesCard extends ConsumerWidget {
+  const _MyVillagesCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = GwTokens.of(context);
+    final async = ref.watch(myVillagesNotifierProvider);
+
+    Widget shell(Widget child) => Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Container(
+            decoration: BoxDecoration(
+              color: t.inkCard,
+              borderRadius: BorderRadius.circular(GwTokens.rCardLg),
+              border: Border.all(color: t.line),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: child,
+          ),
+        );
+
+    return async.when(
+      loading: () => shell(
+        const Padding(
+          padding: EdgeInsets.symmetric(vertical: 26),
+          child: Center(
+            child: SizedBox(
+              width: 22,
+              height: 22,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+          ),
+        ),
+      ),
+      error: (_, __) => shell(
+        Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+              child: Text(
+                'Vos villages n’ont pas pu être chargés.',
+                style: GwType.ui(fontSize: 14, color: t.stoneMid),
+              ),
+            ),
+            Divider(height: 1, color: t.line),
+            _actionTile(
+              context,
+              t,
+              icon: Symbols.refresh,
+              label: 'Réessayer',
+              onTap: () => ref.invalidate(myVillagesNotifierProvider),
+            ),
+          ],
+        ),
+      ),
+      data: (villages) {
+        final rows = <Widget>[];
+        for (var i = 0; i < villages.length; i++) {
+          if (i > 0) rows.add(Divider(height: 1, color: t.line));
+          rows.add(_villageTile(context, t, villages[i]));
+        }
+        if (villages.isEmpty) {
+          rows.add(
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+              child: Text(
+                'Vous n’appartenez encore à aucun village.',
+                style: GwType.ui(fontSize: 14, color: t.stoneMid),
+              ),
+            ),
+          );
+        }
+        rows.add(Divider(height: 1, color: t.line));
+        rows.add(
+          _actionTile(
+            context,
+            t,
+            icon: Symbols.add_circle,
+            label: 'Ajouter un village',
+            onTap: () => context.push(Routes.addVillage),
+          ),
+        );
+        return shell(Column(children: rows));
+      },
+    );
+  }
+
+  Widget _villageTile(BuildContext context, GwTokens t, VillageModel v) {
+    final meta = <String>[
+      if (v.region != null && v.region!.isNotEmpty) v.region!,
+      v.country,
+    ].join(' · ');
+    final members =
+        '${v.memberCount} membre${v.memberCount > 1 ? 's' : ''}';
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => context.push(Routes.villageDetail(v.id)),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: GwTokens.gold.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                alignment: Alignment.center,
+                child: Icon(Symbols.holiday_village,
+                    size: 20, color: t.goldText),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      v.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GwType.display(fontSize: 17, color: t.stone),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      meta.isEmpty ? members : '$meta · $members',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GwType.ui(fontSize: 12.5, color: t.stoneDim),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Icon(Symbols.chevron_right, size: 20, color: t.stoneFaint),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _actionTile(
+    BuildContext context,
+    GwTokens t, {
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Row(
+            children: [
+              Icon(icon, size: 20, color: t.goldText),
+              const SizedBox(width: 12),
+              Text(
+                label,
+                style: GwType.ui(
+                  fontSize: 14.5,
+                  fontWeight: FontWeight.w600,
+                  color: t.goldText,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
