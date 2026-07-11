@@ -9,9 +9,25 @@ novembre 2015 — 12 PDF officiels téléchargés le 2026-07-10.
 |---|---|---|---|
 | 1er (national) | `chefferies_1er_degre.csv` | 79 | ✅ extrait et vérifié (séquence 1..79) |
 | 2e (national) | `chefferies_2e_degre.csv` | 867 | ✅ extrait et vérifié (séquence 1..867, régions contiguës) |
-| 3e (par région) | `chefferies_3e_degre.csv` | ~12 000 | ⏳ à extraire |
+| 3e (par région) | `chefferies_3e_degre.csv` | 12 244 | ✅ extrait (56/58 dépts, jointure complète) |
 
-Total attendu (les 3 degrés) : **≈ 13 500** chefferies (l'étude cite 13 536).
+**Total extrait : 13 190 chefferies** sur ≈ 13 536 estimées par l'étude (~97 %).
+
+### 3e degré — répartition par région (12 244 au total)
+
+Centre 2410 · Extrême-Nord 1759 · Ouest 1394 · Sud 1236 · Nord 1120 · Littoral 1060 ·
+Est 1036 · Adamaoua 1011 · Sud-Ouest 811 · Nord-Ouest 407.
+
+**Qualité** : couverture ~98 % des lignes de données des 10 PDF régionaux ; noms propres
+(aucune corruption d'entrelacement — les dénominations de 3e degré sont nues, sans titre) ;
+chaque chefferie rattachée à un **département officiel** (jointure complète vers
+`../departements.csv`), sur **56 des 58 départements**. **Limites** : (1) 2 départements
+absents — Nord/Mayo-Rey (source PDF malformée) et Sud-Ouest/Koupé-Manengouba ; (2) le
+placement s'arrête au **département** — les colonnes arrondissement/groupement/canton des
+PDF ne sont pas extraites (leur découpage positionnel scindait les noms de façon peu
+fiable), à enrichir ultérieurement ; (3) la numérotation `numero` est celle du MINAT et se
+réinitialise selon les fichiers par département OU par arrondissement (elle n'est donc pas
+un identifiant unique — utiliser (région, département, dénomination)).
 
 ### 2e degré — répartition par région (867 au total)
 
@@ -59,13 +75,18 @@ surtout des libellés de colonne *entrelacés caractère par caractère* dans le
 « Chefferie » et parfois dans le nom lui-même — corruption présente dans le PDF source,
 indépendante du mode d'extraction).
 
-Le **1er degré** (régulier) et le **2e degré** sont faits et vérifiés. Le 2e degré a été
-reconstruit par un parseur dédié (ancrage sur le N° continu 1..867 ; désentrelacement du
-titre Chefferie/Lawanat/Lamidat/Sultanat/Groupement en le consommant lettre à lettre ;
-département dérivé des libellés de colonne officiels avec concaténation des labels sur
-2 lignes) puis contrôle d'intégrité (séquence complète, jointure départements, blocs de
-région contigus).
+Les **trois degrés** sont extraits et vérifiés :
+- **1er degré** : régulier, transcription directe.
+- **2e degré** : parseur dédié — ancrage sur le N° continu 1..867 ; désentrelacement du
+  titre Chefferie/Lawanat/Lamidat/Sultanat/Groupement en le consommant lettre à lettre ;
+  département dérivé des libellés de colonne officiels (concaténation des labels sur
+  2 lignes) ; QA séquence + jointure + blocs de région contigus.
+- **3e degré** : parseur dédié sur les 10 PDF régionaux — sections
+  « 3EME DEGRE DU DEPARTEMENT DE X » (avec gestion des en-têtes coupés sur 2 lignes) ;
+  extraction du couple (N°, dénomination) **par adjacence** (le numéro d'ordre est celui
+  immédiatement suivi du nom, indépendamment de la position de colonne) ; nettoyage du
+  bruit et déduplication exacte. Les dénominations de 3e degré sont nues (pas de titre),
+  d'où l'absence de corruption d'entrelacement.
 
-**Reste** : le **3e degré** (~12 000 chefferies, un PDF par région, mêmes difficultés)
-à extraire par la même méthode, avec QA d'intégrité (séquences `numero` par département,
-jointure vers `../arrondissements.csv` quand la granularité le permet).
+Scripts d'extraction : `parse2e.js`/`finalize2e.js` et `parse3e.js`/`finalize3e.js`
+(conservés hors dépôt, dans l'espace de travail de session).
