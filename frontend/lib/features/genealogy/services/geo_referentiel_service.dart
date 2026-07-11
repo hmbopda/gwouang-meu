@@ -66,6 +66,7 @@ class GeoChefferie {
   const GeoChefferie({
     required this.degre,
     required this.denomination,
+    this.label,
     this.regionName,
     this.departmentName,
     this.departmentCode,
@@ -74,14 +75,23 @@ class GeoChefferie {
 
   final int degre;
   final String denomination;
+
+  /// Libellé propre pour affichage (préfixe « Chefferie/Lamidat… » retiré,
+  /// casse normalisée). Repli sur [denomination] si absent.
+  final String? label;
   final String? regionName;
   final String? departmentName;
   final String? departmentCode;
   final int? numero;
 
+  /// Nom à afficher : [label] si fourni, sinon la dénomination brute.
+  String get displayName =>
+      (label != null && label!.isNotEmpty) ? label! : denomination;
+
   factory GeoChefferie.fromJson(Map<String, dynamic> json) => GeoChefferie(
         degre: (json['degre'] as num?)?.toInt() ?? 0,
         denomination: json['denomination'] as String? ?? '',
+        label: json['label'] as String?,
         regionName: json['regionName'] as String?,
         departmentName: json['departmentName'] as String?,
         departmentCode: json['departmentCode'] as String?,
@@ -141,6 +151,26 @@ class GeoReferentielService {
         if (query != null && query.trim().isNotEmpty) 'q': query.trim(),
         'limit': limit,
       },
+    );
+    final list = response['data'] as List;
+    return list
+        .map((e) => GeoChefferie.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// Recherche GLOBALE et FLOUE d'une chefferie par nom, sans dérouler la
+  /// cascade région/département. Accent-insensible + tolérante aux fautes
+  /// (« Bandenkop » comme « Badenkop » ramènent « Chefferie BANDENKOP »).
+  /// Renvoie [] pour un terme de moins de 2 caractères.
+  Future<List<GeoChefferie>> lookupChefferies(
+    String query, {
+    int limit = 30,
+  }) async {
+    final q = query.trim();
+    if (q.length < 2) return const [];
+    final response = await _api.get(
+      '$_base/chefferies/lookup',
+      queryParameters: {'q': q, 'limit': limit},
     );
     final list = response['data'] as List;
     return list

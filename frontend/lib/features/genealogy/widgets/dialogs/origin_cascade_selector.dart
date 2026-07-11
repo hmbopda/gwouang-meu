@@ -79,6 +79,14 @@ class _OriginCascadeSelectorState
   bool _chefferieMenuOpen = false;
   Timer? _debounce;
 
+  // ── Recherche globale (sans dérouler la cascade) ──
+  final _globalCtrl = TextEditingController();
+  final _globalFocus = FocusNode();
+  Timer? _globalDebounce;
+  List<GeoChefferie> _globalResults = [];
+  bool _globalLoading = false;
+  bool _globalMenuOpen = false;
+
   // États de chargement discrets par niveau.
   bool _loadingRegions = false;
   bool _loadingDepartments = false;
@@ -98,8 +106,11 @@ class _OriginCascadeSelectorState
   @override
   void dispose() {
     _debounce?.cancel();
+    _globalDebounce?.cancel();
     _chefferieCtrl.dispose();
     _chefferieFocus.dispose();
+    _globalCtrl.dispose();
+    _globalFocus.dispose();
     super.dispose();
   }
 
@@ -281,13 +292,108 @@ class _OriginCascadeSelectorState
   }
 
   void _pickChefferie(GeoChefferie chefferie) {
-    _chefferieCtrl.text = chefferie.denomination;
+    _chefferieCtrl.text = chefferie.displayName;
     _chefferieCtrl.selection = TextSelection.fromPosition(
       TextPosition(offset: _chefferieCtrl.text.length),
     );
     setState(() => _chefferieMenuOpen = false);
     _chefferieFocus.unfocus();
     _emit();
+  }
+
+  // ── Recherche globale (sans dérouler la cascade) ───────────
+
+  void _onGlobalSearchChanged(String value) {
+    _globalDebounce?.cancel();
+    final q = value.trim();
+    if (q.length < 2) {
+      setState(() {
+        _globalResults = [];
+        _globalLoading = false;
+        _globalMenuOpen = false;
+      });
+      return;
+    }
+    setState(() {
+      _globalLoading = true;
+      _globalMenuOpen = true;
+    });
+    _globalDebounce = Timer(const Duration(milliseconds: 320), () async {
+      try {
+        final results = await _service.lookupChefferies(q, limit: 30);
+        if (!mounted) return;
+        setState(() {
+          _globalResults = results;
+          _globalLoading = false;
+        });
+      } catch (_) {
+        if (!mounted) return;
+        setState(() {
+          _globalResults = [];
+          _globalLoading = false;
+        });
+      }
+    });
+  }
+
+  /// Sélection d'un résultat global : renseigne l'origine puis synchronise la
+  /// cascade (région → département) au mieux, par nom, pour un affichage cohérent.
+  Future<void> _pickGlobalChefferie(GeoChefferie c) async {
+    _globalCtrl.text = c.displayName;
+    _chefferieCtrl.text = c.displayName;
+    _globalFocus.unfocus();
+    setState(() {
+      _globalMenuOpen = false;
+      _globalResults = [];
+    });
+
+    // Émettre immédiatement l'origine à partir des noms du résultat.
+    widget.onChanged(OriginSelection(
+      regionName: c.regionName,
+      departmentName: c.departmentName,
+      chefferieName: c.displayName,
+    ));
+
+    // Synchronisation best-effort de la cascade (par nom).
+    try {
+      if (_regions.isEmpty) {
+        _regions = await _service.fetchRegions();
+      }
+      GeoRegion? region;
+      for (final r in _regions) {
+        if (c.regionName != null &&
+            r.name.toLowerCase() == c.regionName!.toLowerCase()) {
+          region = r;
+          break;
+        }
+      }
+      if (region == null) {
+        if (mounted) setState(() {});
+        return;
+      }
+      final departments = await _service.fetchDepartments(region.code);
+      GeoDepartment? department;
+      for (final d in departments) {
+        if (c.departmentName != null &&
+            d.name.toLowerCase() == c.departmentName!.toLowerCase()) {
+          department = d;
+          break;
+        }
+      }
+      if (!mounted) return;
+      setState(() {
+        _region = region;
+        _departments = departments;
+        _department = department;
+        _arrondissement = null;
+        _arrondissements = [];
+      });
+      if (department != null) {
+        await _loadArrondissements(department);
+      }
+    } catch (_) {
+      // La synchro visuelle a échoué : l'origine émise reste valide.
+    }
   }
 
   // ── UI ─────────────────────────────────────────────────────
@@ -303,6 +409,14 @@ class _OriginCascadeSelectorState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // ── Recherche directe (n'importe quelle chefferie / village) ──
+        const _LevelLabel(text: 'Rechercher un village / une chefferie'),
+        const SizedBox(height: 6),
+        _buildGlobalSearchField(t),
+        const SizedBox(height: 14),
+        const _CascadeDivider(),
+        const SizedBox(height: 14),
+
         // ── Région ──
         _LevelLabel(text: 'Région', loading: _loadingRegions),
         const SizedBox(height: 6),
@@ -399,6 +513,125 @@ class _OriginCascadeSelectorState
         const SizedBox(height: 6),
         _buildChefferieField(t),
       ],
+    );
+  }
+
+  Widget _buildGlobalSearchField(GwTokens t) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextFormField(
+          controller: _globalCtrl,
+          focusNode: _globalFocus,
+          style: GwType.ui(fontSize: 14, color: t.stone),
+          decoration: gwInputDecoration(
+            context,
+            label: 'Tapez un nom (ex : Bandenkop)',
+            hint: 'Recherche sur tout le référentiel',
+            prefixIcon: Symbols.search,
+            dense: true,
+            suffixIcon: _globalCtrl.text.isNotEmpty
+                ? IconButton(
+                    icon: Icon(Symbols.close, size: 18, color: t.stoneDim),
+                    onPressed: () {
+                      _globalCtrl.clear();
+                      setState(() {
+                        _globalResults = [];
+                        _globalMenuOpen = false;
+                      });
+                    },
+                  )
+                : null,
+          ),
+          onChanged: (v) {
+            setState(() {}); // rafraîchit l'icône « effacer »
+            _onGlobalSearchChanged(v);
+          },
+          onTap: () {
+            if (_globalResults.isNotEmpty) {
+              setState(() => _globalMenuOpen = true);
+            }
+          },
+        ),
+        if (_globalMenuOpen) _buildGlobalMenu(t),
+      ],
+    );
+  }
+
+  Widget _buildGlobalMenu(GwTokens t) {
+    if (_globalLoading) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 6),
+        child: LinearProgressIndicator(
+          color: t.goldText,
+          backgroundColor: t.inkLift,
+          minHeight: 2,
+        ),
+      );
+    }
+    if (_globalResults.isEmpty) {
+      if (_globalCtrl.text.trim().length < 2) return const SizedBox.shrink();
+      return Padding(
+        padding: const EdgeInsets.only(top: 6, left: 4),
+        child: Text(
+          'Aucun résultat — précisez, ou choisissez par cascade ci-dessous.',
+          style: GwType.ui(fontSize: 12, color: t.stoneDim),
+        ),
+      );
+    }
+    return Container(
+      margin: const EdgeInsets.only(top: 6),
+      constraints: const BoxConstraints(maxHeight: 240),
+      decoration: BoxDecoration(
+        color: t.inkCard,
+        borderRadius: BorderRadius.circular(GwTokens.rBtn),
+        border: Border.all(color: t.line),
+      ),
+      child: ListView.builder(
+        shrinkWrap: true,
+        padding: EdgeInsets.zero,
+        itemCount: _globalResults.length,
+        itemBuilder: (context, i) {
+          final c = _globalResults[i];
+          final subtitle = <String>[
+            if (c.departmentName != null) c.departmentName!,
+            if (c.regionName != null) c.regionName!,
+            'degré ${c.degre}',
+          ].join(' · ');
+          return InkWell(
+            onTap: () => _pickGlobalChefferie(c),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+              child: Row(
+                children: [
+                  Icon(Symbols.forest, size: 16, color: t.goldText),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          c.displayName,
+                          style: GwType.ui(
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w600,
+                              color: t.stone),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        Text(
+                          subtitle,
+                          style: GwType.ui(fontSize: 11, color: t.stoneDim),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
     );
   }
 
@@ -649,6 +882,30 @@ class _LevelLabel extends StatelessWidget {
             ),
           ),
         ],
+      ],
+    );
+  }
+}
+
+/// Séparateur « ou affiner par cascade » entre la recherche directe et les
+/// menus déroulants région → département → commune → chefferie.
+class _CascadeDivider extends StatelessWidget {
+  const _CascadeDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    final t = GwTokens.of(context);
+    return Row(
+      children: [
+        Expanded(child: Divider(color: t.line, height: 1)),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          child: Text(
+            'ou affiner par cascade',
+            style: GwType.ui(fontSize: 11, color: t.stoneDim),
+          ),
+        ),
+        Expanded(child: Divider(color: t.line, height: 1)),
       ],
     );
   }

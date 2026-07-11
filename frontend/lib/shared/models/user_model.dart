@@ -31,6 +31,12 @@ class UserModel with _$UserModel {
     // Origines culturelles (village gere via village_subscriptions)
     String? tribe,
     String? clan,
+    // Origine référentielle (ancre de la lignée, noms du référentiel)
+    String? originCountry,
+    String? originRegion,
+    String? originDepartment,
+    String? originArrondissement,
+    String? originVillage,
     // Residence & Profession
     String? profession,
     String? employer,

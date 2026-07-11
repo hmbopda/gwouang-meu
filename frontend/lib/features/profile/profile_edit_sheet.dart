@@ -6,9 +6,8 @@ import 'package:material_symbols_icons/symbols.dart';
 import 'package:gwangmeu/core/theme/gw_tokens.dart';
 import 'package:gwangmeu/shared/models/country_model.dart';
 import 'package:gwangmeu/shared/models/language_model.dart';
-import 'package:gwangmeu/shared/models/village_model.dart';
-import 'package:gwangmeu/shared/widgets/country_village_selector.dart';
 import 'package:gwangmeu/shared/widgets/country_selector.dart';
+import 'package:gwangmeu/features/genealogy/widgets/dialogs/origin_cascade_selector.dart';
 import 'package:gwangmeu/features/genealogy/models/person_genealogy.dart';
 import 'package:gwangmeu/features/genealogy/services/genealogy_api_service.dart';
 import 'package:gwangmeu/features/geo/geo_notifier.dart';
@@ -54,8 +53,11 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
 
   // Origines & Culture
   CountryModel? _selectedCountry;
-  String? _selectedCountryIso; // pour charger les villages
-  List<VillageModel> _selectedVillages = [];
+  String? _selectedCountryIso; // pour charger les langues
+  // Origine référentielle (ancre de la lignée) — atteint n'importe quelle
+  // chefferie du référentiel (dont Bandenkop).
+  OriginSelection _originSelection = const OriginSelection();
+  final _originVillageFreeCtrl = TextEditingController(); // pays hors référentiel
   LanguageModel? _selectedLanguage;
   final List<String> _selectedClans = [];
   final _clanInputCtrl = TextEditingController();
@@ -146,6 +148,14 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
       if (user.clan != null && user.clan!.isNotEmpty) {
         _selectedClans.addAll(user.clan!.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty));
       }
+      // Origine référentielle (ancre de la lignée)
+      _originSelection = OriginSelection(
+        regionName: user.originRegion,
+        departmentName: user.originDepartment,
+        arrondissementName: user.originArrondissement,
+        chefferieName: user.originVillage,
+      );
+      _originVillageFreeCtrl.text = user.originVillage ?? '';
       // Residence & Metier
       _professionCtrl.text = user.profession ?? '';
       _employerCtrl.text = user.employer ?? '';
@@ -203,6 +213,7 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
     _childrenCountCtrl.dispose();
     _clanInputCtrl.dispose();
     _tribeCtrl.dispose();
+    _originVillageFreeCtrl.dispose();
     _professionCtrl.dispose();
     _employerCtrl.dispose();
     _residenceCityCtrl.dispose();
@@ -1523,20 +1534,21 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
         _sectionHeader(context, Symbols.public, 'Origines & Culture'),
         const SizedBox(height: 16),
 
-        CountryVillageSelector(
-          selectedCountry: _selectedCountry,
-          selectedVillages: _selectedVillages,
-          multiSelect: true,
-          countryLabel: 'Pays d\'origine',
-          villageLabel: 'Village(s) d\'origine',
-          onCountryChanged: (c) => setState(() {
+        // Pays d'origine — sélecteur mondial (par nom, code ISO stocké en back).
+        CountrySelector(
+          label: 'Pays d\'origine',
+          hint: 'Choisir un pays',
+          value: _selectedCountry,
+          onChanged: (c) => setState(() {
             _selectedCountry = c;
-            _selectedCountryIso = c?.isoCode;
-            _selectedVillages = [];
+            _selectedCountryIso = c.isoCode;
             _selectedLanguage = null;
           }),
-          onVillagesChanged: (v) => setState(() => _selectedVillages = v),
         ),
+        const SizedBox(height: 16),
+
+        // Village / chefferie d'origine — issu du référentiel (atteint Bandenkop).
+        _buildOriginReferentiel(context),
 
         // Langue maternelle (visible seulement si un pays est selectionne)
         if (_selectedCountryIso != null) ...[
@@ -1552,6 +1564,62 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
         ),
         const SizedBox(height: 18),
         _buildClanMultiSelect(context),
+      ],
+    );
+  }
+
+  /// Village / chefferie d'origine issu du référentiel territorial (atteint
+  /// n'importe quelle chefferie, dont Bandenkop). Pour un pays hors référentiel,
+  /// repli sur une saisie libre.
+  Widget _buildOriginReferentiel(BuildContext context) {
+    final t = GwTokens.of(context);
+    final iso2 = _selectedCountry?.iso2?.toUpperCase();
+    final isCameroon = iso2 == null || iso2 == 'CM';
+
+    final header = Row(
+      children: [
+        Icon(Symbols.forest, size: 16, color: t.goldText),
+        const SizedBox(width: 8),
+        Text(
+          'VILLAGE / CHEFFERIE D\'ORIGINE',
+          style: GwType.mono(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 2,
+            color: t.stoneDim,
+          ),
+        ),
+      ],
+    );
+
+    if (!isCameroon) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          header,
+          const SizedBox(height: 10),
+          _buildTextField(
+            controller: _originVillageFreeCtrl,
+            label: 'Village / ville d\'origine',
+            hint: 'Saisir le nom',
+            icon: Symbols.forest,
+            onChanged: (v) => _originSelection = OriginSelection(
+              chefferieName: v.trim().isEmpty ? null : v.trim(),
+            ),
+          ),
+        ],
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        header,
+        const SizedBox(height: 10),
+        OriginCascadeSelector(
+          initial: _originSelection,
+          onChanged: (sel) => _originSelection = sel,
+        ),
       ],
     );
   }
@@ -1831,12 +1899,20 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
         'displayName': _displayNameCtrl.text.trim(),
       if (_bioCtrl.text.trim().isNotEmpty)
         'bio': _bioCtrl.text.trim(),
-      // Origines
+      // Origines — pays (nom pour affichage + ISO-2 comme ancre) et
+      // origine référentielle (région → département → commune → chefferie).
       if (_selectedCountry != null) 'country': _selectedCountry!.name,
+      if (_selectedCountry?.iso2 != null) 'originCountry': _selectedCountry!.iso2,
+      if (_originSelection.regionName != null)
+        'originRegion': _originSelection.regionName,
+      if (_originSelection.departmentName != null)
+        'originDepartment': _originSelection.departmentName,
+      if (_originSelection.arrondissementName != null)
+        'originArrondissement': _originSelection.arrondissementName,
+      if (_originSelection.chefferieName != null)
+        'originVillage': _originSelection.chefferieName,
       if (_selectedLanguage != null)
         'nativeLanguage': _selectedLanguage!.name,
-      if (_selectedVillages.isNotEmpty)
-        'villageIds': _selectedVillages.map((v) => v.id).toList(),
       if (_tribeCtrl.text.trim().isNotEmpty)
         'tribe': _tribeCtrl.text.trim(),
       if (_selectedClans.isNotEmpty)
