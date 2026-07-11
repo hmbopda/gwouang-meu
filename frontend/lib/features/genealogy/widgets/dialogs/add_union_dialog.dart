@@ -6,6 +6,7 @@ import 'package:gwangmeu/core/theme/gw_tokens.dart';
 import 'package:gwangmeu/shared/models/country_model.dart';
 import 'package:gwangmeu/shared/models/language_model.dart';
 import 'package:gwangmeu/shared/models/village_model.dart';
+import 'package:gwangmeu/shared/widgets/country_selector.dart';
 import 'package:gwangmeu/shared/widgets/country_village_selector.dart';
 import 'package:gwangmeu/shared/widgets/gw_dialog.dart';
 import 'package:gwangmeu/shared/widgets/person_lookup_widget.dart';
@@ -790,19 +791,22 @@ class _AddUnionDialogState extends ConsumerState<AddUnionDialog> {
   /// bannière de conformité au droit civil (ton doux, jamais de jugement).
   Widget _buildLegalSection(GwTokens t) {
     final countriesAsync = ref.watch(countriesNotifierProvider);
-    final iso = _legalCountry?.isoCode ?? '';
+    // Le référentiel country_marriage_rules est indexé par ISO-2 (PK iso2) ;
+    // on interroge donc la conformité avec l'ISO-2 du pays choisi.
+    final iso = _legalCountry?.iso2 ?? '';
     final ruleAsync = ref.watch(marriageRuleProvider(iso));
     final rule = ruleAsync.valueOrNull;
     final polygamy = (rule?['polygamy'] as String?)?.toUpperCase();
     final forbidden = polygamy == 'FORBIDDEN';
 
-    // Défaut : pays de résidence du sujet, s'il est renseigné.
+    // Défaut : pays de résidence du sujet, s'il est renseigné. Les fiches
+    // persons.residence_country sont stockées en ISO-2 → on matche sur iso2.
     countriesAsync.whenData((countries) {
       if (_legalCountry == null &&
           widget.person.residenceCountry != null &&
           widget.person.residenceCountry!.isNotEmpty) {
         final match = countries.where((c) =>
-            c.isoCode.toUpperCase() ==
+            (c.iso2 ?? '').toUpperCase() ==
             widget.person.residenceCountry!.toUpperCase());
         if (match.isNotEmpty) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -828,33 +832,11 @@ class _AddUnionDialogState extends ConsumerState<AddUnionDialog> {
         ),
         const SizedBox(height: 10),
 
-        // Pays de célébration / résidence
-        countriesAsync.when(
-          loading: () => const LinearProgressIndicator(minHeight: 2),
-          error: (_, __) => Text('Pays indisponibles',
-              style: GwType.ui(fontSize: 12, color: t.stoneDim)),
-          data: (countries) => DropdownButtonFormField<CountryModel>(
-            initialValue: _legalCountry,
-            isExpanded: true,
-            style: GwType.ui(fontSize: 14, color: t.stone),
-            decoration: gwInputDecoration(context,
-                label: 'Droit applicable (pays de résidence)',
-                prefixIcon: Symbols.public,
-                dense: true),
-            items: countries
-                .map((c) => DropdownMenuItem(
-                      value: c,
-                      child: Text('${c.flagEmoji ?? ''} ${c.name}'.trim(),
-                          overflow: TextOverflow.ellipsis),
-                    ))
-                .toList(),
-            onChanged: (c) => setState(() {
-              _legalCountry = c;
-              if (c != null && _regime == 'POLYGAMY') {
-                // On réévalue à la sélection ; le masquage se fera au rebuild.
-              }
-            }),
-          ),
+        // Pays de célébration / résidence — 241 pays → sélecteur avec recherche.
+        CountrySelector(
+          label: 'Droit applicable (pays de résidence)',
+          value: _legalCountry,
+          onChanged: (c) => setState(() => _legalCountry = c),
         ),
         const SizedBox(height: 12),
 
@@ -880,7 +862,7 @@ class _AddUnionDialogState extends ConsumerState<AddUnionDialog> {
 
   /// Bannière de conformité (3 tons doux — jamais de rouge vif ni de jugement).
   Widget _complianceBanner(GwTokens t, Map<String, dynamic>? rule) {
-    final iso = _legalCountry?.isoCode ?? '';
+    final iso = _legalCountry?.iso2 ?? '';
     if (iso.isEmpty) {
       return _banner(t, t.stoneDim, Symbols.info,
           'Renseignez le pays pour évaluer la conformité au droit civil.');
@@ -1026,7 +1008,8 @@ class _AddUnionDialogState extends ConsumerState<AddUnionDialog> {
         'unionTypes': _unionTypes.toList(),
         'isDotPaid': _isDotPaid,
         'legalRegime': _regime,
-        if (_legalCountry != null) 'legalCountry': _legalCountry!.isoCode,
+        // Le backend attend l'ISO-2 (CreateUnionRequest.legalCountry, alpha-2).
+        if (_legalCountry?.iso2 != null) 'legalCountry': _legalCountry!.iso2,
       };
 
       if (_startDate != null) {

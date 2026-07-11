@@ -7,6 +7,7 @@ import 'package:gwangmeu/core/theme/gw_tokens.dart';
 import 'package:gwangmeu/shared/models/country_model.dart';
 import 'package:gwangmeu/shared/models/language_model.dart';
 import 'package:gwangmeu/shared/models/village_model.dart';
+import 'package:gwangmeu/shared/widgets/country_selector.dart';
 import 'package:gwangmeu/shared/widgets/country_village_selector.dart';
 import 'package:gwangmeu/shared/widgets/gw_dialog.dart';
 import 'package:gwangmeu/shared/widgets/person_lookup_widget.dart';
@@ -867,9 +868,8 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
             onChanged: (sel) => _origin = sel,
           ),
           const SizedBox(height: 12),
-          _buildCountryDropdown(
+          CountrySelector(
             label: 'Pays d\'origine',
-            keyPrefix: 'origincountry',
             value: _originCountry,
             onChanged: (c) => setState(() => _originCountry = c),
           ),
@@ -939,9 +939,8 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
               style: GwType.ui(fontSize: 12, color: t.stoneDim),
             ),
             const SizedBox(height: 10),
-            _buildCountryDropdown(
+            CountrySelector(
               label: 'Pays de résidence',
-              keyPrefix: 'residencecountry',
               value: _residenceCountry,
               onChanged: (c) => setState(() => _residenceCountry = c),
             ),
@@ -1128,45 +1127,6 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
           onChanged: (l) => setState(() => _selectedLanguage = l),
         );
       },
-    );
-  }
-
-  /// Dropdown pays (ISO-3166 alpha-2) — même source que le reste du projet
-  /// (countriesNotifierProvider, cf. add_union_dialog / indicatifs).
-  Widget _buildCountryDropdown({
-    required String label,
-    required String keyPrefix,
-    required CountryModel? value,
-    required ValueChanged<CountryModel?> onChanged,
-  }) {
-    final t = GwTokens.of(context);
-    final countriesAsync = ref.watch(countriesNotifierProvider);
-    return countriesAsync.when(
-      loading: () => LinearProgressIndicator(
-          color: t.goldText, backgroundColor: t.inkLift),
-      error: (_, __) => const SizedBox.shrink(),
-      data: (countries) => DropdownButtonFormField<CountryModel>(
-        key: ValueKey('${keyPrefix}_${value?.isoCode}'),
-        initialValue: value,
-        decoration: gwInputDecoration(
-          context,
-          label: label,
-          prefixIcon: Symbols.public,
-        ),
-        dropdownColor: t.inkCard,
-        style: GwType.ui(fontSize: 14, color: t.stone),
-        isExpanded: true,
-        items: countries
-            .map((c) => DropdownMenuItem(
-                  value: c,
-                  child: Text(
-                    '${c.flagEmoji ?? ''} ${c.name}'.trim(),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ))
-            .toList(),
-        onChanged: onChanged,
-      ),
     );
   }
 
@@ -1600,11 +1560,12 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
       final originCity =
           _origin.arrondissementName ?? _origin.departmentName;
       final originRegion = _origin.regionName;
-      // Pays d'origine : garde le dropdown existant, défaut Cameroun.
-      final originCountry = _originCountry?.isoCode ?? 'CM';
-      // Résidence — évolution.
+      // Pays d'origine : les fiches persons stockent l'ISO-2 (CountryModel.iso2,
+      // ex 'CM'), pas l'ISO-3. Défaut Cameroun ('CM') si non choisi.
+      final originCountry = _originCountry?.iso2 ?? 'CM';
+      // Résidence — évolution. Persons stockent aussi l'ISO-2.
       final residenceCity = nonEmpty(_residenceCityCtrl);
-      final residenceCountry = _residenceCountry?.isoCode;
+      final residenceCountry = _residenceCountry?.iso2;
 
       if (widget.isParent) {
         await notifier.addParent(

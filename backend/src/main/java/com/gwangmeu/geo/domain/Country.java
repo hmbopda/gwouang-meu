@@ -18,6 +18,9 @@ public class Country extends AuditEntity {
     @Column(name = "code", unique = true, nullable = false, length = 3)
     private String isoCode; // CMR, CIV, SEN, COD, NGA...
 
+    @Column(name = "iso2", length = 2)
+    private String iso2; // CM, CI, SN, CD, NG... (ISO-3166 alpha-2, V47)
+
     @Column(nullable = false)
     private String name;
 

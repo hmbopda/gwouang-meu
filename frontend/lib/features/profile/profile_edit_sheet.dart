@@ -8,6 +8,7 @@ import 'package:gwangmeu/shared/models/country_model.dart';
 import 'package:gwangmeu/shared/models/language_model.dart';
 import 'package:gwangmeu/shared/models/village_model.dart';
 import 'package:gwangmeu/shared/widgets/country_village_selector.dart';
+import 'package:gwangmeu/shared/widgets/country_selector.dart';
 import 'package:gwangmeu/features/genealogy/models/person_genealogy.dart';
 import 'package:gwangmeu/features/genealogy/services/genealogy_api_service.dart';
 import 'package:gwangmeu/features/geo/geo_notifier.dart';
@@ -64,7 +65,9 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
   final _professionCtrl = TextEditingController();
   final _employerCtrl = TextEditingController();
   final _residenceCityCtrl = TextEditingController();
-  final _residenceCountryCtrl = TextEditingController();
+  // Pays de résidence — stocké côté user par NOM (cohérent avec `country`).
+  CountryModel? _selectedResidenceCountry;
+  String? _initialResidenceCountryName;
 
   // Preferences
   String? _diet;
@@ -147,7 +150,7 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
       _professionCtrl.text = user.profession ?? '';
       _employerCtrl.text = user.employer ?? '';
       _residenceCityCtrl.text = user.residenceCity ?? '';
-      _residenceCountryCtrl.text = user.residenceCountry ?? '';
+      _initialResidenceCountryName = user.residenceCountry;
     }
     // Charger parents + enfants liés après le premier frame
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadLinkedFamilyTree());
@@ -203,7 +206,6 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
     _professionCtrl.dispose();
     _employerCtrl.dispose();
     _residenceCityCtrl.dispose();
-    _residenceCountryCtrl.dispose();
     _createFirstNameCtrl.dispose();
     _createLastNameCtrl.dispose();
     _createClanCtrl.dispose();
@@ -1726,6 +1728,21 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
   // ── 5. Residence & Metier ────────────────────────────────────────────────
 
   Widget _buildResidenceSection(BuildContext context) {
+    // Pré-sélectionner le pays de résidence déjà renseigné (stocké par nom).
+    if (_selectedResidenceCountry == null &&
+        _initialResidenceCountryName != null &&
+        _initialResidenceCountryName!.trim().isNotEmpty) {
+      final target = _initialResidenceCountryName!.trim().toLowerCase();
+      ref.read(countriesNotifierProvider).whenData((countries) {
+        final match = countries.where((c) {
+          return c.name.toLowerCase() == target ||
+              (c.iso2 ?? '').toLowerCase() == target ||
+              c.isoCode.toLowerCase() == target;
+        }).toList();
+        if (match.isNotEmpty) _selectedResidenceCountry = match.first;
+      });
+    }
+
     return Column(
       key: const ValueKey('residence'),
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1739,11 +1756,11 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
           icon: Symbols.location_city,
         ),
         const SizedBox(height: 14),
-        _buildTextField(
-          controller: _residenceCountryCtrl,
+        CountrySelector(
           label: 'Pays de residence',
-          hint: 'Ex: France',
-          icon: Symbols.map,
+          hint: 'Choisir un pays',
+          value: _selectedResidenceCountry,
+          onChanged: (c) => setState(() => _selectedResidenceCountry = c),
         ),
         const SizedBox(height: 14),
         _buildTextField(
@@ -1842,8 +1859,9 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
         'employer': _employerCtrl.text.trim(),
       if (_residenceCityCtrl.text.trim().isNotEmpty)
         'residenceCity': _residenceCityCtrl.text.trim(),
-      if (_residenceCountryCtrl.text.trim().isNotEmpty)
-        'residenceCountry': _residenceCountryCtrl.text.trim(),
+      // Pays de résidence — envoyé par NOM (cohérent avec le champ `country`).
+      if (_selectedResidenceCountry != null)
+        'residenceCountry': _selectedResidenceCountry!.name,
     };
 
     if (data.isEmpty && _selectedFather == null && _selectedMother == null) {

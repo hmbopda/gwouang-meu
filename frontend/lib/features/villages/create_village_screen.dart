@@ -7,6 +7,8 @@ import 'package:material_symbols_icons/symbols.dart';
 import 'package:gwangmeu/core/theme/app_theme.dart';
 import 'package:gwangmeu/core/theme/gw_tokens.dart';
 import 'package:gwangmeu/features/villages/villages_notifier.dart';
+import 'package:gwangmeu/shared/models/country_model.dart';
+import 'package:gwangmeu/shared/widgets/country_selector.dart';
 
 // ═══════════════════════════════════════════════════════
 // CRÉER UN VILLAGE — formulaire « Tissage »
@@ -114,7 +116,9 @@ class CreateVillageScreen extends ConsumerStatefulWidget {
 class _CreateVillageScreenState extends ConsumerState<CreateVillageScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameCtrl = TextEditingController();
-  final _countryCtrl = TextEditingController();
+  // Pays du village — stocké en ISO-3 (CountryModel.isoCode).
+  CountryModel? _selectedCountry;
+  bool _countryError = false;
   final _regionCtrl = TextEditingController();
   final _dialectCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
@@ -123,7 +127,6 @@ class _CreateVillageScreenState extends ConsumerState<CreateVillageScreen> {
   @override
   void dispose() {
     _nameCtrl.dispose();
-    _countryCtrl.dispose();
     _regionCtrl.dispose();
     _dialectCtrl.dispose();
     _descCtrl.dispose();
@@ -131,13 +134,17 @@ class _CreateVillageScreenState extends ConsumerState<CreateVillageScreen> {
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
+    final formOk = _formKey.currentState!.validate();
+    // Le pays est requis : le CountrySelector n'est pas un FormField.
+    final countryOk = _selectedCountry != null;
+    if (!countryOk) setState(() => _countryError = true);
+    if (!formOk || !countryOk) return;
 
     setState(() => _loading = true);
     try {
       final village = await ref.read(villagesNotifierProvider.notifier).createVillage(
             name: _nameCtrl.text.trim(),
-            country: _countryCtrl.text.trim().toUpperCase(),
+            country: _selectedCountry!.isoCode.trim().toUpperCase(),
             region: _regionCtrl.text.trim().isNotEmpty ? _regionCtrl.text.trim() : null,
             primaryDialect: _dialectCtrl.text.trim().isNotEmpty ? _dialectCtrl.text.trim() : null,
             description: _descCtrl.text.trim().isNotEmpty ? _descCtrl.text.trim() : null,
@@ -224,16 +231,23 @@ class _CreateVillageScreenState extends ConsumerState<CreateVillageScreen> {
                       const SizedBox(height: 16),
 
                       // Pays *
-                      VillageFormField(
-                        controller: _countryCtrl,
-                        label: 'Code pays (ISO alpha-3) *',
-                        hint: 'ex : CMR, NGA, SEN…',
-                        icon: Symbols.flag,
-                        maxLength: 3,
-                        textCapitalization: TextCapitalization.characters,
-                        validator: (v) =>
-                            v == null || v.trim().length < 2 ? 'Code pays requis (2-3 lettres)' : null,
+                      CountrySelector(
+                        label: 'Pays *',
+                        hint: 'Choisir un pays',
+                        value: _selectedCountry,
+                        onChanged: (c) => setState(() {
+                          _selectedCountry = c;
+                          _countryError = false;
+                        }),
                       ),
+                      if (_countryError)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 6, left: 12),
+                          child: Text(
+                            'Pays requis',
+                            style: GwType.ui(fontSize: 12, color: GwTokens.ember),
+                          ),
+                        ),
                       const SizedBox(height: 16),
 
                       // Région

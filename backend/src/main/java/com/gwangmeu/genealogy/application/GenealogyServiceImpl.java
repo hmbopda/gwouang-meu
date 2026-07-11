@@ -42,6 +42,7 @@ class GenealogyServiceImpl implements GenealogyService {
     private final ApplicationEventPublisher eventPublisher;
     private final GenealogyAiService genealogyAiService;
     private final ComplianceService complianceService;
+    private final com.gwangmeu.geo.infrastructure.CountryRepository countryRepository;
 
     // ── PERSONS ────────────────────────────────────────────
 
@@ -1374,12 +1375,25 @@ class GenealogyServiceImpl implements GenealogyService {
                 .orElseThrow(() -> new IllegalArgumentException("Person not found: " + personId));
     }
 
-    /** Normalise un code pays ISO-3166 alpha-2 : trim + MAJUSCULES, tronque a 2 caracteres. */
+    /**
+     * Normalise un code pays vers l'ISO-3166 alpha-2 (format stocke sur les fiches persons).
+     * trim + MAJUSCULES ; 2 lettres = deja alpha-2, garde tel quel ; 3 lettres (alpha-3, ex "SEN")
+     * = converti en alpha-2 via CountryRepository (findByCode -> getIso2()), avec repli sur les 2
+     * premieres lettres si le pays est introuvable ; vide -> null.
+     */
     private String normalizeCountryCode(String code) {
         if (code == null) return null;
         String normalized = code.trim().toUpperCase(java.util.Locale.ROOT);
         if (normalized.isEmpty()) return null;
-        return normalized.length() > 2 ? normalized.substring(0, 2) : normalized;
+        if (normalized.length() == 2) return normalized;
+        if (normalized.length() == 3) {
+            return countryRepository.findByCode(normalized)
+                    .map(com.gwangmeu.geo.domain.Country::getIso2)
+                    .filter(iso2 -> iso2 != null && !iso2.isBlank())
+                    .map(iso2 -> iso2.toUpperCase(java.util.Locale.ROOT))
+                    .orElse(normalized.substring(0, 2));
+        }
+        return normalized.substring(0, 2);
     }
 
     private List<PersonDTO> nodeListToDTO(List<PersonNode> nodes) {

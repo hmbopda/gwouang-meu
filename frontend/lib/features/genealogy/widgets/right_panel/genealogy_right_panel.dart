@@ -17,6 +17,9 @@ import 'package:gwangmeu/features/genealogy/state/tree_view_state.dart';
 import 'package:gwangmeu/features/genealogy/widgets/dialogs/add_person_dialog.dart';
 import 'package:gwangmeu/features/genealogy/widgets/dialogs/add_union_dialog.dart';
 import 'package:gwangmeu/features/genealogy/widgets/dialogs/griot_dialog.dart';
+import 'package:gwangmeu/features/geo/geo_notifier.dart';
+import 'package:gwangmeu/shared/models/country_model.dart';
+import 'package:gwangmeu/shared/widgets/country_selector.dart';
 
 /// Défilement inratable pour le panneau : molette, trackpad ET glisser à la
 /// souris (le drag souris est désactivé par défaut sur Flutter web/desktop).
@@ -3085,14 +3088,18 @@ class _InlineEditDialogState extends ConsumerState<_InlineEditDialog> {
   late final TextEditingController _originVillageCtrl;
   late final TextEditingController _originCityCtrl;
   late final TextEditingController _originRegionCtrl;
-  late final TextEditingController _originCountryCtrl;
+  // Pays d'origine — stocké en ISO-2 (CountryModel.iso2).
+  CountryModel? _originCountry;
+  late final String? _initialOriginCountryIso2;
   late final TextEditingController _clanCtrl;
   late final TextEditingController _totemCtrl;
   late final TextEditingController _languageCtrl;
   late final TextEditingController _birthPlaceCtrl;
   // ── Évolution — aujourd'hui ──
   late final TextEditingController _residenceCityCtrl;
-  late final TextEditingController _residenceCountryCtrl;
+  // Pays de résidence — stocké en ISO-2 (CountryModel.iso2).
+  CountryModel? _residenceCountry;
+  late final String? _initialResidenceCountryIso2;
   late final TextEditingController _professionCtrl;
   late final TextEditingController _religionCtrl;
   late final TextEditingController _maritalStatusCtrl;
@@ -3112,15 +3119,13 @@ class _InlineEditDialogState extends ConsumerState<_InlineEditDialog> {
     _originVillageCtrl = TextEditingController(text: p.originVillage ?? '');
     _originCityCtrl = TextEditingController(text: p.originCity ?? '');
     _originRegionCtrl = TextEditingController(text: p.originRegion ?? '');
-    _originCountryCtrl =
-        TextEditingController(text: p.originCountry?.toUpperCase() ?? '');
+    _initialOriginCountryIso2 = p.originCountry?.trim().toUpperCase();
     _clanCtrl = TextEditingController(text: p.clan ?? '');
     _totemCtrl = TextEditingController(text: p.totem ?? '');
     _languageCtrl = TextEditingController(text: p.nativeLanguage ?? '');
     _birthPlaceCtrl = TextEditingController(text: p.birthPlace ?? '');
     _residenceCityCtrl = TextEditingController(text: p.residenceCity ?? '');
-    _residenceCountryCtrl =
-        TextEditingController(text: p.residenceCountry?.toUpperCase() ?? '');
+    _initialResidenceCountryIso2 = p.residenceCountry?.trim().toUpperCase();
     _professionCtrl = TextEditingController(text: p.profession ?? '');
     _religionCtrl = TextEditingController(text: p.religion ?? '');
     _maritalStatusCtrl = TextEditingController(text: p.maritalStatus ?? '');
@@ -3143,13 +3148,11 @@ class _InlineEditDialogState extends ConsumerState<_InlineEditDialog> {
     _originVillageCtrl.dispose();
     _originCityCtrl.dispose();
     _originRegionCtrl.dispose();
-    _originCountryCtrl.dispose();
     _clanCtrl.dispose();
     _totemCtrl.dispose();
     _languageCtrl.dispose();
     _birthPlaceCtrl.dispose();
     _residenceCityCtrl.dispose();
-    _residenceCountryCtrl.dispose();
     _professionCtrl.dispose();
     _religionCtrl.dispose();
     _maritalStatusCtrl.dispose();
@@ -3177,12 +3180,12 @@ class _InlineEditDialogState extends ConsumerState<_InlineEditDialog> {
     );
   }
 
-  /// Validation douce d'un code pays ISO-3166 alpha-2 (vide accepté).
-  static String? _validateIso2(String? v) {
-    final s = v?.trim() ?? '';
-    if (s.isEmpty) return null;
-    if (s.length != 2 || s.toUpperCase().codeUnits.any((c) => c < 0x41 || c > 0x5A)) {
-      return 'Code ISO-2 (ex : CM, FR)';
+  /// Retrouve un CountryModel par ISO-2 (insensible à la casse).
+  CountryModel? _findByIso2(List<CountryModel> countries, String? iso2) {
+    if (iso2 == null || iso2.isEmpty) return null;
+    final target = iso2.toUpperCase();
+    for (final c in countries) {
+      if ((c.iso2 ?? '').toUpperCase() == target) return c;
     }
     return null;
   }
@@ -3190,6 +3193,12 @@ class _InlineEditDialogState extends ConsumerState<_InlineEditDialog> {
   @override
   Widget build(BuildContext context) {
     final t = GwTokens.of(context);
+    // Pré-remplissage des sélecteurs de pays dès que la liste est chargée.
+    final countries = ref.watch(countriesNotifierProvider).valueOrNull;
+    if (countries != null) {
+      _originCountry ??= _findByIso2(countries, _initialOriginCountryIso2);
+      _residenceCountry ??= _findByIso2(countries, _initialResidenceCountryIso2);
+    }
     return AlertDialog(
       title: const Row(
         children: [
@@ -3265,17 +3274,11 @@ class _InlineEditDialogState extends ConsumerState<_InlineEditDialog> {
                   decoration: const InputDecoration(labelText: "Région d'origine", prefixIcon: Icon(Symbols.map)),
                 ),
                 const SizedBox(height: 12),
-                TextFormField(
-                  controller: _originCountryCtrl,
-                  maxLength: 2,
-                  textCapitalization: TextCapitalization.characters,
-                  decoration: const InputDecoration(
-                    labelText: "Pays d'origine (ISO-2)",
-                    hintText: 'CM, FR…',
-                    counterText: '',
-                    prefixIcon: Icon(Symbols.flag),
-                  ),
-                  validator: _validateIso2,
+                CountrySelector(
+                  label: "Pays d'origine",
+                  hint: 'Choisir un pays',
+                  value: _originCountry,
+                  onChanged: (c) => setState(() => _originCountry = c),
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
@@ -3306,17 +3309,11 @@ class _InlineEditDialogState extends ConsumerState<_InlineEditDialog> {
                   decoration: const InputDecoration(labelText: 'Ville de résidence', prefixIcon: Icon(Symbols.home)),
                 ),
                 const SizedBox(height: 12),
-                TextFormField(
-                  controller: _residenceCountryCtrl,
-                  maxLength: 2,
-                  textCapitalization: TextCapitalization.characters,
-                  decoration: const InputDecoration(
-                    labelText: 'Pays de résidence (ISO-2)',
-                    hintText: 'CM, FR…',
-                    counterText: '',
-                    prefixIcon: Icon(Symbols.flag),
-                  ),
-                  validator: _validateIso2,
+                CountrySelector(
+                  label: 'Pays de résidence',
+                  hint: 'Choisir un pays',
+                  value: _residenceCountry,
+                  onChanged: (c) => setState(() => _residenceCountry = c),
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
@@ -3434,16 +3431,26 @@ class _InlineEditDialogState extends ConsumerState<_InlineEditDialog> {
       addIfChanged('originVillage', _originVillageCtrl.text, p.originVillage);
       addIfChanged('originCity', _originCityCtrl.text, p.originCity);
       addIfChanged('originRegion', _originRegionCtrl.text, p.originRegion);
-      addIfChanged('originCountry', _originCountryCtrl.text,
-          p.originCountry?.toUpperCase(), upper: true);
+      // Pays d'origine — envoyer l'ISO-2 du pays sélectionné s'il a changé.
+      final originIso2 = _originCountry?.iso2?.toUpperCase();
+      if (originIso2 != null &&
+          originIso2.isNotEmpty &&
+          originIso2 != (_initialOriginCountryIso2 ?? '')) {
+        data['originCountry'] = originIso2;
+      }
       addIfChanged('clan', _clanCtrl.text, p.clan);
       addIfChanged('totem', _totemCtrl.text, p.totem);
       addIfChanged('nativeLanguage', _languageCtrl.text, p.nativeLanguage);
       addIfChanged('birthPlace', _birthPlaceCtrl.text, p.birthPlace);
       // ── Évolution — aujourd'hui ──
       addIfChanged('residenceCity', _residenceCityCtrl.text, p.residenceCity);
-      addIfChanged('residenceCountry', _residenceCountryCtrl.text,
-          p.residenceCountry?.toUpperCase(), upper: true);
+      // Pays de résidence — envoyer l'ISO-2 du pays sélectionné s'il a changé.
+      final residenceIso2 = _residenceCountry?.iso2?.toUpperCase();
+      if (residenceIso2 != null &&
+          residenceIso2.isNotEmpty &&
+          residenceIso2 != (_initialResidenceCountryIso2 ?? '')) {
+        data['residenceCountry'] = residenceIso2;
+      }
       addIfChanged('profession', _professionCtrl.text, p.profession);
       addIfChanged('religion', _religionCtrl.text, p.religion);
       addIfChanged('maritalStatus', _maritalStatusCtrl.text, p.maritalStatus);

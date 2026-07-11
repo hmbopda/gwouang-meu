@@ -12,6 +12,11 @@ public interface CountryRepository extends JpaRepository<Country, UUID> {
 
     Optional<Country> findByIsoCode(String isoCode);
 
+    /** Recherche par code ISO-3 (= colonne code). Alias métier de findByIsoCode. */
+    default Optional<Country> findByCode(String code) {
+        return findByIsoCode(code);
+    }
+
     List<Country> findByContinentCode(String continentCode);
 
     /** Nombre de villages enregistres pour un pays donne (par country_id FK). */
