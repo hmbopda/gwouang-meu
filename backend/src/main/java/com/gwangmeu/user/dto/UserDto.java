@@ -55,6 +55,13 @@ public record UserDto(
         String tribe,
         String clan,
 
+        // ── Origine referentielle (ancre de la lignee, noms du referentiel) ──
+        String originCountry,
+        String originRegion,
+        String originDepartment,
+        String originArrondissement,
+        String originVillage,
+
         // ── Residence & Profession ───────────────────────
         String profession,
         String employer,

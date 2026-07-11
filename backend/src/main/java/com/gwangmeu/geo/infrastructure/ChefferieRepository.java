@@ -46,4 +46,29 @@ public interface ChefferieRepository extends JpaRepository<Chefferie, UUID> {
             @Param("regionName") String regionName,
             @Param("pattern") String pattern,
             Pageable pageable);
+
+    /**
+     * Recherche GLOBALE et FLOUE d'une chefferie par nom, sans dérouler la
+     * cascade région/département. Accent-insensible (unaccent) et tolérante
+     * aux fautes de frappe (pg_trgm : « Badenkop » ramène « BANDENKOP »).
+     * Ordre : correspondance « contient » d'abord, puis similarité décroissante.
+     * Requête native (les fonctions unaccent()/similarity() sont hors JPQL).
+     */
+    @Query(value = """
+            SELECT * FROM chefferies c
+            WHERE c.country_iso2 = :country
+              AND (
+                    unaccent(lower(c.denomination)) LIKE ('%' || unaccent(lower(:q)) || '%')
+                 OR similarity(unaccent(lower(c.denomination)), unaccent(lower(:q))) > 0.28
+              )
+            ORDER BY
+              (unaccent(lower(c.denomination)) LIKE ('%' || unaccent(lower(:q)) || '%')) DESC,
+              similarity(unaccent(lower(c.denomination)), unaccent(lower(:q))) DESC,
+              c.denomination ASC
+            LIMIT :limit
+            """, nativeQuery = true)
+    List<Chefferie> searchGlobalFuzzy(
+            @Param("country") String country,
+            @Param("q") String q,
+            @Param("limit") int limit);
 }

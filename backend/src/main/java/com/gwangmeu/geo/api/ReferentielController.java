@@ -82,4 +82,17 @@ public class ReferentielController {
         return ResponseEntity.ok(ApiResponse.ok(
                 referentielService.searchChefferiesByRegion(region, q, limit)));
     }
+
+    @GetMapping("/chefferies/lookup")
+    @Operation(summary = "Recherche globale et floue de chefferies",
+            description = "Recherche une chefferie par nom sur TOUT le referentiel (sans deroulement de la cascade), " +
+                    "accent-insensible et tolerante aux fautes de frappe (« Bandenkop » comme « Badenkop »). Acces public.")
+    public ResponseEntity<ApiResponse<List<ChefferieDto>>> lookupChefferies(
+            @Parameter(description = "Terme de recherche (min. 2 caracteres)", example = "Bandenkop")
+            @RequestParam("q") String q,
+            @Parameter(description = "Nombre max de resultats (1 a 200)", example = "30")
+            @RequestParam(value = "limit", defaultValue = "30") @Min(1) @Max(200) int limit) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                referentielService.searchChefferiesGlobal(q, limit)));
+    }
 }

@@ -68,6 +68,18 @@ public class ReferentielServiceImpl implements ReferentielService {
                 .toList();
     }
 
+    @Override
+    public List<ChefferieDto> searchChefferiesGlobal(String q, int limit) {
+        // Une recherche globale exige un terme d'au moins 2 caractères : sinon
+        // la similarité floue ramènerait tout le référentiel.
+        if (q == null || q.trim().length() < 2) {
+            return List.of();
+        }
+        return chefferieRepository.searchGlobalFuzzy(CM, q.trim(), limit).stream()
+                .map(ChefferieDto::from)
+                .toList();
+    }
+
     /**
      * Motif SQL LIKE : « % » (tout) si q vide/blanc, sinon « %q% ». Evite un
      * parametre NULL non type cote PostgreSQL et garde le filtre toujours applicable.

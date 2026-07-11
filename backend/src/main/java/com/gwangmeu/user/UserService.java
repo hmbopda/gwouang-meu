@@ -110,6 +110,12 @@ public class UserService {
         // Origines culturelles (village gere via village_subscriptions)
         if (request.tribe() != null) user.setTribe(request.tribe());
         if (request.clan() != null) user.setClan(request.clan());
+        // Origine referentielle (ancre de la lignee)
+        if (request.originCountry() != null) user.setOriginCountry(request.originCountry());
+        if (request.originRegion() != null) user.setOriginRegion(request.originRegion());
+        if (request.originDepartment() != null) user.setOriginDepartment(request.originDepartment());
+        if (request.originArrondissement() != null) user.setOriginArrondissement(request.originArrondissement());
+        if (request.originVillage() != null) user.setOriginVillage(request.originVillage());
         // Residence & Profession
         if (request.profession() != null) user.setProfession(request.profession());
         if (request.employer() != null) user.setEmployer(request.employer());
@@ -156,6 +162,15 @@ public class UserService {
         log.info("Nouvel utilisateur cree en BDD : id={}, email={}", saved.getId(), saved.getEmail());
         eventPublisher.publishEvent(new UserCreatedEvent(saved.getId(), saved.getEmail(), saved.getDisplayName(), request.gender()));
         return userMapper.toDto(saved);
+    }
+
+    @Transactional
+    public void updateFcmToken(String supabaseId, String fcmToken) {
+        User user = userRepository.findBySupabaseId(supabaseId)
+                .orElseThrow(() -> new EntityNotFoundException("Utilisateur introuvable"));
+        user.setFcmToken(fcmToken);
+        userRepository.save(user);
+        log.debug("FCM token mis a jour pour : {}", supabaseId);
     }
 
     @Transactional

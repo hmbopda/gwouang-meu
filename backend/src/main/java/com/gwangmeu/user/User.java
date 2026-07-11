@@ -85,6 +85,22 @@ public class User extends AuditEntity {
     @Column(length = 50)
     private String clan;
 
+    // ── Origine référentielle (ancre de la lignée, noms du référentiel) ──
+    @Column(name = "origin_country", length = 2)
+    private String originCountry;
+
+    @Column(name = "origin_region", length = 150)
+    private String originRegion;
+
+    @Column(name = "origin_department", length = 150)
+    private String originDepartment;
+
+    @Column(name = "origin_arrondissement", length = 150)
+    private String originArrondissement;
+
+    @Column(name = "origin_village", length = 150)
+    private String originVillage;
+
     // ── Residence & Profession ───────────────────────────
     private String profession;
 

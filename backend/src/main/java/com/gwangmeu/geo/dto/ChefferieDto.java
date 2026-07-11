@@ -3,6 +3,9 @@ package com.gwangmeu.geo.dto;
 import com.gwangmeu.geo.domain.Chefferie;
 import io.swagger.v3.oas.annotations.media.Schema;
 
+import java.util.Locale;
+import java.util.regex.Pattern;
+
 /**
  * DTO flat pour une chefferie traditionnelle.
  */
@@ -13,12 +16,52 @@ public record ChefferieDto(
         @Schema(description = "Nom du departement") String departmentName,
         @Schema(description = "Code du departement") String departmentCode,
         @Schema(description = "Numero d'ordre") Integer numero,
-        @Schema(description = "Denomination") String denomination
+        @Schema(description = "Denomination brute (ex: 'Chefferie BANDENKOP')") String denomination,
+        @Schema(description = "Libelle propre pour affichage (ex: 'Bandenkop')") String label
 ) {
     public static ChefferieDto from(Chefferie c) {
         return new ChefferieDto(
                 c.getDegre(), c.getRegionName(), c.getDepartmentName(),
-                c.getDepartmentCode(), c.getNumero(), c.getDenomination()
+                c.getDepartmentCode(), c.getNumero(), c.getDenomination(),
+                cleanLabel(c.getDenomination())
         );
+    }
+
+    // Préfixes administratifs à retirer pour l'affichage (insensible à la casse).
+    private static final Pattern PREFIX = Pattern.compile(
+            "^(chefferie sup[eé]rieure|chefferie|lamidat de|lamidat|sultanat de|sultanat|canton|groupement)\\s+",
+            Pattern.CASE_INSENSITIVE);
+
+    /**
+     * Libellé lisible : retire le préfixe administratif et normalise la casse
+     * si la dénomination est tout en majuscules ('Chefferie BANDENKOP' → 'Bandenkop').
+     */
+    static String cleanLabel(String denomination) {
+        if (denomination == null || denomination.isBlank()) return denomination;
+        String s = PREFIX.matcher(denomination.trim()).replaceFirst("").trim();
+        if (s.isEmpty()) s = denomination.trim();
+        if (s.equals(s.toUpperCase(Locale.ROOT))) {
+            s = titleCase(s);
+        }
+        return s;
+    }
+
+    /** Title-case tolérant aux séparateurs (espace, tiret, apostrophe). */
+    private static String titleCase(String s) {
+        StringBuilder out = new StringBuilder(s.length());
+        boolean capNext = true;
+        for (int i = 0; i < s.length(); i++) {
+            char ch = s.charAt(i);
+            if (ch == ' ' || ch == '-' || ch == '\'' || ch == '/') {
+                capNext = true;
+                out.append(ch);
+            } else if (capNext) {
+                out.append(Character.toUpperCase(ch));
+                capNext = false;
+            } else {
+                out.append(Character.toLowerCase(ch));
+            }
+        }
+        return out.toString();
     }
 }

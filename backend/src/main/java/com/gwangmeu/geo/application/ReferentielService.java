@@ -22,4 +22,10 @@ public interface ReferentielService {
     List<ChefferieDto> getChefferiesByDepartment(String departmentCode, String q, int limit);
 
     List<ChefferieDto> searchChefferiesByRegion(String regionName, String q, int limit);
+
+    /**
+     * Recherche globale et floue d'une chefferie par nom, sans dérouler la
+     * cascade. Accent-insensible + tolérante aux fautes de frappe.
+     */
+    List<ChefferieDto> searchChefferiesGlobal(String q, int limit);
 }
