@@ -2,6 +2,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -49,6 +50,12 @@ class _BootstrapAppState extends State<BootstrapApp> {
       debugPrint('[Perf] dotenv.load(): ${DateTime.now().difference(t0).inMilliseconds}ms');
     }
 
+    // ── Réveil anticipé du backend (Cloud Run scale-to-zero) ──
+    // Ping santé NON bloquant : le serveur démarre à froid pendant que
+    // Supabase/cache s'initialisent et que l'utilisateur se connecte, pour
+    // qu'il soit déjà chaud quand on ouvre la Lignée (évite le « KO au 1er accès »).
+    _warmBackend();
+
     // ── Hive, Firebase et Supabase en PARALLÈLE ──
     final tParallel = DateTime.now();
     final futures = <Future>[
@@ -73,6 +80,18 @@ class _BootstrapAppState extends State<BootstrapApp> {
       debugPrint('[Perf] Hive+Firebase+Supabase (parallèle): ${DateTime.now().difference(tParallel).inMilliseconds}ms');
       debugPrint('[Perf] Total init: ${DateTime.now().difference(widget.mainStartTime).inMilliseconds}ms');
     }
+  }
+
+  /// Réveille le backend Cloud Run (scale-to-zero) sans bloquer l'init.
+  /// Erreurs ignorées : c'est un simple coup de pouce, le retry du client API
+  /// couvre le cas où le serveur n'est pas encore prêt.
+  void _warmBackend() {
+    final base = dotenv.env['API_BASE_URL'];
+    if (base == null || base.isEmpty) return;
+    Dio(BaseOptions(
+      connectTimeout: const Duration(seconds: 20),
+      receiveTimeout: const Duration(seconds: 45),
+    )).get<dynamic>('$base/actuator/health').ignore();
   }
 
   @override

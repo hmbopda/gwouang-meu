@@ -13,14 +13,17 @@ class ApiClient {
     _dio = Dio(
       BaseOptions(
         baseUrl: dotenv.env['API_BASE_URL'] ?? 'http://localhost:8080',
-        connectTimeout: const Duration(seconds: 10),
-        receiveTimeout: const Duration(seconds: 30),
+        // Timeouts tolérants au démarrage à froid du backend (Cloud Run
+        // scale-to-zero : ~15-40s pour réveiller l'app Spring Boot).
+        connectTimeout: const Duration(seconds: 20),
+        receiveTimeout: const Duration(seconds: 45),
         headers: {'Content-Type': 'application/json'},
       ),
     );
 
     _dio.interceptors.addAll([
       _AuthInterceptor(),
+      _RetryInterceptor(_dio),
       LogInterceptor(requestBody: false, responseBody: false),
     ]);
   }
@@ -119,6 +122,52 @@ class _AuthInterceptor extends Interceptor {
     if (err.response?.statusCode == 401) {
       // Token expiré ou invalide → déconnexion
       Supabase.instance.client.auth.signOut();
+    }
+    handler.next(err);
+  }
+}
+
+/// Retry automatique quand le backend Cloud Run démarre à froid (scale-to-zero).
+/// Réessaie les GET (idempotents — jamais de double POST/PUT) sur les erreurs
+/// typiques d'un réveil : timeout de connexion/réception, erreur réseau, 502/503/504.
+/// Backoff 1s → 3s → 6s (jusqu'à ~10s + le cold start), puis l'erreur remonte à l'UI.
+class _RetryInterceptor extends Interceptor {
+  _RetryInterceptor(this._dio);
+
+  final Dio _dio;
+  static const _delays = [
+    Duration(seconds: 1),
+    Duration(seconds: 3),
+    Duration(seconds: 6),
+  ];
+
+  bool _isColdStart(DioException e) {
+    final t = e.type;
+    final retriableType = t == DioExceptionType.connectionTimeout ||
+        t == DioExceptionType.receiveTimeout ||
+        t == DioExceptionType.connectionError;
+    final code = e.response?.statusCode;
+    final retriableStatus = code == 502 || code == 503 || code == 504;
+    return retriableType || retriableStatus;
+  }
+
+  @override
+  void onError(DioException err, ErrorInterceptorHandler handler) async {
+    final options = err.requestOptions;
+    final isGet = options.method.toUpperCase() == 'GET';
+    final attempt = (options.extra['retry_attempt'] as int?) ?? 0;
+
+    if (isGet && _isColdStart(err) && attempt < _delays.length) {
+      await Future<void>.delayed(_delays[attempt]);
+      final retried = options.copyWith(
+        extra: {...options.extra, 'retry_attempt': attempt + 1},
+      );
+      try {
+        final response = await _dio.fetch<dynamic>(retried);
+        return handler.resolve(response);
+      } on DioException catch (e) {
+        return handler.next(e);
+      }
     }
     handler.next(err);
   }
