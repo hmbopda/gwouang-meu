@@ -22,5 +22,6 @@ public record VillageDto(
         @Schema(description = "Nombre de membres") int memberCount,
         @Schema(description = "Village verifie par un moderateur") boolean verified,
         @Schema(description = "Resume historique") String historicalSummary,
+        @Schema(description = "Identifiant du createur/chef du village") UUID creatorId,
         @Schema(description = "Date de creation") Instant createdAt
 ) {}

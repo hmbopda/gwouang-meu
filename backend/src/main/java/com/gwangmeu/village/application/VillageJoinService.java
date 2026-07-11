@@ -152,13 +152,7 @@ public class VillageJoinService {
      * via person_villages OU via une subscription MEMBER.
      */
     boolean hasFamilyMemberInVillage(UUID userId, UUID villageId) {
-        Optional<Person> selfOpt = personRepository.findByUserId(userId);
-        if (selfOpt.isEmpty()) {
-            return false; // pas de personne genealogique -> pas d'auto
-        }
-        UUID personId = selfOpt.get().getId();
-
-        Set<UUID> familyPersonIds = firstDegreeFamily(personId);
+        Set<UUID> familyPersonIds = familyPersonIds(userId);
         if (familyPersonIds.isEmpty()) {
             return false;
         }
@@ -172,6 +166,61 @@ public class VillageJoinService {
         }
 
         // 2. Un utilisateur de la famille a-t-il une subscription MEMBER sur le village ?
+        Set<UUID> familyUserIds = familyUserIds(userId, familyPersonIds);
+        if (familyUserIds.isEmpty()) {
+            return false;
+        }
+        return !subscriptionRepository.findByVillageIdAndTypeAndUserIdIn(
+                villageId, VillageSubscription.SubscriptionType.MEMBER, familyUserIds).isEmpty();
+    }
+
+    /**
+     * Personnes de la famille au 1er degre de l'utilisateur (parents, enfants, fratrie,
+     * conjoints). Vide si l'utilisateur n'a pas de personne genealogique rattachee.
+     * Ne contient jamais la personne de l'utilisateur lui-meme.
+     */
+    @Transactional(readOnly = true)
+    public Set<UUID> familyPersonIds(UUID userId) {
+        Optional<Person> selfOpt = personRepository.findByUserId(userId);
+        if (selfOpt.isEmpty()) {
+            return Set.of(); // pas de personne genealogique -> pas de famille exploitable
+        }
+        return firstDegreeFamily(selfOpt.get().getId());
+    }
+
+    /**
+     * Villages ou une personne de la famille 1er degre de l'utilisateur est rattachee,
+     * via person_villages OU via une subscription MEMBER d'un utilisateur de la famille.
+     * C'est l'ensemble des villages « herites » (droit d'adhesion par filiation).
+     */
+    @Transactional(readOnly = true)
+    public Set<UUID> eligibleVillageIds(UUID userId) {
+        Set<UUID> familyPersonIds = familyPersonIds(userId);
+        if (familyPersonIds.isEmpty()) {
+            return Set.of();
+        }
+
+        Set<UUID> villageIds = new HashSet<>();
+
+        // 1. Villages rattaches directement a une personne de la famille (person_villages).
+        villageIds.addAll(personVillageRepository.findVillageIdsByPersonIdIn(familyPersonIds));
+
+        // 2. Villages ou un utilisateur de la famille est MEMBER (village_subscriptions).
+        Set<UUID> familyUserIds = familyUserIds(userId, familyPersonIds);
+        if (!familyUserIds.isEmpty()) {
+            villageIds.addAll(subscriptionRepository.findVillageIdsByTypeAndUserIdIn(
+                    VillageSubscription.SubscriptionType.MEMBER, familyUserIds));
+        }
+
+        villageIds.removeIf(Objects::isNull);
+        return villageIds;
+    }
+
+    /**
+     * Utilisateurs (users.id) associes aux personnes de la famille fournies,
+     * en excluant l'utilisateur courant.
+     */
+    private Set<UUID> familyUserIds(UUID userId, Set<UUID> familyPersonIds) {
         Set<UUID> familyUserIds = new HashSet<>();
         for (Person p : personRepository.findAllById(familyPersonIds)) {
             if (p.getUserId() != null) {
@@ -179,11 +228,7 @@ public class VillageJoinService {
             }
         }
         familyUserIds.remove(userId); // ne pas se compter soi-meme
-        if (familyUserIds.isEmpty()) {
-            return false;
-        }
-        return !subscriptionRepository.findByVillageIdAndTypeAndUserIdIn(
-                villageId, VillageSubscription.SubscriptionType.MEMBER, familyUserIds).isEmpty();
+        return familyUserIds;
     }
 
     /**

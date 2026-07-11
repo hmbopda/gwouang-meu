@@ -2,6 +2,7 @@ package com.gwangmeu.village.infrastructure;
 
 import com.gwangmeu.village.domain.VillageSubscription;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 
 import java.util.Collection;
 import java.util.List;
@@ -28,4 +29,13 @@ public interface VillageSubscriptionRepository extends JpaRepository<VillageSubs
      */
     List<VillageSubscription> findByVillageIdAndTypeAndUserIdIn(
             UUID villageId, VillageSubscription.SubscriptionType type, Collection<UUID> userIds);
+
+    /**
+     * Identifiants des villages ou l'un des utilisateurs fournis a une subscription
+     * du type donne (ex. MEMBER). Utilise par le calcul des villages herites.
+     */
+    @Query("SELECT DISTINCT vs.villageId FROM VillageSubscription vs "
+            + "WHERE vs.type = :type AND vs.userId IN :userIds")
+    List<UUID> findVillageIdsByTypeAndUserIdIn(
+            VillageSubscription.SubscriptionType type, Collection<UUID> userIds);
 }

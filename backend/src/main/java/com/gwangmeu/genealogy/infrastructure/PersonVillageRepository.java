@@ -25,4 +25,11 @@ public interface PersonVillageRepository extends JpaRepository<PersonVillage, Pe
 
     @Query("SELECT pv.personId FROM PersonVillage pv WHERE pv.villageId = :villageId")
     List<UUID> findPersonIdsByVillageId(UUID villageId);
+
+    /**
+     * Identifiants des villages rattaches a l'une des personnes fournies (distinct).
+     * Utilise par le calcul des villages herites (famille 1er degre -> villages).
+     */
+    @Query("SELECT DISTINCT pv.villageId FROM PersonVillage pv WHERE pv.personId IN :personIds")
+    List<UUID> findVillageIdsByPersonIdIn(Collection<UUID> personIds);
 }

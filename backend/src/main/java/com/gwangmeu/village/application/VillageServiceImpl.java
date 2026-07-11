@@ -68,6 +68,12 @@ class VillageServiceImpl implements VillageService {
 
     @Override
     @Transactional(readOnly = true)
+    public List<Village> findAllById(java.util.Collection<UUID> villageIds) {
+        return villageRepository.findAllById(villageIds);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<Village> findByCountry(String country) {
         return villageRepository.findByCountryIgnoreCase(country);
     }

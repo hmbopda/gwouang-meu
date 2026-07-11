@@ -6,14 +6,19 @@ import com.gwangmeu.user.UserRepository;
 import com.gwangmeu.village.VillageMapper;
 import com.gwangmeu.village.application.CreateVillageCommand;
 import com.gwangmeu.village.application.UpdateVillageCommand;
+import com.gwangmeu.village.application.VillageInvitationService;
+import com.gwangmeu.village.application.VillageJoinService;
 import com.gwangmeu.village.application.VillagePermissionService;
 import com.gwangmeu.village.application.VillageService;
 import com.gwangmeu.village.domain.Village;
 import com.gwangmeu.village.domain.VillagePermission;
 import com.gwangmeu.village.domain.VillageSubscription;
+import com.gwangmeu.village.dto.ChiefDto;
 import com.gwangmeu.village.dto.CreateVillageRequest;
+import com.gwangmeu.village.dto.InviteToVillageRequest;
 import com.gwangmeu.village.dto.UpdateVillageRequest;
 import com.gwangmeu.village.dto.VillageDto;
+import com.gwangmeu.village.dto.VillageInvitationDto;
 import com.gwangmeu.village.dto.VillageMemberDto;
 import com.gwangmeu.user.User;
 import io.swagger.v3.oas.annotations.Operation;
@@ -28,8 +33,10 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 @RestController
@@ -42,6 +49,8 @@ public class VillageController {
     private final VillageMapper villageMapper;
     private final UserRepository userRepository;
     private final VillagePermissionService villagePermissionService;
+    private final VillageJoinService villageJoinService;
+    private final VillageInvitationService villageInvitationService;
 
     private UUID resolveUserId(Jwt jwt) {
         return userRepository.findBySupabaseId(jwt.getSubject())
@@ -219,5 +228,146 @@ public class VillageController {
         List<VillageDto> dtos = villageService.getVillagesForUser(userId)
                 .stream().map(villageMapper::toDto).toList();
         return ResponseEntity.ok(ApiResponse.ok(dtos));
+    }
+
+    // =====================================================================
+    // CHEF REEL (createur du village)
+    // =====================================================================
+
+    @GetMapping("/{villageId}/chief")
+    @Operation(summary = "Chef du village",
+            description = "Retourne le chef = utilisateur createur (creator_id) du village. "
+                    + "204 No Content si le village n'a pas de createur renseigne.")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Chef retourne"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "204", description = "Aucun createur renseigne"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Village introuvable")
+    })
+    public ResponseEntity<ApiResponse<ChiefDto>> chief(@PathVariable UUID villageId) {
+        Village village = villageService.findById(villageId)
+                .orElseThrow(() -> new EntityNotFoundException("Village introuvable : " + villageId));
+
+        UUID creatorId = village.getCreatorId();
+        if (creatorId == null) {
+            return ResponseEntity.noContent().build();
+        }
+
+        User chief = userRepository.findById(creatorId).orElse(null);
+        if (chief == null) {
+            return ResponseEntity.noContent().build();
+        }
+
+        Integer since = village.getFoundedYear();
+        if (since == null && village.getCreatedAt() != null) {
+            since = village.getCreatedAt().atZone(ZoneOffset.UTC).getYear();
+        }
+
+        ChiefDto dto = new ChiefDto(
+                chief.getId(), chief.getDisplayName(), chief.getAvatarUrl(), since, true);
+        return ResponseEntity.ok(ApiResponse.ok(dto));
+    }
+
+    // =====================================================================
+    // VILLAGES HERITES (droit d'adhesion par filiation)
+    // =====================================================================
+
+    @GetMapping("/eligible")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Villages herites eligibles",
+            description = "Villages ou une personne de la famille 1er degre de l'appelant est rattachee "
+                    + "(person_villages ou subscription MEMBER), et dont l'appelant n'est pas deja MEMBER.")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Liste retournee"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Non authentifie")
+    })
+    public ResponseEntity<ApiResponse<List<VillageDto>>> eligible(@CurrentUser Jwt jwt) {
+        UUID userId = resolveUserId(jwt);
+        Set<UUID> villageIds = villageJoinService.eligibleVillageIds(userId);
+        if (villageIds.isEmpty()) {
+            return ResponseEntity.ok(ApiResponse.ok(List.of()));
+        }
+
+        // Exclure les villages ou l'appelant est deja MEMBER.
+        Set<UUID> alreadyMember = villageService.getMemberships(userId).stream()
+                .filter(s -> s.getType() == VillageSubscription.SubscriptionType.MEMBER)
+                .map(VillageSubscription::getVillageId)
+                .collect(java.util.stream.Collectors.toSet());
+
+        List<VillageDto> dtos = villageService.findAllById(villageIds).stream()
+                .filter(v -> !alreadyMember.contains(v.getId()))
+                .map(villageMapper::toDto)
+                .toList();
+        return ResponseEntity.ok(ApiResponse.ok(dtos));
+    }
+
+    // =====================================================================
+    // INVITATIONS VILLAGE
+    // =====================================================================
+
+    @GetMapping("/invitations")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Mes invitations recues",
+            description = "Invitations PENDING adressees a l'appelant, enrichies du nom du village et de l'inviteur.")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Liste retournee"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Non authentifie")
+    })
+    public ResponseEntity<ApiResponse<List<VillageInvitationDto>>> myInvitations(@CurrentUser Jwt jwt) {
+        UUID userId = resolveUserId(jwt);
+        return ResponseEntity.ok(ApiResponse.ok(villageInvitationService.myInvitations(userId)));
+    }
+
+    @PostMapping("/invitations/{id}/accept")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Accepter une invitation",
+            description = "L'invite accepte : cree une adhesion MEMBER (idempotent) et passe l'invitation en ACCEPTED.")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Invitation acceptee"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Invitation non destinee a l'appelant"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Invitation introuvable")
+    })
+    public ResponseEntity<ApiResponse<VillageInvitationDto>> acceptInvitation(
+            @PathVariable("id") UUID invitationId,
+            @CurrentUser Jwt jwt) {
+        UUID userId = resolveUserId(jwt);
+        VillageInvitationDto dto = villageInvitationService.accept(invitationId, userId);
+        return ResponseEntity.ok(ApiResponse.ok(dto, "Invitation acceptee"));
+    }
+
+    @PostMapping("/invitations/{id}/decline")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Refuser une invitation",
+            description = "L'invite refuse : passe l'invitation en DECLINED.")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Invitation refusee"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Invitation non destinee a l'appelant"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Invitation introuvable")
+    })
+    public ResponseEntity<ApiResponse<VillageInvitationDto>> declineInvitation(
+            @PathVariable("id") UUID invitationId,
+            @CurrentUser Jwt jwt) {
+        UUID userId = resolveUserId(jwt);
+        VillageInvitationDto dto = villageInvitationService.decline(invitationId, userId);
+        return ResponseEntity.ok(ApiResponse.ok(dto, "Invitation refusee"));
+    }
+
+    @PostMapping("/{villageId}/invite")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Inviter un utilisateur",
+            description = "Invite un utilisateur a rejoindre le village. L'inviteur doit etre MEMBER du village.")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Invitation enregistree"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "L'inviteur n'est pas membre"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Village ou utilisateur introuvable"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "Deja membre")
+    })
+    public ResponseEntity<ApiResponse<VillageInvitationDto>> invite(
+            @PathVariable UUID villageId,
+            @Valid @RequestBody InviteToVillageRequest request,
+            @CurrentUser Jwt jwt) {
+        UUID byUserId = resolveUserId(jwt);
+        VillageInvitationDto dto = villageInvitationService.invite(
+                villageId, request.invitedUserId(), byUserId, request.message());
+        return ResponseEntity.ok(ApiResponse.ok(dto, "Invitation envoyee"));
     }
 }
