@@ -66,6 +66,7 @@ class GeoChefferie {
   const GeoChefferie({
     required this.degre,
     required this.denomination,
+    this.id,
     this.label,
     this.regionName,
     this.departmentName,
@@ -73,6 +74,8 @@ class GeoChefferie {
     this.numero,
   });
 
+  /// Identifiant référentiel (permet de matérialiser la chefferie en village).
+  final String? id;
   final int degre;
   final String denomination;
 
@@ -89,6 +92,7 @@ class GeoChefferie {
       (label != null && label!.isNotEmpty) ? label! : denomination;
 
   factory GeoChefferie.fromJson(Map<String, dynamic> json) => GeoChefferie(
+        id: json['id'] as String?,
         degre: (json['degre'] as num?)?.toInt() ?? 0,
         denomination: json['denomination'] as String? ?? '',
         label: json['label'] as String?,

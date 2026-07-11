@@ -9,6 +9,7 @@ import 'package:gwangmeu/shared/models/village_model.dart';
 import 'package:gwangmeu/shared/widgets/country_selector.dart';
 import 'package:gwangmeu/shared/widgets/country_village_selector.dart';
 import 'package:gwangmeu/shared/widgets/gw_dialog.dart';
+import 'package:gwangmeu/features/genealogy/widgets/dialogs/origin_cascade_selector.dart';
 import 'package:gwangmeu/shared/widgets/person_lookup_widget.dart';
 import 'package:gwangmeu/features/geo/geo_notifier.dart';
 import 'package:gwangmeu/features/genealogy/models/family_tree.dart';
@@ -66,6 +67,9 @@ class _AddUnionDialogState extends ConsumerState<AddUnionDialog> {
   DateTime? _spouseBirthDate;
   CountryModel? _spouseCountry;
   List<VillageModel> _spouseVillages = [];
+  // Origine référentielle du conjoint (ancre de lignée) — atteint Bandenkop.
+  OriginSelection _spouseOrigin = const OriginSelection();
+  CountryModel? _spouseOriginCountry;
   LanguageModel? _spouseLanguage;
   bool _spouseIsAlive = true;
   bool _sendInvitation = true;
@@ -572,6 +576,19 @@ class _AddUnionDialogState extends ConsumerState<AddUnionDialog> {
           ),
           const SizedBox(height: 10),
 
+          // Origine référentielle du conjoint (atteint Bandenkop).
+          OriginCascadeSelector(
+            initial: _spouseOrigin,
+            onChanged: (sel) => _spouseOrigin = sel,
+          ),
+          const SizedBox(height: 10),
+          CountrySelector(
+            label: 'Pays d\'origine',
+            value: _spouseOriginCountry,
+            onChanged: (c) => setState(() => _spouseOriginCountry = c),
+          ),
+          const SizedBox(height: 10),
+
           // Langue + Religion
           Row(
             children: [
@@ -969,6 +986,19 @@ class _AddUnionDialogState extends ConsumerState<AddUnionDialog> {
         }
         if (_spouseVillages.isNotEmpty) {
           personData['villageIds'] = _spouseVillages.map((v) => v.id).toList();
+        }
+        // Origine référentielle (ancre de la lignée du conjoint).
+        if (_spouseOrigin.chefferieName != null) {
+          personData['originVillage'] = _spouseOrigin.chefferieName;
+        }
+        final spouseOriginCity =
+            _spouseOrigin.arrondissementName ?? _spouseOrigin.departmentName;
+        if (spouseOriginCity != null) personData['originCity'] = spouseOriginCity;
+        if (_spouseOrigin.regionName != null) {
+          personData['originRegion'] = _spouseOrigin.regionName;
+        }
+        if (_spouseOriginCountry?.iso2 != null) {
+          personData['originCountry'] = _spouseOriginCountry!.iso2;
         }
         if (_spouseBirthDate != null) {
           personData['birthDate'] =

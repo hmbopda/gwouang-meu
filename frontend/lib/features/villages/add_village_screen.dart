@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -6,6 +8,7 @@ import 'package:material_symbols_icons/symbols.dart';
 import 'package:gwangmeu/core/router/route_names.dart';
 import 'package:gwangmeu/core/theme/app_theme.dart';
 import 'package:gwangmeu/core/theme/gw_tokens.dart';
+import 'package:gwangmeu/features/genealogy/services/geo_referentiel_service.dart';
 import 'package:gwangmeu/features/villages/services/village_governance_service.dart';
 import 'package:gwangmeu/features/villages/villages_notifier.dart';
 import 'package:gwangmeu/shared/models/village_model.dart';
@@ -38,6 +41,17 @@ class AddVillageScreen extends ConsumerWidget {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
                 children: [
+                  // ── Section : rechercher n'importe quelle chefferie ──
+                  const _SectionLabel(
+                    label: 'Rechercher un village',
+                    subtitle:
+                        'Tapez le nom d\'une chefferie (ex : Bandenkop). Vous la fondez et la rejoignez en un geste.',
+                  ),
+                  const SizedBox(height: 14),
+                  const _ChefferieSearchSection(),
+
+                  const SizedBox(height: 32),
+
                   // ── Section : villages hérités ──
                   const _SectionLabel(
                     label: 'Villages dont vous héritez',
@@ -210,6 +224,179 @@ class _SectionLabel extends StatelessWidget {
           ),
         ],
       ],
+    );
+  }
+}
+
+// ─────────────────────────────────────────
+// Recherche de chefferie → fonder / rejoindre (pont référentiel→communauté)
+// ─────────────────────────────────────────
+
+class _ChefferieSearchSection extends ConsumerStatefulWidget {
+  const _ChefferieSearchSection();
+
+  @override
+  ConsumerState<_ChefferieSearchSection> createState() =>
+      _ChefferieSearchSectionState();
+}
+
+class _ChefferieSearchSectionState
+    extends ConsumerState<_ChefferieSearchSection> {
+  final _ctrl = TextEditingController();
+  Timer? _debounce;
+  List<GeoChefferie> _results = [];
+  bool _loading = false;
+  String? _busyId; // chefferie en cours de fondation
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  void _onChanged(String v) {
+    _debounce?.cancel();
+    final q = v.trim();
+    if (q.length < 2) {
+      setState(() {
+        _results = [];
+        _loading = false;
+      });
+      return;
+    }
+    setState(() => _loading = true);
+    _debounce = Timer(const Duration(milliseconds: 320), () async {
+      try {
+        final res = await ref
+            .read(geoReferentielServiceProvider)
+            .lookupChefferies(q, limit: 25);
+        if (!mounted) return;
+        setState(() {
+          _results = res;
+          _loading = false;
+        });
+      } catch (_) {
+        if (!mounted) return;
+        setState(() {
+          _results = [];
+          _loading = false;
+        });
+      }
+    });
+  }
+
+  Future<void> _found(GeoChefferie c) async {
+    final id = c.id;
+    if (id == null) return;
+    setState(() => _busyId = id);
+    try {
+      final village = await ref
+          .read(villageGovernanceServiceProvider)
+          .foundVillageFromChefferie(id);
+      if (!mounted) return;
+      ref.invalidate(myVillagesNotifierProvider);
+      ref.invalidate(eligibleVillagesProvider);
+      showGwToast(context, 'Vous avez rejoint ${village.name}');
+      context.go(Routes.villageDetail(village.id));
+    } catch (e) {
+      if (mounted) _showError(context, e);
+    } finally {
+      if (mounted) setState(() => _busyId = null);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = GwTokens.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextField(
+          controller: _ctrl,
+          onChanged: _onChanged,
+          style: GwType.ui(fontSize: 14.5, color: t.stone),
+          decoration: InputDecoration(
+            hintText: 'Tapez un nom (ex : Bandenkop)',
+            hintStyle: GwType.ui(fontSize: 14, color: t.stoneDim),
+            prefixIcon: Icon(Symbols.search, size: 20, color: t.stoneDim),
+            filled: true,
+            fillColor: t.inkLift,
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(GwTokens.rBtn),
+              borderSide: BorderSide(color: t.line),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(GwTokens.rBtn),
+              borderSide: const BorderSide(color: GwTokens.gold),
+            ),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          ),
+        ),
+        if (_loading) ...[
+          const SizedBox(height: 12),
+          const _SectionLoader(),
+        ] else if (_results.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          for (final c in _results)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: _chefferieRow(t, c),
+            ),
+        ] else if (_ctrl.text.trim().length >= 2) ...[
+          const SizedBox(height: 12),
+          const _EmptyBlock(
+            icon: Symbols.search_off,
+            message: 'Aucune chefferie trouvée',
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _chefferieRow(GwTokens t, GeoChefferie c) {
+    final place = [c.departmentName, c.regionName]
+        .where((s) => s != null && s.trim().isNotEmpty)
+        .join(' · ');
+    final busy = _busyId == c.id;
+    return _Card(
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  c.displayName,
+                  style: GwType.display(
+                      fontSize: 17, fontWeight: FontWeight.w600, color: t.stone),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (place.isNotEmpty) ...[
+                  const SizedBox(height: 3),
+                  Text(
+                    place,
+                    style: GwType.ui(fontSize: 12.5, color: t.stoneDim),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          SizedBox(
+            width: 120,
+            child: _GoldButton(
+              label: 'Rejoindre',
+              loading: busy,
+              onPressed: () => _found(c),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

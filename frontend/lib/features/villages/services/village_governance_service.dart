@@ -380,6 +380,17 @@ class VillageGovernanceService {
   Future<void> declineInvitation(String id) async {
     await _api.post('$_base/invitations/$id/decline');
   }
+
+  /// POST /from-chefferie — matérialise une chefferie du référentiel en
+  /// communauté (find-or-create par chefferie_id) et inscrit l'utilisateur
+  /// comme membre. Idempotent. Renvoie le village fondé/rejoint.
+  Future<VillageModel> foundVillageFromChefferie(String chefferieId) async {
+    final response = await _api.post(
+      '$_base/from-chefferie',
+      data: {'chefferieId': chefferieId},
+    );
+    return VillageModel.fromJson(response['data'] as Map<String, dynamic>);
+  }
 }
 
 // ── Providers ───────────────────────────────────────────────
