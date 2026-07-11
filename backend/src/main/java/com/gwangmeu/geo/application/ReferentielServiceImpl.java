@@ -55,7 +55,7 @@ public class ReferentielServiceImpl implements ReferentielService {
     @Override
     public List<ChefferieDto> getChefferiesByDepartment(String departmentCode, String q, int limit) {
         Pageable pageable = PageRequest.of(0, limit);
-        return chefferieRepository.searchByDepartment(CM, departmentCode, normalize(q), pageable).stream()
+        return chefferieRepository.searchByDepartment(CM, departmentCode, pattern(q), pageable).stream()
                 .map(ChefferieDto::from)
                 .toList();
     }
@@ -63,13 +63,16 @@ public class ReferentielServiceImpl implements ReferentielService {
     @Override
     public List<ChefferieDto> searchChefferiesByRegion(String regionName, String q, int limit) {
         Pageable pageable = PageRequest.of(0, limit);
-        return chefferieRepository.searchByRegion(CM, regionName, normalize(q), pageable).stream()
+        return chefferieRepository.searchByRegion(CM, regionName, pattern(q), pageable).stream()
                 .map(ChefferieDto::from)
                 .toList();
     }
 
-    /** Renvoie null si la chaine est vide/blanche → desactive le filtre denomination. */
-    private static String normalize(String q) {
-        return (q == null || q.isBlank()) ? null : q.trim();
+    /**
+     * Motif SQL LIKE : « % » (tout) si q vide/blanc, sinon « %q% ». Evite un
+     * parametre NULL non type cote PostgreSQL et garde le filtre toujours applicable.
+     */
+    private static String pattern(String q) {
+        return (q == null || q.isBlank()) ? "%" : "%" + q.trim() + "%";
     }
 }
