@@ -97,8 +97,9 @@ public class VillageGovernanceController {
     // ADHESION
     // =====================================================================
 
-    @PostMapping("/join")
-    @Operation(summary = "Rejoindre un village (admission AUTO si un membre de la famille y appartient deja)")
+    @PostMapping("/membership")
+    @Operation(summary = "Demander l'adhesion (MEMBRE) — admission AUTO si un membre de la famille y appartient deja. "
+            + "Distinct de POST /join qui gere le simple suivi (FOLLOW).")
     public ResponseEntity<ApiResponse<JoinResultDto>> join(
             @PathVariable UUID villageId,
             @CurrentUser Jwt jwt) {
