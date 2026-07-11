@@ -6,8 +6,10 @@ import com.gwangmeu.user.UserRepository;
 import com.gwangmeu.village.VillageMapper;
 import com.gwangmeu.village.application.CreateVillageCommand;
 import com.gwangmeu.village.application.UpdateVillageCommand;
+import com.gwangmeu.village.application.VillagePermissionService;
 import com.gwangmeu.village.application.VillageService;
 import com.gwangmeu.village.domain.Village;
+import com.gwangmeu.village.domain.VillagePermission;
 import com.gwangmeu.village.domain.VillageSubscription;
 import com.gwangmeu.village.dto.CreateVillageRequest;
 import com.gwangmeu.village.dto.UpdateVillageRequest;
@@ -39,6 +41,7 @@ public class VillageController {
     private final VillageService villageService;
     private final VillageMapper villageMapper;
     private final UserRepository userRepository;
+    private final VillagePermissionService villagePermissionService;
 
     private UUID resolveUserId(Jwt jwt) {
         return userRepository.findBySupabaseId(jwt.getSubject())
@@ -104,16 +107,21 @@ public class VillageController {
     }
 
     @PutMapping("/{villageId}")
-    @PreAuthorize("hasRole('AMBASSADEUR') or hasRole('MODERATEUR') or hasRole('SUPER_ADMIN')")
-    @Operation(summary = "Mettre a jour un village", description = "Modifie les informations d'un village existant.")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Mettre a jour un village",
+            description = "Modifie les informations d'un village existant. Requiert la permission EDIT_VILLAGE "
+                    + "(chef/createur, delegue portant EDIT_VILLAGE, ou super-admin).")
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Village mis a jour"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Role insuffisant"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Permission EDIT_VILLAGE requise"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Village introuvable")
     })
     public ResponseEntity<ApiResponse<VillageDto>> update(
             @PathVariable UUID villageId,
-            @Valid @RequestBody UpdateVillageRequest request) {
+            @Valid @RequestBody UpdateVillageRequest request,
+            @CurrentUser Jwt jwt) {
+        UUID userId = resolveUserId(jwt);
+        villagePermissionService.requireCan(userId, villageId, VillagePermission.EDIT_VILLAGE);
         UpdateVillageCommand command = new UpdateVillageCommand(
                 request.description(), request.coverImageUrl(),
                 request.foundedYear(), request.populationEstimate(),
