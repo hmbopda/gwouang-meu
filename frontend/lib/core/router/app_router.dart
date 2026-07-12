@@ -7,6 +7,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 // ── Eager imports (pages initiales / toujours visibles) ──
 import 'package:gwangmeu/features/auth/auth_screen.dart';
+import 'package:gwangmeu/features/auth/auth_callback_screen.dart';
+import 'package:gwangmeu/features/auth/auth_notifier.dart';
+import 'package:gwangmeu/features/auth/reset_password_screen.dart';
 import 'package:gwangmeu/features/feed/feed_screen.dart';
 import 'package:gwangmeu/features/home/home_screen.dart';
 import 'package:gwangmeu/shared/models/village_model.dart';
@@ -51,6 +54,9 @@ class GoRouterRefreshStream extends ChangeNotifier {
 
   late final StreamSubscription<dynamic> _sub;
 
+  /// Notifie manuellement les auditeurs (ex. bascule d'un provider observé).
+  void notify() => notifyListeners();
+
   @override
   void dispose() {
     _sub.cancel();
@@ -62,6 +68,11 @@ final routerProvider = Provider<GoRouter>((ref) {
   final refreshListenable = GoRouterRefreshStream(
     Supabase.instance.client.auth.onAuthStateChange,
   );
+  ref.onDispose(refreshListenable.dispose);
+
+  // Ré-évalue les redirections quand le flag « mot de passe oublié » bascule
+  // (déclenchement du flux recovery, puis remise à zéro après changement).
+  ref.listen(passwordRecoveryProvider, (_, __) => refreshListenable.notify());
 
   return GoRouter(
     initialLocation: Routes.feed,
@@ -71,13 +82,33 @@ final routerProvider = Provider<GoRouter>((ref) {
     // Guard : redirige vers /auth si pas de session Supabase active
     redirect: (context, state) {
       final session = Supabase.instance.client.auth.currentSession;
-      final isGoingToAuth = state.matchedLocation.startsWith('/auth');
-      final isGoingToInvite = state.matchedLocation.startsWith('/invite');
+      final loc = state.matchedLocation;
+      final isGoingToAuth = loc.startsWith('/auth'); // couvre /auth-callback
+      final isGoingToInvite = loc.startsWith('/invite');
+      final isGoingToReset = loc == Routes.resetPassword;
 
-      if (session == null && !isGoingToAuth && !isGoingToInvite) {
+      // Deep link « mot de passe oublié » : Supabase a émis passwordRecovery.
+      // Tant que le flux n'est pas terminé, on force l'écran de nouveau mot de
+      // passe (sauf si on y est déjà) — la session temporaire ne doit PAS
+      // ouvrir le feed.
+      final recovering = ref.read(passwordRecoveryProvider);
+      if (recovering && !isGoingToReset) {
+        return Routes.resetPassword;
+      }
+
+      // /auth-callback et /reset-password restent accessibles pour laisser le
+      // SDK consommer l'URL / l'utilisateur changer son mot de passe.
+      if (session == null &&
+          !isGoingToAuth &&
+          !isGoingToInvite &&
+          !isGoingToReset) {
         return Routes.auth;
       }
-      if (session != null && isGoingToAuth) return Routes.feed;
+      // Une session active sur /auth part au feed — sauf /auth-callback, qui
+      // affiche sa confirmation « Email confirmé » avant de rediriger lui-même.
+      if (session != null && isGoingToAuth && loc != Routes.authCallback) {
+        return Routes.feed;
+      }
       return null;
     },
 
@@ -86,6 +117,26 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Routes.auth,
         builder: (context, state) => const AuthScreen(),
+      ),
+
+      // Retour des liens d'authentification par email (deep link mobile / URL
+      // app web). Le SDK supabase-flutter a déjà consommé le fragment de l'URL.
+      // Si le lien est de type recovery (mot de passe oublié), le guard
+      // ci-dessus a déjà redirigé vers /reset-password ; sinon (confirmation
+      // d'email) on affiche l'écran « Email confirmé » qui redirige ensuite.
+      GoRoute(
+        path: Routes.authCallback,
+        builder: (context, state) {
+          final type = state.uri.queryParameters['type'];
+          if (type == 'recovery') return const ResetPasswordScreen();
+          return const AuthCallbackScreen();
+        },
+      ),
+
+      // Nouveau mot de passe (flux « mot de passe oublié »)
+      GoRoute(
+        path: Routes.resetPassword,
+        builder: (context, state) => const ResetPasswordScreen(),
       ),
 
       // Shell — navigation fixe (IconRail + TopBar desktop, BottomNav mobile)

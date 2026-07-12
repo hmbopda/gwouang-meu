@@ -11,6 +11,7 @@ import 'package:gwangmeu/features/auth/auth_notifier.dart';
 import 'package:gwangmeu/features/geo/geo_notifier.dart';
 import 'package:gwangmeu/features/genealogy/widgets/dialogs/origin_cascade_selector.dart';
 import 'package:gwangmeu/shared/models/country_model.dart';
+import 'package:gwangmeu/shared/widgets/gw_dialog.dart';
 
 /// Écran d'authentification « Tissage » — connexion + inscription en 3 étapes.
 ///
@@ -32,6 +33,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
 
   AuthMode _mode = AuthMode.login;
   bool _obscurePassword = true;
+
+  // Intentions en cours pour donner le bon feedback quand l'état async résout.
+  bool _resetLinkSubmitted = false;
+  bool _signUpSubmitted = false;
 
   // ── État de l'assistant d'inscription ──
   int _regStep = 0; // 0=profil, 1=origines, 2=récapitulatif
@@ -68,10 +73,35 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     final authState = ref.watch(authNotifierProvider);
 
     ref.listen(authNotifierProvider, (_, next) {
-      if (next is AsyncData && next.value != null) {
-        context.go(Routes.feed);
+      if (next is AsyncData) {
+        // Mot de passe oublié : le lien a été envoyé (valeur null, pas de
+        // session) → confirmation « vérifie ta boîte mail ».
+        if (_resetLinkSubmitted) {
+          _resetLinkSubmitted = false;
+          _showResetLinkSent();
+          return;
+        }
+
+        final hasSession =
+            Supabase.instance.client.auth.currentSession != null;
+
+        // Inscription : si aucune session n'est ouverte, c'est que la
+        // confirmation d'email est requise → on invite à vérifier la boîte
+        // mail au lieu de naviguer vers le feed.
+        if (_signUpSubmitted && !hasSession) {
+          _signUpSubmitted = false;
+          _showConfirmEmailPending();
+          return;
+        }
+        _signUpSubmitted = false;
+
+        if (hasSession && next.value != null) {
+          context.go(Routes.feed);
+        }
       }
       if (next is AsyncError) {
+        _resetLinkSubmitted = false;
+        _signUpSubmitted = false;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(_friendlyError(next.error.toString())),
@@ -1243,6 +1273,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       case AuthMode.login:
         notifier.signIn(_emailCtrl.text.trim(), _passwordCtrl.text);
       case AuthMode.forgotPassword:
+        _resetLinkSubmitted = true;
         notifier.resetPassword(_emailCtrl.text.trim());
       case AuthMode.register:
         break;
@@ -1250,6 +1281,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   }
 
   void _submitRegistration() {
+    _signUpSubmitted = true;
     ref.read(authNotifierProvider.notifier).signUp(
           email: _regEmailCtrl.text.trim(),
           password: _regPasswordCtrl.text,
@@ -1270,6 +1302,75 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
           originVillage: _regOrigin.chefferieName,
           gender: _regSelectedGender!,
         );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  //  FEEDBACK (liens email)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /// Confirmation après envoi du lien de réinitialisation de mot de passe.
+  void _showResetLinkSent() {
+    final email = _emailCtrl.text.trim();
+    showGwDialog(
+      context,
+      builder: (ctx) => GwDialog(
+        title: 'Lien envoyé',
+        subtitle: email.isNotEmpty ? email : null,
+        icon: Symbols.mark_email_read,
+        actions: [
+          GwDialogAction(
+            label: 'J\'ai compris',
+            primary: true,
+            icon: Symbols.check,
+            onPressed: () => Navigator.of(ctx).maybePop(),
+          ),
+        ],
+        child: _emailSentBody(
+          ctx,
+          'Nous vous avons envoyé un lien de réinitialisation. Ouvrez-le '
+          'depuis votre boîte mail (pensez à regarder les spams) pour choisir '
+          'un nouveau mot de passe.',
+        ),
+      ),
+    );
+  }
+
+  /// Message après inscription quand la confirmation d'email est requise.
+  void _showConfirmEmailPending() {
+    final email = _regEmailCtrl.text.trim();
+    showGwDialog(
+      context,
+      builder: (ctx) => GwDialog(
+        title: 'Vérifiez votre boîte mail',
+        subtitle: email.isNotEmpty ? email : null,
+        icon: Symbols.mail,
+        actions: [
+          GwDialogAction(
+            label: 'Retour à la connexion',
+            primary: true,
+            icon: Symbols.login,
+            onPressed: () {
+              Navigator.of(ctx).maybePop();
+              setState(() => _mode = AuthMode.login);
+            },
+          ),
+        ],
+        child: _emailSentBody(
+          ctx,
+          'Un lien de confirmation vient de vous être envoyé. Ouvrez-le pour '
+          'activer votre compte, puis revenez vous connecter (pensez à '
+          'regarder les spams).',
+        ),
+      ),
+    );
+  }
+
+  Widget _emailSentBody(BuildContext ctx, String text) {
+    final t = GwTokens.of(ctx);
+    return Text(
+      text,
+      style: GwType.ui(fontSize: 14.5, color: t.stoneMid, height: 1.55),
+    );
   }
 
   // ═══════════════════════════════════════════════════════════════════════════

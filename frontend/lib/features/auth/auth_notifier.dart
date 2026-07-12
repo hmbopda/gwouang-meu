@@ -18,10 +18,25 @@ class AuthNotifier extends _$AuthNotifier {
   @override
   AsyncValue<User?> build() {
     final sub = Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+      // Deep link « mot de passe oublie » : Supabase emet passwordRecovery avec
+      // une session temporaire. On le signale au router (via le provider dedie)
+      // pour qu'il route vers l'ecran « Nouveau mot de passe » — et on ne le
+      // laisse JAMAIS etre avale par _manualOperation (le lien recovery n'est
+      // pas une operation manuelle en cours).
+      if (data.event == AuthChangeEvent.passwordRecovery) {
+        ref.read(passwordRecoveryProvider.notifier).trigger();
+        state = AsyncValue.data(data.session?.user);
+        return;
+      }
+
       // Ne pas overrider le state pendant signIn/signUp — sinon l'app navigue
       // vers le feed AVANT que l'appel API backend (/auth/sync ou /auth/register)
       // ne termine, et les donnees ne sont jamais enregistrees en BDD.
-      if (!_manualOperation) {
+      // Exception : les events NON inities manuellement (deep link de
+      // confirmation d'email, refresh de token) doivent passer meme si un
+      // _manualOperation trainait — sinon la session du deep link est perdue.
+      final isPassiveEvent = data.event == AuthChangeEvent.tokenRefreshed;
+      if (!_manualOperation || isPassiveEvent) {
         state = AsyncValue.data(data.session?.user);
       }
     });
@@ -151,10 +166,39 @@ class AuthNotifier extends _$AuthNotifier {
     });
   }
 
+  // ── Mise a jour du mot de passe (apres deep link recovery) ─────────────────
+
+  Future<void> updatePassword(String newPassword) async {
+    _manualOperation = true;
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() async {
+      await _service.updatePassword(newPassword);
+      return _service.currentUser;
+    });
+    // Le flux recovery est termine : on efface le flag pour que le router
+    // cesse de rediriger vers l'ecran « Nouveau mot de passe ».
+    ref.read(passwordRecoveryProvider.notifier).clear();
+    _manualOperation = false;
+  }
+
   // ── Deconnexion ────────────────────────────────────────────────────────────
 
   Future<void> signOut() async {
     await _service.signOut();
+    ref.read(passwordRecoveryProvider.notifier).clear();
     state = const AsyncValue.data(null);
   }
+}
+
+/// Signale qu'un flux « mot de passe oublie » est actif : Supabase a emis
+/// [AuthChangeEvent.passwordRecovery] suite au clic sur le lien de l'email.
+/// Le router observe ce flag pour rediriger vers l'ecran de reinitialisation,
+/// et le remet a `false` une fois le mot de passe change (ou a la deconnexion).
+@riverpod
+class PasswordRecovery extends _$PasswordRecovery {
+  @override
+  bool build() => false;
+
+  void trigger() => state = true;
+  void clear() => state = false;
 }

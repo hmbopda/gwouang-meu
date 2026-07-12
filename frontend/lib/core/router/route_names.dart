@@ -3,6 +3,13 @@ abstract class Routes {
   static const splash = '/';
   static const auth = '/auth';
 
+  /// Retour des liens d'authentification par email (confirmation d'inscription
+  /// et réinitialisation de mot de passe). Deep link mobile / URL app web.
+  static const authCallback = '/auth-callback';
+
+  /// Écran « Nouveau mot de passe » (flux mot de passe oublié).
+  static const resetPassword = '/reset-password';
+
   // Shell (bottom nav — 5 destinations : Fil, Villages, Lignées, Messages, Profil)
   static const home = '/home';
   static const feed = '/home/feed';

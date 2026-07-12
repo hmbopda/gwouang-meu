@@ -2,6 +2,18 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+/// URL de redirection des liens d'authentification par email
+/// (confirmation d'inscription + réinitialisation de mot de passe).
+///
+/// - Sur mobile / desktop natif : deep link custom scheme capté par un
+///   intent-filter Android / un CFBundleURLScheme iOS → ré-ouvre l'app sur
+///   la route `/auth-callback`.
+/// - Sur web : l'origine de l'app + `/auth-callback` (le SDK supabase-flutter
+///   consomme automatiquement le fragment/paramètres au démarrage).
+String get authRedirectUrl => kIsWeb
+    ? '${Uri.base.origin}/auth-callback'
+    : 'io.supabase.gwangmeu://auth-callback/';
+
 /// Wrapper autour de Supabase Auth.
 /// Centralise toutes les opérations d'authentification.
 class SupabaseService {
@@ -42,6 +54,9 @@ class SupabaseService {
     return _client.auth.signUp(
       email: email,
       password: password,
+      // Le lien de confirmation d'email ré-ouvre l'app sur /auth-callback
+      // (deep link mobile / URL app web) au lieu d'une page Supabase morte.
+      emailRedirectTo: authRedirectUrl,
       data: {
         'display_name': displayName,
         'role': 'MEMBRE',
@@ -54,8 +69,16 @@ class SupabaseService {
 
   // ── Mot de passe oublié ───────────────────────────────────────────────────
 
+  /// Envoie un email de réinitialisation. Le lien ramène dans l'app sur
+  /// /auth-callback avec `type=recovery` → écran « Nouveau mot de passe ».
   Future<void> resetPassword(String email) {
-    return _client.auth.resetPasswordForEmail(email);
+    return _client.auth.resetPasswordForEmail(email, redirectTo: authRedirectUrl);
+  }
+
+  // ── Mise à jour du mot de passe (après lien recovery) ─────────────────────
+
+  Future<void> updatePassword(String newPassword) async {
+    await _client.auth.updateUser(UserAttributes(password: newPassword));
   }
 
   // ── Déconnexion ───────────────────────────────────────────────────────────

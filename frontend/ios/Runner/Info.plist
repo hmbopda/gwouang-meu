@@ -45,5 +45,21 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<!-- Deep link des liens d'authentification par email (confirmation
+	     d'inscription + réinitialisation de mot de passe) : le lien
+	     io.supabase.gwangmeu://auth-callback/ ré-ouvre l'app. -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>io.supabase.gwangmeu</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>io.supabase.gwangmeu</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>
