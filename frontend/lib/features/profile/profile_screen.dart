@@ -106,20 +106,35 @@ class _ProfileView extends ConsumerWidget {
         padding: EdgeInsets.only(top: desktop ? 24 : 8, bottom: 40),
         children: [
           _ProfileHeader(user: user),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           _StatsRow(user: user),
+          const SizedBox(height: 20),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: _OriginesCard(user: user),
+          ),
+          const SizedBox(height: 16),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: _ClansCard(user: user),
+          ),
           const SizedBox(height: 20),
           const _SectionLabel('FICHE DE VIE'),
           const SizedBox(height: 8),
           _LifeSheetCard(user: user),
           const SizedBox(height: 20),
-          const _SectionLabel('MA LIGNÉE'),
-          const SizedBox(height: 8),
-          _ActionsBlock(user: user),
-          const SizedBox(height: 24),
           const _SectionLabel('MES VILLAGES'),
           const SizedBox(height: 8),
           const _MyVillagesCard(),
+          const SizedBox(height: 16),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: _CompletionCard(user: user),
+          ),
+          const SizedBox(height: 20),
+          const _SectionLabel('MA LIGNÉE'),
+          const SizedBox(height: 8),
+          _ActionsBlock(user: user),
           const SizedBox(height: 24),
           const _SectionLabel('RÉGLAGES'),
           const SizedBox(height: 8),
@@ -168,78 +183,196 @@ class _ProfileView extends ConsumerWidget {
 //     nom serif, email en gris, pilules mono (clan · génération · statut)
 // ─────────────────────────────────────────────────────────────────
 
+/// Hero « identité patrimoniale » — bannière chaude sombre : gros badge à
+/// initiales (anneau or, point vert), nom serif, méta réelle (naissance,
+/// origine, génération, enfants), pilules clan/ethnie, et actions
+/// « Modifier le profil » (or) / « Partager ma carte » (contour or).
+/// Couleurs = palette Tissage (or C9A84C, stone F0EBE1, ink) uniquement.
 class _ProfileHeader extends ConsumerWidget {
   const _ProfileHeader({required this.user});
   final UserModel user;
 
+  // Tons « sur fond sombre » (valeurs du thème Tissage sombre).
+  static const _onDark = Color(0xFFF0EBE1); // stone
+  static const _onDarkMid = Color(0xFFB8AD9E); // stoneMid
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final t = GwTokens.of(context);
-
     final myPerson = ref.watch(genealogyNotifierProvider).valueOrNull;
     final tree = myPerson == null
         ? null
         : ref.watch(familyTreeProvider(myPerson.id)).valueOrNull;
-    final generation = tree != null
-        ? _countGenerations(tree)
-        : 1 + ((user.fatherName != null || user.motherName != null) ? 1 : 0);
-
+    final gen = tree != null ? _countGenerations(tree) : null;
     final clans = _clanNames(user);
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Column(
-        children: [
-          // Réglages rapides (cible ≥ 44 px) aligné à droite.
-          Align(
-            alignment: Alignment.centerRight,
-            child: _HeaderAction(
-              icon: Symbols.settings,
-              onTap: () => showProfileEditSheet(context),
-            ),
-          ),
-          _InitialsBadge(
-            user: user,
-            onTap: () => _pickAndUpload(
-              context,
-              ref,
-              folder: 'avatars',
-              profileField: 'avatarUrl',
-            ),
-          ),
-          const SizedBox(height: 14),
-          Text(
-            user.displayName ?? 'Membre',
-            textAlign: TextAlign.center,
-            style: GwType.display(fontSize: 26, color: t.stone),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            user.email,
-            textAlign: TextAlign.center,
-            style: GwType.ui(fontSize: 13.5, color: t.stoneDim),
-          ),
+    final meta = <String>[
+      if (myPerson?.birthDate != null) 'né·e en ${myPerson!.birthDate!.year}',
+      if ((user.originVillage ?? '').trim().isNotEmpty)
+        user.originVillage!.trim()
+      else if ((user.originRegion ?? '').trim().isNotEmpty)
+        user.originRegion!.trim()
+      else if ((user.country ?? '').trim().isNotEmpty)
+        user.country!.trim(),
+      if (gen != null) 'Génération $gen',
+      if ((user.childrenCount ?? 0) > 0)
+        '${user.childrenCount} enfant${user.childrenCount! > 1 ? 's' : ''}',
+    ];
+
+    final badges = <Widget>[
+      for (final clan in clans)
+        _MonoPill(label: 'CLAN $clan', color: GwTokens.goldLight),
+      if ((user.tribe ?? '').trim().isNotEmpty)
+        _MonoPill(label: user.tribe!.trim().toUpperCase(), color: _onDarkMid),
+    ];
+
+    final info = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(user.displayName ?? 'Membre',
+            style: GwType.display(fontSize: 25, color: _onDark),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis),
+        if (meta.isNotEmpty) ...[
+          const SizedBox(height: 5),
+          Text(meta.join('  ·  '),
+              style: GwType.ui(fontSize: 12.5, color: _onDarkMid)),
+        ],
+        if (badges.isNotEmpty) ...[
           const SizedBox(height: 12),
-          // Pilules mono — clan(s) (or), génération · VOUS (or), statut (vert).
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            alignment: WrapAlignment.center,
+          Wrap(spacing: 8, runSpacing: 8, children: badges),
+        ],
+      ],
+    );
+
+    final actions = Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        _HeroButton(
+            icon: Symbols.edit,
+            label: 'Modifier le profil',
+            primary: true,
+            onTap: () => showProfileEditSheet(context)),
+        _HeroButton(
+            icon: Symbols.ios_share,
+            label: 'Partager ma carte',
+            primary: false,
+            onTap: () => ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  content: Text('Partage de la carte — bientôt disponible',
+                      style: GwType.ui(fontSize: 14, color: Colors.white)),
+                  backgroundColor: GwTokens.gold,
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(GwTokens.rPill)),
+                ))),
+      ],
+    );
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF1D1822), Color(0xFF120F0A)],
+        ),
+        borderRadius: BorderRadius.circular(GwTokens.rCardLg),
+        border: Border.all(color: const Color(0x40C9A84C)),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withValues(alpha: 0.22),
+              blurRadius: 26,
+              offset: const Offset(0, 12)),
+        ],
+      ),
+      child: LayoutBuilder(builder: (ctx, c) {
+        final avatar = _InitialsBadge(
+          user: user,
+          onTap: () => _pickAndUpload(ctx, ref,
+              folder: 'avatars', profileField: 'avatarUrl'),
+        );
+        if (c.maxWidth > 480) {
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              for (final clan in clans)
-                _MonoPill(label: 'CLAN $clan', color: t.goldText),
-              _MonoPill(
-                label: 'GÉNÉRATION $generation · VOUS',
-                color: t.goldText,
-              ),
-              _MonoPill(
-                label: 'VIVANT·E',
-                color: t.sageText,
-                dot: GwTokens.sage,
-              ),
+              avatar,
+              const SizedBox(width: 18),
+              Expanded(child: info),
+              const SizedBox(width: 14),
+              actions,
+            ],
+          );
+        }
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                avatar,
+                const SizedBox(width: 16),
+                Expanded(child: info),
+              ],
+            ),
+            const SizedBox(height: 16),
+            actions,
+          ],
+        );
+      }),
+    );
+  }
+}
+
+/// Bouton du hero — or plein (primaire) ou contour or (secondaire).
+class _HeroButton extends StatelessWidget {
+  const _HeroButton({
+    required this.icon,
+    required this.label,
+    required this.primary,
+    required this.onTap,
+  });
+  final IconData icon;
+  final String label;
+  final bool primary;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(GwTokens.rPill),
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 40),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+          decoration: BoxDecoration(
+            color: primary ? GwTokens.gold : Colors.transparent,
+            borderRadius: BorderRadius.circular(GwTokens.rPill),
+            border: Border.all(
+                color: primary ? GwTokens.gold : const Color(0x66C9A84C)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon,
+                  size: 16,
+                  color: primary
+                      ? GwTokens.inkOnGold
+                      : GwTokens.goldLight),
+              const SizedBox(width: 8),
+              Text(label,
+                  style: GwType.ui(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w600,
+                      color: primary
+                          ? GwTokens.inkOnGold
+                          : GwTokens.goldLight)),
             ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -326,38 +459,11 @@ class _InitialsBadge extends StatelessWidget {
       );
 }
 
-/// Action d'en-tête 44×44 (a11y) — surface inkLift, rayon rBtn.
-class _HeaderAction extends StatelessWidget {
-  const _HeaderAction({required this.icon, this.onTap});
-  final IconData icon;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = GwTokens.of(context);
-    return Material(
-      color: t.inkLift,
-      borderRadius: BorderRadius.circular(GwTokens.rBtn),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(GwTokens.rBtn),
-        child: SizedBox(
-          width: GwTokens.tapTarget,
-          height: GwTokens.tapTarget,
-          child: Icon(icon, size: 20, color: t.stoneMid),
-        ),
-      ),
-    );
-  }
-}
-
-/// Pilule mono en petites capitales — anneau/fond translucide, point
-/// coloré optionnel (statut « vivant·e »).
+/// Pilule mono en petites capitales — anneau/fond translucide.
 class _MonoPill extends StatelessWidget {
-  const _MonoPill({required this.label, required this.color, this.dot});
+  const _MonoPill({required this.label, required this.color});
   final String label;
   final Color color;
-  final Color? dot;
 
   @override
   Widget build(BuildContext context) {
@@ -371,14 +477,6 @@ class _MonoPill extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (dot != null) ...[
-            Container(
-              width: 7,
-              height: 7,
-              decoration: BoxDecoration(shape: BoxShape.circle, color: dot),
-            ),
-            const SizedBox(width: 6),
-          ],
           Text(
             label,
             style: GwType.mono(
@@ -411,72 +509,60 @@ class _StatsRow extends ConsumerWidget {
         ? null
         : ref.watch(familyTreeProvider(myPerson.id)).valueOrNull;
     final members = tree != null ? '${_treeMemberCount(tree)}' : '—';
-    final generations = tree != null
-        ? '${_countGenerations(tree)}'
-        : '${1 + ((user.fatherName != null || user.motherName != null) ? 1 : 0)}';
-
+    final generations = tree != null ? '${_countGenerations(tree)}' : '—';
     final villageCount = ref
         .watch(myVillagesNotifierProvider)
         .maybeWhen(data: (v) => v.length, orElse: () => null);
     final clanCount = _clanNames(user).length;
-    // Rattachement culturel : clans si présents, sinon villages rejoints.
-    final (thirdValue, thirdLabel) = clanCount > 0
-        ? ('$clanCount', clanCount > 1 ? 'clans' : 'clan')
-        : (
-            villageCount != null ? '$villageCount' : '—',
-            (villageCount ?? 0) > 1 ? 'villages' : 'village'
-          );
+    final pct = _completionPercent(user);
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: DefaultTextStyle(
-        style: GwType.mono(
-          fontSize: 12,
-          letterSpacing: 1,
-          color: t.stoneMid,
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            _stat(t, members, 'membres'),
-            _dot(t),
-            _stat(t, generations, generations == '1' ? 'génération' : 'générations'),
-            _dot(t),
-            _stat(t, thirdValue, thirdLabel),
+    final items = <(String, String, Color?)>[
+      (villageCount != null ? '$villageCount' : '—',
+          (villageCount ?? 0) > 1 ? 'Villages' : 'Village', null),
+      ('$clanCount', clanCount > 1 ? 'Clans hérités' : 'Clan hérité', null),
+      (members, 'Membres liés', null),
+      (generations, generations == '1' ? 'Génération' : 'Générations', null),
+      ('$pct%', 'Fiche complétée', GwTokens.sage),
+    ];
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 8),
+      decoration: BoxDecoration(
+        color: t.inkCard,
+        borderRadius: BorderRadius.circular(GwTokens.rCardLg),
+        border: Border.all(color: t.line),
+      ),
+      child: Row(
+        children: [
+          for (int i = 0; i < items.length; i++) ...[
+            if (i > 0) Container(width: 1, height: 32, color: t.line),
+            Expanded(child: _statBox(t, items[i])),
           ],
-        ),
+        ],
       ),
     );
   }
 
-  Widget _stat(GwTokens t, String value, String label) {
-    return Flexible(
-      child: RichText(
-        textAlign: TextAlign.center,
-        overflow: TextOverflow.ellipsis,
-        text: TextSpan(
-          style: GwType.mono(fontSize: 12, letterSpacing: 1, color: t.stoneMid),
-          children: [
-            TextSpan(
-              text: value,
-              style: GwType.mono(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 1,
-                color: t.goldText,
-              ),
-            ),
-            TextSpan(text: ' $label'),
-          ],
-        ),
-      ),
+  Widget _statBox(GwTokens t, (String, String, Color?) it) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(it.$1,
+            style: GwType.display(
+                fontSize: 21,
+                fontWeight: FontWeight.w600,
+                color: it.$3 ?? t.goldText)),
+        const SizedBox(height: 3),
+        Text(it.$2.toUpperCase(),
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: GwType.mono(
+                fontSize: 8, letterSpacing: 0.8, color: t.stoneDim)),
+      ],
     );
   }
-
-  Widget _dot(GwTokens t) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8),
-        child: Text('·', style: GwType.mono(fontSize: 14, color: t.stoneFaint)),
-      );
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -860,6 +946,274 @@ class _ActionsBlock extends StatelessWidget {
 }
 
 /// Bouton primaire — or plein, icône (18) + gap 8 centrés sur le label.
+/// Carte profil « papier » : titre serif + compteur + lien optionnel + contenu.
+class _ProfileCard extends StatelessWidget {
+  const _ProfileCard({
+    required this.title,
+    required this.child,
+    this.trailing,
+    this.onTrailing,
+    this.count,
+  });
+  final String title;
+  final Widget child;
+  final String? trailing;
+  final VoidCallback? onTrailing;
+  final int? count;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = GwTokens.of(context);
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: t.inkCard,
+        borderRadius: BorderRadius.circular(GwTokens.rCardLg),
+        border: Border.all(color: t.line),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Flexible(
+                child: Text(title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GwType.display(fontSize: 16, color: t.stone)),
+              ),
+              if (count != null) ...[
+                const SizedBox(width: 8),
+                Text('· $count',
+                    style: GwType.mono(fontSize: 12, color: t.stoneDim)),
+              ],
+              const Spacer(),
+              if (trailing != null && onTrailing != null)
+                GestureDetector(
+                  onTap: onTrailing,
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Text(trailing!,
+                        style: GwType.ui(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: t.goldText)),
+                    Icon(Symbols.chevron_right, size: 16, color: t.goldText),
+                  ]),
+                ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          child,
+        ],
+      ),
+    );
+  }
+}
+
+/// « Mes origines » — fil d'Ariane réel : village → département → région → pays.
+class _OriginesCard extends StatelessWidget {
+  const _OriginesCard({required this.user});
+  final UserModel user;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = GwTokens.of(context);
+    final steps = <(IconData, String, String)>[];
+    final vil = (user.originVillage ?? '').trim();
+    final dep = (user.originDepartment ?? '').trim();
+    final reg = (user.originRegion ?? '').trim();
+    final pay = (user.country ?? '').trim();
+    if (vil.isNotEmpty) steps.add((Symbols.holiday_village, vil, 'Village'));
+    if (dep.isNotEmpty) steps.add((Symbols.location_city, dep, 'Département'));
+    if (reg.isNotEmpty) steps.add((Symbols.map, reg, 'Région'));
+    if (pay.isNotEmpty) steps.add((Symbols.public, pay, 'Pays'));
+
+    Widget body;
+    if (steps.isEmpty) {
+      body = GestureDetector(
+        onTap: () => showProfileEditSheet(context),
+        child: Text('Renseignez votre origine dans « Modifier le profil ».',
+            style: GwType.ui(fontSize: 13, color: t.stoneDim)),
+      );
+    } else {
+      final chips = <Widget>[];
+      for (var i = 0; i < steps.length; i++) {
+        if (i > 0) {
+          chips.add(Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 3),
+            child: Icon(Symbols.arrow_forward, size: 15, color: t.stoneFaint),
+          ));
+        }
+        chips.add(_originStep(t, steps[i], i == 0));
+      }
+      body = Wrap(
+          spacing: 4,
+          runSpacing: 8,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: chips);
+    }
+
+    return _ProfileCard(
+      title: 'Mes origines',
+      trailing: steps.isNotEmpty ? 'Modifier' : null,
+      onTrailing:
+          steps.isNotEmpty ? () => showProfileEditSheet(context) : null,
+      child: body,
+    );
+  }
+
+  Widget _originStep(GwTokens t, (IconData, String, String) s, bool primary) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(8, 6, 12, 6),
+      decoration: BoxDecoration(
+        color: primary ? t.goldBg : t.inkLift,
+        borderRadius: BorderRadius.circular(GwTokens.rBtn),
+        border: Border.all(color: primary ? t.goldLine : t.line),
+      ),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Icon(s.$1, size: 16, color: primary ? t.goldText : t.stoneDim),
+        const SizedBox(width: 8),
+        Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(s.$2,
+                  style: GwType.ui(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: t.stone)),
+              Text(s.$3.toUpperCase(),
+                  style: GwType.mono(
+                      fontSize: 8, letterSpacing: 1, color: t.stoneFaint)),
+            ]),
+      ]),
+    );
+  }
+}
+
+/// « Clans hérités » — pilules or depuis user.clan.
+class _ClansCard extends StatelessWidget {
+  const _ClansCard({required this.user});
+  final UserModel user;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = GwTokens.of(context);
+    final clans = _clanNames(user);
+    Widget body;
+    if (clans.isEmpty) {
+      body = GestureDetector(
+        onTap: () => showProfileEditSheet(context),
+        child: Text(
+            'Aucun clan renseigné — ajoutez-en dans « Modifier le profil ».',
+            style: GwType.ui(fontSize: 13, color: t.stoneDim)),
+      );
+    } else {
+      body = Wrap(spacing: 8, runSpacing: 8, children: [
+        for (final c in clans)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+            decoration: BoxDecoration(
+              color: t.goldBg,
+              borderRadius: BorderRadius.circular(GwTokens.rPill),
+              border: Border.all(color: t.goldLine),
+            ),
+            child: Text(c,
+                style: GwType.ui(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: t.goldText)),
+          ),
+      ]);
+    }
+    return _ProfileCard(
+        title: 'Clans hérités',
+        count: clans.isNotEmpty ? clans.length : null,
+        child: body);
+  }
+}
+
+/// « Compléter votre fiche » — barre de progression + champs manquants réels.
+class _CompletionCard extends StatelessWidget {
+  const _CompletionCard({required this.user});
+  final UserModel user;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = GwTokens.of(context);
+    final pct = _completionPercent(user);
+    final missing = _missingProfileFields(user);
+
+    if (missing.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: t.goldBg,
+          borderRadius: BorderRadius.circular(GwTokens.rCardLg),
+          border: Border.all(color: t.goldLine),
+        ),
+        child: Row(children: [
+          Icon(Symbols.verified, size: 20, color: t.goldText, fill: 1),
+          const SizedBox(width: 10),
+          Expanded(
+              child: Text('Fiche complète — bravo !',
+                  style: GwType.ui(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: t.stone))),
+        ]),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: t.goldBg,
+        borderRadius: BorderRadius.circular(GwTokens.rCardLg),
+        border: Border.all(color: t.goldLine),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Icon(Symbols.draw, size: 18, color: t.goldText),
+          const SizedBox(width: 8),
+          Text('Compléter votre fiche',
+              style: GwType.display(fontSize: 15, color: t.stone)),
+          const Spacer(),
+          Text('$pct%',
+              style: GwType.mono(
+                  fontSize: 13, fontWeight: FontWeight.w700, color: t.goldText)),
+        ]),
+        const SizedBox(height: 10),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(999),
+          child: LinearProgressIndicator(
+            value: pct / 100,
+            minHeight: 6,
+            backgroundColor: t.inkLift,
+            valueColor: const AlwaysStoppedAnimation(GwTokens.gold),
+          ),
+        ),
+        const SizedBox(height: 10),
+        Text(
+            'Il manque : ${missing.take(3).join(', ')}${missing.length > 3 ? '…' : ''}',
+            style: GwType.ui(fontSize: 12.5, color: t.stoneMid)),
+        const SizedBox(height: 10),
+        GestureDetector(
+          onTap: () => showProfileEditSheet(context),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            Text('Compléter',
+                style: GwType.ui(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: t.goldText)),
+            Icon(Symbols.arrow_forward, size: 15, color: t.goldText),
+          ]),
+        ),
+      ]),
+    );
+  }
+}
+
 class _GoldButton extends StatelessWidget {
   const _GoldButton({
     required this.icon,
@@ -1203,6 +1557,32 @@ List<String> _clanNames(UserModel u) {
 
 /// Nombre de générations visibles dans l'arbre (sujet, parents,
 /// grands-parents, enfants).
+/// Statut de complétude des champs clés du profil (rempli / non).
+Map<String, bool> _profileFieldsStatus(UserModel u) {
+  bool has(String? s) => s != null && s.trim().isNotEmpty;
+  return {
+    'photo': has(u.avatarUrl),
+    'origine': has(u.originVillage) || has(u.originRegion) || has(u.country),
+    'profession': has(u.profession),
+    'récit': has(u.bio),
+    'situation maritale': has(u.maritalStatus),
+    'langue maternelle': has(u.nativeLanguage),
+    'ethnie': has(u.tribe),
+    'résidence': has(u.residenceCity),
+  };
+}
+
+/// Complétude de la fiche en pourcentage (champs remplis / total).
+int _completionPercent(UserModel u) {
+  final f = _profileFieldsStatus(u);
+  final filled = f.values.where((v) => v).length;
+  return f.isEmpty ? 0 : ((filled / f.length) * 100).round();
+}
+
+/// Libellés des champs encore manquants.
+List<String> _missingProfileFields(UserModel u) =>
+    _profileFieldsStatus(u).entries.where((e) => !e.value).map((e) => e.key).toList();
+
 int _countGenerations(FamilyTree tree) {
   int g = 1;
   if (tree.father.isNotEmpty || tree.mother.isNotEmpty) g++;
