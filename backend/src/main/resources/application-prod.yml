@@ -25,7 +25,7 @@ spring:
   # ===== Mail (Resend en prod — SMTP transactionnel, domaine verifie) =====
   # Moteur unique : Resend (SMTPS 465). MAIL_PASSWORD = cle API Resend.
   # MAIL_FROM doit etre une adresse du domaine verifie dans Resend
-  # (ex. noreply@gwangmeu.com). Surchargeable par variables d'env.
+  # (ex. noreply@gwouangmeu.com). Surchargeable par variables d'env.
   # Pour basculer sur l'API HTTP Resend (plus robuste sur Cloud Run), definir
   # application.mail.provider=resend-api + application.mail.resend-api-key.
   mail:

@@ -1,7 +1,7 @@
 import type { MetadataRoute } from 'next';
 import { fetchAllVillageSlugs, fetchCountries, fetchContinents } from '@/lib/api';
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://gwangmeu.com';
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://gwouangmeu.com';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [villageSlugs, continents] = await Promise.all([

@@ -34,7 +34,7 @@ spring:
 
   # ===== MAIL (SMTP Resend.com) =====
   # 1. Creer un compte sur https://resend.com
-  # 2. Verifier le domaine gwangmeu.com (ajouter les DNS MX/SPF/DKIM)
+  # 2. Verifier le domaine gwouangmeu.com (ajouter les DNS MX/SPF/DKIM)
   # 3. Generer une API Key et la mettre dans RESEND_API_KEY
   mail:
     host: smtp.resend.com

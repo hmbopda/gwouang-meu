@@ -43,7 +43,7 @@ public class MediaService {
     @Value("${application.r2.account-id:}")
     private String accountId;
 
-    @Value("${application.r2.public-url:https://media.gwangmeu.com}")
+    @Value("${application.r2.public-url:https://media.gwouangmeu.com}")
     private String publicUrl;
 
     @Value("${application.base-url:http://localhost:8080}")

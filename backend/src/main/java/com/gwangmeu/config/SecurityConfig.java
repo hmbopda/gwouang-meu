@@ -138,8 +138,8 @@ public class SecurityConfig {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOriginPatterns(List.of(
                 "http://localhost:*",      // Flutter web, Next.js, Vite, Swagger (tout port local)
-                "https://gwangmeu.com",
-                "https://app.gwangmeu.com",
+                "https://gwouangmeu.com",
+                "https://app.gwouangmeu.com",
                 "https://hmbopda.github.io",  // Build web hébergé sur GitHub Pages
                 "https://*.trycloudflare.com", // Tunnel de démo (exposition temporaire)
                 "https://gwangmeu-app.pages.dev",   // Cloudflare Pages (production)

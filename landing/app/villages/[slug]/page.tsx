@@ -24,7 +24,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const village = await fetchVillageBySlug(params.slug);
   if (!village) return { title: 'Village introuvable' };
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://gwangmeu.com';
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://gwouangmeu.com';
 
   return {
     title: `${village.name} — Histoire et Culture`,
@@ -48,9 +48,9 @@ export default async function VillageDetailPage({ params }: Props) {
   const village = await fetchVillageBySlug(params.slug);
   if (!village) notFound();
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://gwangmeu.com';
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://gwouangmeu.com';
   const pageUrl = `${siteUrl}/villages/${params.slug}`;
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.gwangmeu.com';
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.gwouangmeu.com';
 
   return (
     <>

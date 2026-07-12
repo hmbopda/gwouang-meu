@@ -70,7 +70,7 @@ Corrections apportées localement aux workflows (résumé) :
 - Le **token projet** Railway étant scopé projet + environnement, les secrets
   `RAILWAY_PROJECT_ID_STAGING` / `RAILWAY_PROJECT_ID_PROD` **ne servent plus** —
   remplacés par deux tokens distincts `RAILWAY_TOKEN_STAGING` / `RAILWAY_TOKEN_PROD`.
-- Health checks : les domaines inexistants `*.gwangmeu.com` sont remplacés par les
+- Health checks : les domaines inexistants `*.gwouangmeu.com` sont remplacés par les
   secrets **`APP_HEALTH_URL_STAGING`** / **`APP_HEALTH_URL_PROD`** (URL complète,
   `.../actuator/health`), avec boucle de retry 30 × 10 s. Si le secret est absent, le
   check est ignoré avec un warning (utile au tout premier déploiement, avant de

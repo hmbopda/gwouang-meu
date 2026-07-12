@@ -4,7 +4,7 @@ const nextConfig = {
 
   images: {
     remotePatterns: [
-      { protocol: 'https', hostname: 'api.gwangmeu.com' },
+      { protocol: 'https', hostname: 'api.gwouangmeu.com' },
       { protocol: 'https', hostname: '*.supabase.co' },
       { protocol: 'https', hostname: 'flagcdn.com' },
       { protocol: 'https', hostname: 'images.unsplash.com' },
@@ -31,7 +31,7 @@ const nextConfig = {
     return [
       {
         source: '/app',
-        destination: process.env.NEXT_PUBLIC_APP_URL || 'https://app.gwangmeu.com',
+        destination: process.env.NEXT_PUBLIC_APP_URL || 'https://app.gwouangmeu.com',
         permanent: false,
       },
     ];

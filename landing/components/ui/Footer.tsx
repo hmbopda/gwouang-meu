@@ -4,7 +4,7 @@ const LINKS = {
   Plateforme: [
     { label: 'Villages', href: '/villages' },
     { label: 'À propos', href: '/a-propos' },
-    { label: 'Rejoindre l\'app', href: process.env.NEXT_PUBLIC_APP_URL || 'https://app.gwangmeu.com' },
+    { label: 'Rejoindre l\'app', href: process.env.NEXT_PUBLIC_APP_URL || 'https://app.gwouangmeu.com' },
   ],
   Légal: [
     { label: 'Confidentialité', href: '/confidentialite' },

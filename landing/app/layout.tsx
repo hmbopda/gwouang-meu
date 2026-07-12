@@ -15,7 +15,7 @@ const plusJakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://gwangmeu.com'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://gwouangmeu.com'),
   title: {
     default: 'GWANG MEU - Patrimoine Culturel Africain',
     template: '%s | GWANG MEU',

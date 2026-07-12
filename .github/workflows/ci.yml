@@ -168,8 +168,8 @@ jobs:
         working-directory: landing
         run: |
           echo "NEXT_PUBLIC_API_URL=http://localhost:8080" > .env.local
-          echo "NEXT_PUBLIC_APP_URL=https://app.gwangmeu.com" >> .env.local
-          echo "NEXT_PUBLIC_SITE_URL=https://gwangmeu.com" >> .env.local
+          echo "NEXT_PUBLIC_APP_URL=https://app.gwouangmeu.com" >> .env.local
+          echo "NEXT_PUBLIC_SITE_URL=https://gwouangmeu.com" >> .env.local
 
       - name: Install dependencies
         working-directory: landing
@@ -184,5 +184,5 @@ jobs:
         run: npm run build
         env:
           NEXT_PUBLIC_API_URL: http://localhost:8080
-          NEXT_PUBLIC_APP_URL: https://app.gwangmeu.com
-          NEXT_PUBLIC_SITE_URL: https://gwangmeu.com
+          NEXT_PUBLIC_APP_URL: https://app.gwouangmeu.com
+          NEXT_PUBLIC_SITE_URL: https://gwouangmeu.com

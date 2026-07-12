@@ -40,7 +40,7 @@ export function VillageJsonLd({ village, url }: VillageJsonLdProps) {
 }
 
 export function WebsiteJsonLd() {
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://gwangmeu.com';
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://gwouangmeu.com';
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'WebSite',

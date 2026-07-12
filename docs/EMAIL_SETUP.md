@@ -20,7 +20,7 @@ deux endroits qui envoient des emails :
 
 ## 1. Créer / vérifier le domaine dans Resend
 
-1. Posséder un domaine (ex. `gwangmeu.com`). Recommandé : **Cloudflare Registrar** (tu es déjà
+1. Posséder un domaine (ex. `gwouangmeu.com`). Recommandé : **Cloudflare Registrar** (tu es déjà
    sur Cloudflare pour Pages → DNS au même endroit, prix coûtant).
 2. [Resend](https://resend.com) → **Domains → Add Domain** → saisir le domaine.
 3. Resend affiche 3 enregistrements DNS à créer chez ton registrar (Cloudflare DNS) :
@@ -42,12 +42,12 @@ Définir sur le service Cloud Run :
 
 | Variable | Valeur | Note |
 |---|---|---|
-| `MAIL_FROM` | `noreply@gwangmeu.com` | adresse **du domaine vérifié** |
+| `MAIL_FROM` | `noreply@gwouangmeu.com` | adresse **du domaine vérifié** |
 | `MAIL_PASSWORD` | `re_xxx` | la clé API Resend |
 | `MAIL_HOST` | `smtp.resend.com` | (défaut, sinon inutile) |
 | `MAIL_PORT` | `465` | (défaut) |
 | `MAIL_USERNAME` | `resend` | (défaut) |
-| `APP_BASE_URL` | `https://app.gwangmeu.com` | base des liens dans les emails |
+| `APP_BASE_URL` | `https://app.gwouangmeu.com` | base des liens dans les emails |
 
 ### Option robuste : API HTTP au lieu du SMTP (recommandé sur Cloud Run)
 
@@ -58,7 +58,7 @@ SMTP) au lieu du transport SMTP :
 |---|---|
 | `MAIL_PROVIDER` | `resend-api` |
 | `RESEND_API_KEY` | `re_xxx` |
-| `MAIL_FROM` | `noreply@gwangmeu.com` |
+| `MAIL_FROM` | `noreply@gwouangmeu.com` |
 
 Le code choisit automatiquement le bon transport (`EmailSender` : `SmtpEmailSender` par
 défaut, `ResendApiEmailSender` si `MAIL_PROVIDER=resend-api`).
@@ -81,7 +81,7 @@ Pour router ces emails via **ton** Resend :
 | Port | `465` |
 | Username | `resend` |
 | Password | `re_xxx` (clé API Resend) |
-| Sender email | `noreply@gwangmeu.com` |
+| Sender email | `noreply@gwouangmeu.com` |
 | Sender name | `Gwang Meu` |
 
 ### Templates (Authentication → Email Templates)
@@ -93,9 +93,9 @@ Personnaliser au minimum **Confirm signup** et **Reset password** aux couleurs G
 
 Autoriser les URL de retour utilisées par l'app (deep links P2) :
 
-- **Site URL** : `https://app.gwangmeu.com`
+- **Site URL** : `https://app.gwouangmeu.com`
 - **Redirect URLs** (ajouter chacune) :
-  - `https://app.gwangmeu.com/auth-callback`
+  - `https://app.gwouangmeu.com/auth-callback`
   - `io.supabase.gwangmeu://auth-callback` *(mobile)*
   - `http://localhost:*/auth-callback` *(dev web)*
 
@@ -106,7 +106,7 @@ Autoriser les URL de retour utilisées par l'app (deep links P2) :
 - [ ] Domaine « Verified » dans Resend (SPF/DKIM/DMARC verts).
 - [ ] Backend : créer un compte test → email **de bienvenue** reçu ; inviter dans un village →
       email **invitation village** reçu ; ligne(s) correspondante(s) dans `email_logs` (`success=true`).
-- [ ] Supabase : inscription → email de **confirmation** reçu depuis `noreply@gwangmeu.com` (pas
+- [ ] Supabase : inscription → email de **confirmation** reçu depuis `noreply@gwouangmeu.com` (pas
       Supabase) → clic → retour dans l'app (`/auth-callback`).
 - [ ] Reset mot de passe → email reçu → clic → écran « nouveau mot de passe » dans l'app.
 - [ ] Vérifier la **délivrabilité** (pas en spam) — [mail-tester.com](https://www.mail-tester.com).

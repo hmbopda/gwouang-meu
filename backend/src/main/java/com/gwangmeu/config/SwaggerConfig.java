@@ -40,11 +40,11 @@ import org.springframework.context.annotation.Configuration;
                         - Villages (creation, adhesion, hierarchie geo)
                         - Feed (publications, reactions, commentaires, moderation)
                         """,
-                contact = @Contact(name = "GWANG MEU", url = "https://gwangmeu.com")
+                contact = @Contact(name = "GWANG MEU", url = "https://gwouangmeu.com")
         ),
         servers = {
                 @Server(url = "http://localhost:8080", description = "Local Dev"),
-                @Server(url = "https://api.gwangmeu.com", description = "Production")
+                @Server(url = "https://api.gwouangmeu.com", description = "Production")
         },
         security = @SecurityRequirement(name = "BearerAuth")
 )
