@@ -289,7 +289,7 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
               Expanded(
                 child: Text(
                   'Modifier mon profil',
-                  style: GwType.display(fontSize: 21, color: t.stone),
+                  style: GwType.display(fontSize: 19, color: t.stone),
                 ),
               ),
               SizedBox(
@@ -1023,7 +1023,7 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
           options: _maritalOptions,
           onChanged: (v) => setState(() => _maritalStatus = v),
         ),
-        const SizedBox(height: 18),
+        const SizedBox(height: 12),
         _buildPillChoice(
           label: 'Regime matrimonial',
           icon: Symbols.gavel,
@@ -1031,7 +1031,7 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
           options: _regimeOptions,
           onChanged: (v) => setState(() => _matrimonialRegime = v),
         ),
-        const SizedBox(height: 18),
+        const SizedBox(height: 12),
         _buildTextField(
           controller: _childrenCountCtrl,
           label: 'Nombre d\'enfants',
@@ -1046,7 +1046,7 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
             }
           }),
         ),
-        const SizedBox(height: 18),
+        const SizedBox(height: 12),
         _buildPillChoice(
           label: 'Regime alimentaire',
           icon: Symbols.restaurant,
@@ -1552,17 +1552,17 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
 
         // Langue maternelle (visible seulement si un pays est selectionne)
         if (_selectedCountryIso != null) ...[
-          const SizedBox(height: 18),
+          const SizedBox(height: 12),
           _buildLanguagePills(context),
         ],
-        const SizedBox(height: 18),
+        const SizedBox(height: 12),
         _buildTextField(
           controller: _tribeCtrl,
           label: 'Ethnie / Tribu',
           hint: 'Ex: Bassa',
           icon: Symbols.groups,
         ),
-        const SizedBox(height: 18),
+        const SizedBox(height: 12),
         _buildClanMultiSelect(context),
       ],
     );
@@ -2441,7 +2441,7 @@ Widget _tissageDialog(
             ),
             const SizedBox(height: 16),
             ...children,
-            const SizedBox(height: 18),
+            const SizedBox(height: 12),
             for (var i = 0; i < actions.length; i++) ...[
               if (i > 0) const SizedBox(height: 10),
               actions[i],

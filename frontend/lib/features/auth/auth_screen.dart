@@ -141,24 +141,24 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   Widget _buildLoginForm(AsyncValue authState) {
     final t = GwTokens.of(context);
     return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           _buildLogo(),
-          const SizedBox(height: 28),
+          const SizedBox(height: 22),
 
           Text(
             'MBƐ́Ɛ — BIENVENUE',
             style: GwType.mono(
                 fontSize: 10, color: t.goldText, letterSpacing: 2.5),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           Text(
             _mode == AuthMode.login ? 'Connexion' : 'Mot de passe oublié',
             style: GwType.display(
-                fontSize: 28,
+                fontSize: 19,
                 fontWeight: FontWeight.w700,
                 color: t.stone,
                 height: 1.2),
@@ -170,7 +170,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                 : 'Recevez un lien de réinitialisation',
             style: GwType.ui(fontSize: 14.5, color: t.stoneMid, height: 1.5),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
 
           Form(
             key: _loginFormKey,
@@ -185,7 +185,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                   validator: _validateEmail,
                 ),
                 if (_mode != AuthMode.forgotPassword) ...[
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 10),
                   _tissageField(
                     controller: _passwordCtrl,
                     label: 'Mot de passe',
@@ -217,14 +217,14 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
               ),
             )
           else
-            const SizedBox(height: 20),
+            const SizedBox(height: 14),
 
           _goldCta(
             label: _mode == AuthMode.login ? 'Se connecter' : 'Envoyer le lien',
             loading: authState is AsyncLoading,
             onPressed: _submitLogin,
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
 
           if (_mode == AuthMode.login)
             _outlineCta(
@@ -242,9 +242,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
             ),
 
           if (_mode != AuthMode.forgotPassword) ...[
-            const SizedBox(height: 28),
+            const SizedBox(height: 22),
             _buildDividerOr(),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
             _SocialGrid(
               onTap: (provider) => ref
                   .read(authNotifierProvider.notifier)
@@ -252,7 +252,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
             ),
           ],
 
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
         ],
       ),
     );
@@ -268,7 +268,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       children: [
         // ── En-tête : retour + progression 3 segments + compteur mono ──
         Padding(
-          padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
           child: Row(
             children: [
               _backSquare(onTap: () {
@@ -278,9 +278,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                   setState(() => _mode = AuthMode.login);
                 }
               }),
-              const SizedBox(width: 14),
+              const SizedBox(width: 12),
               Expanded(child: _buildStepSegments(t)),
-              const SizedBox(width: 14),
+              const SizedBox(width: 12),
               Text(
                 '${_regStep + 1}/3',
                 style: GwType.mono(fontSize: 11, color: t.stoneFaint),
@@ -292,7 +292,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
         // ── Contenu de l'étape ──
         Expanded(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
+            padding: const EdgeInsets.fromLTRB(24, 16, 24, 22),
             child: AnimatedSwitcher(
               duration: const Duration(milliseconds: 250),
               child: [
@@ -343,16 +343,16 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
           style:
               GwType.mono(fontSize: 10, color: t.goldText, letterSpacing: 2.5),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 8),
         Text(
           title,
           style: GwType.display(
-              fontSize: 28,
+              fontSize: 19,
               fontWeight: FontWeight.w700,
               color: t.stone,
               height: 1.2),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 8),
         Text(
           subtitle,
           style: GwType.ui(fontSize: 14.5, color: t.stoneMid, height: 1.6),
@@ -377,10 +377,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
             subtitle:
                 'Votre nom relie votre mémoire à celle des vôtres. Créez votre accès en quelques instants.',
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
 
           _sectionMono('IDENTITÉ'),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
 
           _tissageField(
             controller: _regNameCtrl,
@@ -390,7 +390,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
             validator: (v) =>
                 (v == null || v.length < 2) ? 'Minimum 2 caractères' : null,
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 10),
 
           _tissageField(
             controller: _regEmailCtrl,
@@ -400,7 +400,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
             keyboardType: TextInputType.emailAddress,
             validator: _validateEmail,
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 10),
 
           _tissageField(
             controller: _regPasswordCtrl,
@@ -411,7 +411,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
             onToggleObscure: () => setState(() => _regObscure = !_regObscure),
             validator: _validatePassword,
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 10),
 
           DropdownButtonFormField<String>(
             initialValue: _regSelectedGender,
@@ -433,7 +433,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
             validator: (v) => v == null ? 'Le genre est obligatoire' : null,
           ),
 
-          const SizedBox(height: 28),
+          const SizedBox(height: 22),
 
           _goldCta(
             label: 'Continuer',
@@ -489,26 +489,26 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
             subtitle:
                 'Votre village relie votre profil à votre lignée. Vous pourrez en ajouter d\'autres ensuite.',
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
 
           _sectionMono('PAYS D\'ORIGINE'),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           _countryDropdown(t),
 
-          const SizedBox(height: 20),
+          const SizedBox(height: 14),
           _sectionMono('VILLAGE(S) D\'ORIGINE'),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           _villageSection(t),
 
           // ── Clan (facultatif) ──
           if (_regSelectedVillages.isNotEmpty) ...[
-            const SizedBox(height: 20),
+            const SizedBox(height: 14),
             _clanCard(t),
           ],
 
-          const SizedBox(height: 20),
+          const SizedBox(height: 14),
           _sectionMono('LANGUE MATERNELLE'),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           _tissageField(
             controller: _regLanguageCtrl,
             label: 'Langue native',
@@ -516,14 +516,14 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
             icon: Symbols.record_voice_over,
           ),
 
-          const SizedBox(height: 20),
+          const SizedBox(height: 14),
           _sectionMono('À PROPOS DE VOUS (FACULTATIF)'),
           const SizedBox(height: 8),
           Text(
             'Parlez de vous, de votre lien avec votre village.',
             style: GwType.ui(fontSize: 12.5, color: t.stoneDim, height: 1.5),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           _tissageField(
             controller: _regBioCtrl,
             label: 'Bio',
@@ -533,7 +533,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
             maxLength: 200,
           ),
 
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
 
           _goldCta(
             label: 'Continuer',
@@ -663,7 +663,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
               style: GwType.mono(
                   fontSize: 10, color: t.stoneFaint, letterSpacing: 1.5),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
 
             // Villages sélectionnés d'abord, puis les correspondances.
             for (final v in _regSelectedVillages)
@@ -727,8 +727,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                 },
               )
             : null,
+        isDense: true,
         contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+            const EdgeInsets.symmetric(horizontal: 13, vertical: 10),
         enabledBorder: border(t.line),
         focusedBorder: border(GwTokens.gold, 1.5),
       ),
@@ -876,7 +877,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     final clansAsync = ref.watch(clansByVillageNotifierProvider(firstVillageId));
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: t.inkCard,
         borderRadius: BorderRadius.circular(GwTokens.rCard),
@@ -890,7 +891,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
             style: GwType.mono(
                 fontSize: 10, color: t.stoneFaint, letterSpacing: 2),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           clansAsync.when(
             loading: () => LinearProgressIndicator(
               minHeight: 2,
@@ -936,14 +937,14 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                     ],
                   ),
                   if (_clanOtherSelected) ...[
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 8),
                     _clanFreeField(),
                   ],
                 ],
               );
             },
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1020,11 +1021,11 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
           title: 'Tout est prêt ?',
           subtitle: 'Vérifiez vos informations avant de créer votre compte.',
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 16),
 
         // Carte récapitulative
         Container(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: t.inkCard,
             borderRadius: BorderRadius.circular(GwTokens.rCardLg),
@@ -1048,7 +1049,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                   style: GwType.display(fontSize: 28, color: t.goldText),
                 ),
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 12),
 
               Text(
                 _regNameCtrl.text,
@@ -1072,9 +1073,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                 ),
               ),
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
               Container(height: 1, color: t.line),
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
 
               _recapRow(Symbols.mail, 'Email', _regEmailCtrl.text),
               if (_regSelectedGender != null)
@@ -1102,7 +1103,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
           ),
         ),
 
-        const SizedBox(height: 20),
+        const SizedBox(height: 14),
 
         // Boutons d'édition
         Row(
@@ -1113,7 +1114,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
           ],
         ),
 
-        const SizedBox(height: 24),
+        const SizedBox(height: 16),
 
         _goldCta(
           label: 'Créer mon compte',
@@ -1233,7 +1234,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     bool loading = false,
   }) {
     return SizedBox(
-      height: 54,
+      height: 50,
       width: double.infinity,
       child: Material(
         color: GwTokens.gold,
@@ -1282,7 +1283,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   }) {
     final t = GwTokens.of(context);
     return SizedBox(
-      height: 50,
+      height: 48,
       width: double.infinity,
       child: Material(
         color: Colors.transparent,
@@ -1384,7 +1385,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   /// Encart d'information neutre (états vides / erreurs).
   Widget _infoCard(GwTokens t, {required IconData icon, required String text}) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: t.inkCard,
         borderRadius: BorderRadius.circular(GwTokens.rCard),
@@ -1471,7 +1472,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       suffixIcon: suffix,
       counterStyle:
           GwType.mono(fontSize: 10, color: t.stoneFaint, letterSpacing: 1),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      isDense: true,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 13, vertical: 10),
       enabledBorder: border(t.line),
       focusedBorder: border(GwTokens.gold, 1.5),
       errorBorder: border(t.emberText),

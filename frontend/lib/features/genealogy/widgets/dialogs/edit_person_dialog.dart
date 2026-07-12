@@ -117,7 +117,7 @@ class _EditPersonDialogState extends ConsumerState<EditPersonDialog> {
             const Divider(height: 1),
             Flexible(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(16),
                 child: _buildForm(),
               ),
             ),
@@ -131,7 +131,7 @@ class _EditPersonDialogState extends ConsumerState<EditPersonDialog> {
 
   Widget _buildHeader() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 8, 12),
+      padding: const EdgeInsets.fromLTRB(16, 12, 8, 10),
       child: Row(
         children: [
           Icon(Icons.edit_note, color: Theme.of(context).colorScheme.primary),
@@ -159,7 +159,7 @@ class _EditPersonDialogState extends ConsumerState<EditPersonDialog> {
         children: [
           // ── Identité ──
           _sectionLabel('IDENTITÉ'),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           Row(
             children: [
               Expanded(
@@ -168,18 +168,24 @@ class _EditPersonDialogState extends ConsumerState<EditPersonDialog> {
                   decoration: const InputDecoration(
                     labelText: 'Prénom *',
                     prefixIcon: Icon(Icons.person_outline),
+                    isDense: true,
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 13, vertical: 10),
                   ),
                   validator: (v) =>
                       (v == null || v.isEmpty) ? 'Requis' : null,
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 8),
               Expanded(
                 child: TextFormField(
                   controller: _lastNameCtrl,
                   decoration: const InputDecoration(
                     labelText: 'Nom *',
                     prefixIcon: Icon(Icons.badge_outlined),
+                    isDense: true,
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 13, vertical: 10),
                   ),
                   validator: (v) =>
                       (v == null || v.isEmpty) ? 'Requis' : null,
@@ -187,13 +193,13 @@ class _EditPersonDialogState extends ConsumerState<EditPersonDialog> {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
 
           // Date + Statut
           Row(
             children: [
               Expanded(child: _dateField()),
-              const SizedBox(width: 12),
+              const SizedBox(width: 8),
               Expanded(
                 child: DropdownButtonFormField<String>(
                   key: ValueKey('status_$_status'),
@@ -201,6 +207,9 @@ class _EditPersonDialogState extends ConsumerState<EditPersonDialog> {
                   decoration: const InputDecoration(
                     labelText: 'Statut',
                     prefixIcon: Icon(Icons.favorite_outline),
+                    isDense: true,
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 13, vertical: 10),
                   ),
                   items: const [
                     DropdownMenuItem(
@@ -215,7 +224,7 @@ class _EditPersonDialogState extends ConsumerState<EditPersonDialog> {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
 
           // ── Lieu de naissance ──
           _sectionLabel('LIEU DE NAISSANCE'),
@@ -226,9 +235,12 @@ class _EditPersonDialogState extends ConsumerState<EditPersonDialog> {
               labelText: 'Lieu de naissance',
               prefixIcon: Icon(Icons.location_city_outlined),
               hintText: 'Ex: Douala, Paris, Yaoundé...',
+              isDense: true,
+              contentPadding:
+                  EdgeInsets.symmetric(horizontal: 13, vertical: 10),
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
 
           // ── Origine ──
           _sectionLabel('PAYS & VILLAGE D\'APPARTENANCE'),
@@ -243,7 +255,7 @@ class _EditPersonDialogState extends ConsumerState<EditPersonDialog> {
             }),
             onVillagesChanged: (v) => setState(() => _selectedVillages = v),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
 
           // ── Origine référentielle (ancre de la lignée — atteint Bandenkop) ──
           _sectionLabel('ORIGINE — ANCRE DE LA LIGNÉE'),
@@ -252,13 +264,13 @@ class _EditPersonDialogState extends ConsumerState<EditPersonDialog> {
             initial: _origin,
             onChanged: (sel) => _origin = sel,
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           CountrySelector(
             label: 'Pays d\'origine',
             value: _originCountry,
             onChanged: (c) => setState(() => _originCountry = c),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
 
           // ── Résidence & Profession ──
           _sectionLabel('RÉSIDENCE & PROFESSION'),
@@ -269,17 +281,23 @@ class _EditPersonDialogState extends ConsumerState<EditPersonDialog> {
               labelText: 'Lieu de résidence actuel',
               prefixIcon: Icon(Icons.home_outlined),
               hintText: 'Ex: Paris, Douala, Bruxelles...',
+              isDense: true,
+              contentPadding:
+                  EdgeInsets.symmetric(horizontal: 13, vertical: 10),
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           TextFormField(
             controller: _professionCtrl,
             decoration: const InputDecoration(
               labelText: 'Profession',
               prefixIcon: Icon(Icons.work_outline),
+              isDense: true,
+              contentPadding:
+                  EdgeInsets.symmetric(horizontal: 13, vertical: 10),
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
 
           // ── Biographie ──
           _sectionLabel('BIOGRAPHIE'),
@@ -290,9 +308,12 @@ class _EditPersonDialogState extends ConsumerState<EditPersonDialog> {
             decoration: const InputDecoration(
               labelText: 'Biographie',
               alignLabelWithHint: true,
+              isDense: true,
+              contentPadding:
+                  EdgeInsets.symmetric(horizontal: 13, vertical: 10),
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
 
           // ── Vie privée ──
           _sectionLabel('VIE PRIVÉE'),
@@ -303,6 +324,9 @@ class _EditPersonDialogState extends ConsumerState<EditPersonDialog> {
             decoration: const InputDecoration(
               labelText: 'Visibilité',
               prefixIcon: Icon(Icons.visibility_outlined),
+              isDense: true,
+              contentPadding:
+                  EdgeInsets.symmetric(horizontal: 13, vertical: 10),
             ),
             items: _privacyOptions.entries
                 .map((e) => DropdownMenuItem(
@@ -341,6 +365,9 @@ class _EditPersonDialogState extends ConsumerState<EditPersonDialog> {
             labelText: 'Date de naissance',
             prefixIcon: Icon(Icons.calendar_today_outlined),
             hintText: 'JJ/MM/AAAA',
+            isDense: true,
+            contentPadding:
+                EdgeInsets.symmetric(horizontal: 13, vertical: 10),
           ),
         ),
       ),

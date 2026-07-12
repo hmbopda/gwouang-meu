@@ -263,7 +263,7 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
             style: GwType.ui(
                 fontSize: 14, fontWeight: FontWeight.w600, color: t.stone),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           Row(
             children: [
               Expanded(
@@ -287,14 +287,14 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
               ),
             ],
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
         ],
         Text(
           'Comment souhaitez-vous proceder ?',
           style: GwType.ui(
               fontSize: 14, fontWeight: FontWeight.w600, color: t.stone),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
         _ActionTile(
           icon: Symbols.family_restroom,
           title: 'Choisir dans mon arbre',
@@ -705,7 +705,7 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const _FormSectionHeader(label: 'IDENTITÉ'),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           TextFormField(
             controller: _firstNameCtrl,
             style: GwType.ui(fontSize: 14, color: t.stone),
@@ -713,10 +713,11 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
               context,
               label: 'Prenom *',
               prefixIcon: Symbols.person,
+              dense: true,
             ),
             validator: (v) => (v == null || v.isEmpty) ? 'Requis' : null,
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           TextFormField(
             controller: _lastNameCtrl,
             style: GwType.ui(fontSize: 14, color: t.stone),
@@ -724,10 +725,11 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
               context,
               label: 'Nom *',
               prefixIcon: Symbols.badge,
+              dense: true,
             ),
             validator: (v) => (v == null || v.isEmpty) ? 'Requis' : null,
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 10),
           Text('Genre *',
               style: GwType.ui(
                   fontSize: 12,
@@ -764,7 +766,7 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
             ],
           ),
           if (widget.isParent) ...[
-            const SizedBox(height: 14),
+            const SizedBox(height: 10),
             Text('Role parental *',
                 style: GwType.ui(
                     fontSize: 12,
@@ -795,11 +797,11 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
               ],
             ),
           ],
-          const SizedBox(height: 20),
+          const SizedBox(height: 14),
 
           // ── NAISSANCE : un fait — ni origine, ni résidence ──
           const _FormSectionHeader(label: 'NAISSANCE'),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           InkWell(
             onTap: () async {
               final picked = await showDatePicker(
@@ -816,6 +818,7 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
                 context,
                 label: 'Date de naissance',
                 prefixIcon: Symbols.cake,
+                dense: true,
               ),
               child: Text(
                 _birthDate != null
@@ -828,7 +831,7 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
               ),
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           TextFormField(
             controller: _birthPlaceCtrl,
             style: GwType.ui(fontSize: 14, color: t.stone),
@@ -837,9 +840,10 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
               label: 'Lieu de naissance',
               prefixIcon: Symbols.location_city,
               hint: 'Ex: Douala, Paris, Yaoundé...',
+              dense: true,
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 14),
 
           // ── ORIGINE : c'est ici que la lignée s'ancre ──
           const _FormSectionHeader(label: 'ORIGINE — ANCRE DE LA LIGNÉE'),
@@ -848,7 +852,7 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
             'La lignée s\'ancre sur l\'origine : village, ville, région, pays.',
             style: GwType.ui(fontSize: 12, color: t.stoneDim),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           CountryVillageSelector(
             selectedCountry: _selectedCountry,
             selectedVillages: _selectedVillages,
@@ -860,20 +864,20 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
             }),
             onVillagesChanged: (v) => setState(() => _selectedVillages = v),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 10),
           // Référentiel territorial camerounais en cascade — remplace les
           // anciens champs libres Région / Ville / Village d'origine.
           OriginCascadeSelector(
             initial: _origin,
             onChanged: (sel) => _origin = sel,
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           CountrySelector(
             label: 'Pays d\'origine',
             value: _originCountry,
             onChanged: (c) => setState(() => _originCountry = c),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           Row(
             children: [
               Expanded(
@@ -903,9 +907,9 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           _buildLanguageDropdown(),
-          const SizedBox(height: 20),
+          const SizedBox(height: 14),
 
           // ── RÉSIDENCE ACTUELLE : évolution, repliée par défaut ──
           InkWell(
@@ -938,13 +942,13 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
               'Sert au droit applicable des unions.',
               style: GwType.ui(fontSize: 12, color: t.stoneDim),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             CountrySelector(
               label: 'Pays de résidence',
               value: _residenceCountry,
               onChanged: (c) => setState(() => _residenceCountry = c),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
             TextFormField(
               controller: _residenceCityCtrl,
               style: GwType.ui(fontSize: 14, color: t.stone),
@@ -953,10 +957,11 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
                 label: 'Ville de résidence',
                 prefixIcon: Symbols.home,
                 hint: 'Ex: Paris, Douala...',
+                dense: true,
               ),
             ),
           ],
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           SwitchListTile(
             title: Text('Encore en vie ?',
                 style: GwType.ui(fontSize: 14, color: t.stone)),
@@ -998,6 +1003,7 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
                   context,
                   label: 'Date de deces (optionnel)',
                   prefixIcon: Symbols.event_busy,
+                  dense: true,
                 ),
                 child: Text(
                   _deathDate != null
@@ -1351,7 +1357,7 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
           text: 'Nous avons trouve des personnes similaires. '
               'S\'agit-il de la meme personne ?',
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
         ...(_duplicateCandidates.map((person) => Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: Material(
@@ -1456,7 +1462,7 @@ class _AddPersonDialogState extends ConsumerState<AddPersonDialog> {
               'Une demande de confirmation lui sera envoyee. '
               'Vous pouvez aussi passer cette etape.',
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
         Text(
           'Conjoints',
           style: GwType.ui(

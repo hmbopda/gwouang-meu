@@ -242,7 +242,7 @@ class _AddUnionDialogState extends ConsumerState<AddUnionDialog> {
             ),
           ],
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
 
         if (_spouseMode == 'lookup') ...[
           PersonLookupWidget(
@@ -287,9 +287,9 @@ class _AddUnionDialogState extends ConsumerState<AddUnionDialog> {
                 )),
         ],
 
-        const SizedBox(height: 20),
+        const SizedBox(height: 14),
         Container(height: 1, color: t.line),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
 
         // ── Type d'union ──
         Text(
@@ -297,7 +297,7 @@ class _AddUnionDialogState extends ConsumerState<AddUnionDialog> {
           style: GwType.ui(
               fontSize: 14, fontWeight: FontWeight.w600, color: t.stone),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
 
         // Multi-select union types (pilules or)
         Wrap(
@@ -328,11 +328,11 @@ class _AddUnionDialogState extends ConsumerState<AddUnionDialog> {
             child: Text('Sélectionnez au moins un type',
                 style: GwType.ui(fontSize: 12, color: t.emberText)),
           ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
 
         // ── Régime légal & conformité par pays ──
         _buildLegalSection(t),
-        const SizedBox(height: 14),
+        const SizedBox(height: 10),
 
         // Date de début
         GestureDetector(
@@ -346,11 +346,12 @@ class _AddUnionDialogState extends ConsumerState<AddUnionDialog> {
                 label: 'Date de l\'union',
                 prefixIcon: Symbols.calendar_today,
                 hint: 'JJ/MM/AAAA',
+                dense: true,
               ),
             ),
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
 
         // ── Dot ──
         SwitchListTile(
@@ -415,7 +416,7 @@ class _AddUnionDialogState extends ConsumerState<AddUnionDialog> {
 
         // ── Info rang polygamie ──
         if (_currentUnionCount > 0) ...[
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           GwInfoBanner(
             tone: GwBannerTone.azure,
             text:
@@ -444,7 +445,7 @@ class _AddUnionDialogState extends ConsumerState<AddUnionDialog> {
             style: GwType.ui(
                 fontSize: 13, fontWeight: FontWeight.w600, color: t.stone),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
 
           // Prénom + Nom (ligne)
           Row(
@@ -478,12 +479,12 @@ class _AddUnionDialogState extends ConsumerState<AddUnionDialog> {
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
 
           // Nom de jeune fille (si épouse)
           if (_isMale)
             Padding(
-              padding: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.only(bottom: 8),
               child: TextFormField(
                 controller: _spouseMaidenNameCtrl,
                 style: GwType.ui(fontSize: 14, color: t.stone),
@@ -526,7 +527,7 @@ class _AddUnionDialogState extends ConsumerState<AddUnionDialog> {
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
 
           // Date de naissance
           GestureDetector(
@@ -545,7 +546,7 @@ class _AddUnionDialogState extends ConsumerState<AddUnionDialog> {
               ),
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
 
           // Lieu de naissance (texte libre)
           TextFormField(
@@ -559,7 +560,7 @@ class _AddUnionDialogState extends ConsumerState<AddUnionDialog> {
               dense: true,
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
 
           // Pays d'origine + Village d'appartenance
           CountryVillageSelector(
@@ -574,20 +575,20 @@ class _AddUnionDialogState extends ConsumerState<AddUnionDialog> {
             onVillagesChanged: (v) => setState(() => _spouseVillages = v),
             isDense: true,
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
 
           // Origine référentielle du conjoint (atteint Bandenkop).
           OriginCascadeSelector(
             initial: _spouseOrigin,
             onChanged: (sel) => _spouseOrigin = sel,
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           CountrySelector(
             label: 'Pays d\'origine',
             value: _spouseOriginCountry,
             onChanged: (c) => setState(() => _spouseOriginCountry = c),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
 
           // Langue + Religion
           Row(
@@ -608,7 +609,7 @@ class _AddUnionDialogState extends ConsumerState<AddUnionDialog> {
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
 
           // Profession + Résidence
           Row(
@@ -641,7 +642,7 @@ class _AddUnionDialogState extends ConsumerState<AddUnionDialog> {
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
 
           // Vivant(e) ?
           SwitchListTile(
@@ -660,7 +661,7 @@ class _AddUnionDialogState extends ConsumerState<AddUnionDialog> {
           // Contact + invitation (seulement si vivant)
           if (_spouseIsAlive) ...[
             Container(height: 1, color: t.line),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             Text(
               'Contact (pour invitation)',
               style: GwType.ui(
@@ -847,7 +848,7 @@ class _AddUnionDialogState extends ConsumerState<AddUnionDialog> {
           'conformité au droit civil du pays de résidence.',
           style: GwType.ui(fontSize: 12, color: t.stoneDim, height: 1.4),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 8),
 
         // Pays de célébration / résidence — 241 pays → sélecteur avec recherche.
         CountrySelector(
@@ -855,7 +856,7 @@ class _AddUnionDialogState extends ConsumerState<AddUnionDialog> {
           value: _legalCountry,
           onChanged: (c) => setState(() => _legalCountry = c),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
 
         // Régime en pilules (Polygamie civile masquée si interdite)
         Wrap(
@@ -870,7 +871,7 @@ class _AddUnionDialogState extends ConsumerState<AddUnionDialog> {
                   ))
               .toList(),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
 
         _complianceBanner(t, rule),
       ],

@@ -108,7 +108,7 @@ class _EditVillageScreenState extends ConsumerState<EditVillageScreen> {
               child: Form(
                 key: _formKey,
                 child: ListView(
-                  padding: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.all(16),
                   children: [
                     // Description
                     VillageFormField(
@@ -119,7 +119,7 @@ class _EditVillageScreenState extends ConsumerState<EditVillageScreen> {
                       maxLines: 4,
                       maxLength: 2000,
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
 
                     // URL image de couverture
                     VillageFormField(
@@ -129,7 +129,7 @@ class _EditVillageScreenState extends ConsumerState<EditVillageScreen> {
                       icon: Symbols.image,
                       keyboardType: TextInputType.url,
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
 
                     // Année de fondation & population
                     Row(
@@ -145,7 +145,7 @@ class _EditVillageScreenState extends ConsumerState<EditVillageScreen> {
                             inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                           ),
                         ),
-                        const SizedBox(width: 12),
+                        const SizedBox(width: 8),
                         Expanded(
                           child: VillageFormField(
                             controller: _populationCtrl,
@@ -158,7 +158,7 @@ class _EditVillageScreenState extends ConsumerState<EditVillageScreen> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
 
                     // Résumé historique
                     VillageFormField(
@@ -169,7 +169,7 @@ class _EditVillageScreenState extends ConsumerState<EditVillageScreen> {
                       maxLines: 8,
                       maxLength: 5000,
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
 
                     // Aperçu de la couverture
                     if (_coverCtrl.text.trim().isNotEmpty) ...[
@@ -209,7 +209,7 @@ class _EditVillageScreenState extends ConsumerState<EditVillageScreen> {
                       ),
                     ],
 
-                    const SizedBox(height: 40),
+                    const SizedBox(height: 22),
                   ],
                 ),
               ),
@@ -243,7 +243,7 @@ class _EditVillageScreenState extends ConsumerState<EditVillageScreen> {
               'Modifier ${widget.village.name}',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: GwType.display(fontSize: 20, color: t.stone),
+              style: GwType.display(fontSize: 18, color: t.stone),
             ),
           ),
           const SizedBox(width: 10),

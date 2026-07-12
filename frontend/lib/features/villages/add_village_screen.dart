@@ -39,7 +39,7 @@ class AddVillageScreen extends ConsumerWidget {
             const _Header(),
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 40),
                 children: [
                   // ── Section : rechercher n'importe quelle chefferie ──
                   const _SectionLabel(
@@ -47,10 +47,10 @@ class AddVillageScreen extends ConsumerWidget {
                     subtitle:
                         'Tapez le nom d\'une chefferie (ex : Bandenkop). Vous la fondez et la rejoignez en un geste.',
                   ),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 10),
                   const _ChefferieSearchSection(),
 
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 22),
 
                   // ── Section : villages hérités ──
                   const _SectionLabel(
@@ -58,7 +58,7 @@ class AddVillageScreen extends ConsumerWidget {
                     subtitle:
                         'Un membre de votre famille y appartient déjà — vous y êtes admis automatiquement.',
                   ),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 10),
                   eligibleAsync.when(
                     loading: () => const _SectionLoader(),
                     error: (e, _) => _SectionError(
@@ -75,7 +75,7 @@ class AddVillageScreen extends ConsumerWidget {
                         children: [
                           for (final v in villages)
                             Padding(
-                              padding: const EdgeInsets.only(bottom: 12),
+                              padding: const EdgeInsets.only(bottom: 8),
                               child: _EligibleCard(village: v),
                             ),
                         ],
@@ -83,11 +83,11 @@ class AddVillageScreen extends ConsumerWidget {
                     },
                   ),
 
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 22),
 
                   // ── Section : invitations reçues ──
                   const _SectionLabel(label: 'Invitations reçues'),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 10),
                   invitationsAsync.when(
                     loading: () => const _SectionLoader(),
                     error: (e, _) => _SectionError(
@@ -110,7 +110,7 @@ class AddVillageScreen extends ConsumerWidget {
                         children: [
                           for (final inv in shown)
                             Padding(
-                              padding: const EdgeInsets.only(bottom: 12),
+                              padding: const EdgeInsets.only(bottom: 8),
                               child: _InvitationCard(invitation: inv),
                             ),
                         ],
@@ -118,7 +118,7 @@ class AddVillageScreen extends ConsumerWidget {
                     },
                   ),
 
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 22),
 
                   // ── Pied : fonder un nouveau village ──
                   Center(
@@ -322,6 +322,7 @@ class _ChefferieSearchSectionState
             prefixIcon: Icon(Symbols.search, size: 20, color: t.stoneDim),
             filled: true,
             fillColor: t.inkLift,
+            isDense: true,
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(GwTokens.rBtn),
               borderSide: BorderSide(color: t.line),
@@ -331,21 +332,21 @@ class _ChefferieSearchSectionState
               borderSide: const BorderSide(color: GwTokens.gold),
             ),
             contentPadding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                const EdgeInsets.symmetric(horizontal: 13, vertical: 10),
           ),
         ),
         if (_loading) ...[
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           const _SectionLoader(),
         ] else if (_results.isNotEmpty) ...[
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           for (final c in _results)
             Padding(
-              padding: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.only(bottom: 8),
               child: _chefferieRow(t, c),
             ),
         ] else if (_ctrl.text.trim().length >= 2) ...[
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           const _EmptyBlock(
             icon: Symbols.search_off,
             message: 'Aucune chefferie trouvée',
@@ -490,7 +491,7 @@ class _EligibleCardState extends ConsumerState<_EligibleCard> {
               ),
             ],
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 10),
           _GoldButton(
             label: 'Rejoindre',
             loading: _loading,
@@ -585,7 +586,7 @@ class _InvitationCardState extends ConsumerState<_InvitationCard> {
             overflow: TextOverflow.ellipsis,
           ),
           if (message != null && message.isNotEmpty) ...[
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -598,7 +599,7 @@ class _InvitationCardState extends ConsumerState<_InvitationCard> {
               ),
             ),
           ],
-          const SizedBox(height: 14),
+          const SizedBox(height: 10),
           Row(
             children: [
               Expanded(
@@ -645,7 +646,7 @@ class _Card extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = GwTokens.of(context);
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: t.inkCard,
         borderRadius: BorderRadius.circular(GwTokens.rCard),
@@ -718,7 +719,7 @@ class _EmptyBlock extends StatelessWidget {
     final t = GwTokens.of(context);
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
+      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(GwTokens.rCard),
         border: Border.all(color: t.line),
@@ -726,7 +727,7 @@ class _EmptyBlock extends StatelessWidget {
       child: Column(
         children: [
           Icon(icon, size: 30, color: t.stoneFaint),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           Text(
             message,
             textAlign: TextAlign.center,
@@ -745,7 +746,7 @@ class _SectionLoader extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = GwTokens.of(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 24),
+      padding: const EdgeInsets.symmetric(vertical: 20),
       child: Center(
         child: SizedBox(
           width: 24,
@@ -767,7 +768,7 @@ class _SectionError extends StatelessWidget {
     final t = GwTokens.of(context);
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(GwTokens.rCard),
         border: Border.all(color: t.line),

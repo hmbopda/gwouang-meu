@@ -388,18 +388,19 @@ InputDecoration gwInputDecoration(
     labelText: label,
     hintText: hint,
     alignLabelWithHint: alignLabelWithHint,
-    labelStyle: GwType.ui(fontSize: 14, color: t.stoneDim),
-    floatingLabelStyle: GwType.ui(fontSize: 13, color: t.goldText),
-    hintStyle: GwType.ui(fontSize: 14, color: t.stoneDim),
+    labelStyle: GwType.ui(fontSize: 13.5, color: t.stoneDim),
+    floatingLabelStyle: GwType.ui(fontSize: 12.5, color: t.goldText),
+    hintStyle: GwType.ui(fontSize: 13.5, color: t.stoneDim),
     prefixIcon: prefixIcon != null
-        ? Icon(prefixIcon, size: 20, color: t.stoneDim)
+        ? Icon(prefixIcon, size: 19, color: t.stoneDim)
         : null,
+    prefixIconConstraints: const BoxConstraints(minWidth: 42, minHeight: 40),
     suffixIcon: suffixIcon,
     filled: true,
     fillColor: t.inkLift,
-    isDense: dense,
+    isDense: true,
     contentPadding:
-        EdgeInsets.symmetric(horizontal: 14, vertical: dense ? 12 : 14),
+        EdgeInsets.symmetric(horizontal: 13, vertical: dense ? 10 : 12),
     border: border(t.line),
     enabledBorder: border(t.line),
     focusedBorder: border(t.goldLine, 1.4),

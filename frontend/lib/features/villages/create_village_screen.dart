@@ -84,7 +84,7 @@ class VillageFormField extends StatelessWidget {
             prefixIcon: maxLines == 1
                 ? Icon(icon, size: 20, color: t.stoneDim)
                 : Padding(
-                    padding: const EdgeInsets.only(top: 14, left: 12, right: 12),
+                    padding: const EdgeInsets.only(top: 11, left: 12, right: 12),
                     child: Icon(icon, size: 20, color: t.stoneDim),
                   ),
             prefixIconConstraints: maxLines == 1
@@ -93,7 +93,7 @@ class VillageFormField extends StatelessWidget {
             filled: true,
             fillColor: t.inkLift,
             contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                const EdgeInsets.symmetric(horizontal: 13, vertical: 10),
             border: border(t.line),
             enabledBorder: border(t.line),
             focusedBorder: border(GwTokens.gold, 1.5),
@@ -188,7 +188,7 @@ class _CreateVillageScreenState extends ConsumerState<CreateVillageScreen> {
             _header(t),
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(16),
                 child: Form(
                   key: _formKey,
                   child: Column(
@@ -196,7 +196,7 @@ class _CreateVillageScreenState extends ConsumerState<CreateVillageScreen> {
                     children: [
                       // Encart d'introduction
                       Container(
-                        padding: const EdgeInsets.all(16),
+                        padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
                           color: t.goldBg,
                           borderRadius: BorderRadius.circular(GwTokens.rCard),
@@ -217,7 +217,7 @@ class _CreateVillageScreenState extends ConsumerState<CreateVillageScreen> {
                           ],
                         ),
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 16),
 
                       // Nom *
                       VillageFormField(
@@ -228,7 +228,7 @@ class _CreateVillageScreenState extends ConsumerState<CreateVillageScreen> {
                         validator: (v) =>
                             v == null || v.trim().length < 2 ? 'Minimum 2 caractères' : null,
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 12),
 
                       // Pays *
                       CountrySelector(
@@ -248,7 +248,7 @@ class _CreateVillageScreenState extends ConsumerState<CreateVillageScreen> {
                             style: GwType.ui(fontSize: 12, color: GwTokens.ember),
                           ),
                         ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 12),
 
                       // Région
                       VillageFormField(
@@ -257,7 +257,7 @@ class _CreateVillageScreenState extends ConsumerState<CreateVillageScreen> {
                         hint: 'ex : Centre, Littoral, Ouest…',
                         icon: Symbols.map,
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 12),
 
                       // Dialecte
                       VillageFormField(
@@ -266,7 +266,7 @@ class _CreateVillageScreenState extends ConsumerState<CreateVillageScreen> {
                         hint: 'ex : Bassa, Beti, Bamoun…',
                         icon: Symbols.record_voice_over,
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 12),
 
                       // Description
                       VillageFormField(
@@ -276,7 +276,7 @@ class _CreateVillageScreenState extends ConsumerState<CreateVillageScreen> {
                         icon: Symbols.notes,
                         maxLines: 4,
                       ),
-                      const SizedBox(height: 32),
+                      const SizedBox(height: 22),
 
                       // Bouton or plein
                       SizedBox(
@@ -339,7 +339,7 @@ class _CreateVillageScreenState extends ConsumerState<CreateVillageScreen> {
               'Créer un village',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: GwType.display(fontSize: 20, color: t.stone),
+              style: GwType.display(fontSize: 19, color: t.stone),
             ),
           ),
         ],
