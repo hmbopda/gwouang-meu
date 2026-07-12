@@ -14,6 +14,10 @@ import 'package:gwangmeu/shared/models/chat_group_model.dart';
 import 'package:gwangmeu/shared/models/chat_message_model.dart';
 import 'package:gwangmeu/shared/widgets/error_widget.dart';
 import 'package:gwangmeu/features/chat/chat_notifier.dart';
+import 'package:gwangmeu/features/genealogy/genealogy_notifier.dart';
+import 'package:gwangmeu/features/genealogy/models/family_tree.dart';
+import 'package:gwangmeu/features/genealogy/models/person_genealogy.dart';
+import 'package:gwangmeu/features/genealogy/services/genealogy_api_service.dart';
 import 'package:gwangmeu/features/profile/profile_notifier.dart';
 import 'package:gwangmeu/features/villages/villages_notifier.dart';
 import 'package:gwangmeu/features/villages/services/village_governance_service.dart';
@@ -2209,125 +2213,45 @@ class _MapCtrlBtn extends StatelessWidget {
 
 // ── Dynasty Timeline ──
 
+/// Ligne dynastique du village. La succession des chefs n'est pas encore
+/// modélisée côté données : plutôt que d'inventer une dynastie, on affiche un
+/// état honnête tant que rien n'a été documenté pour ce village.
 class _DynastyTimeline extends StatelessWidget {
   const _DynastyTimeline({this.extended = false});
   final bool extended;
 
-  static const _chiefs = [
-    _ChiefData('BA', 'Bassa I', '1847–1882', _ChiefType.past),
-    _ChiefData('NJ', 'Njoh II', '1882–1911', _ChiefType.past),
-    _ChiefData('LK', 'Likoko III', '1911–1946', _ChiefType.past),
-    _ChiefData('MB', 'Mbopda IV', '1946–1970', _ChiefType.ancestor),
-    _ChiefData('NK', 'Njock V', '1970–1993', _ChiefType.past),
-    _ChiefData('NK', 'Nkoulou VI', '1993–2008', _ChiefType.ancestor),
-    _ChiefData('ND', 'Ndoumbe II', '2008 — auj.', _ChiefType.current),
-  ];
-
   @override
   Widget build(BuildContext context) {
     final t = GwTokens.of(context);
-    return SizedBox(
-      height: extended ? 140 : 120,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-        itemCount: _chiefs.length,
-        separatorBuilder: (_, __) => Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 2),
-            child: Center(
-                child: Text('›',
-                    style: TextStyle(fontSize: 14, color: t.stoneFaint)))),
-        itemBuilder: (_, i) => _ChiefNode(chief: _chiefs[i]),
+    return Container(
+      margin: EdgeInsets.symmetric(horizontal: extended ? 24 : 0),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: t.inkCard,
+        borderRadius: BorderRadius.circular(GwTokens.rCard),
+        border: Border.all(color: t.line),
       ),
-    );
-  }
-}
-
-enum _ChiefType { past, ancestor, current }
-
-class _ChiefData {
-  const _ChiefData(this.initials, this.name, this.years, this.type);
-  final String initials, name, years;
-  final _ChiefType type;
-}
-
-class _ChiefNode extends StatelessWidget {
-  const _ChiefNode({required this.chief});
-  final _ChiefData chief;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = GwTokens.of(context);
-    final isCurrent = chief.type == _ChiefType.current;
-    final isAncestor = chief.type == _ChiefType.ancestor;
-    final size = isCurrent ? 54.0 : 44.0;
-
-    Color bgColor, borderColor, textColor;
-    if (isCurrent) {
-      bgColor = t.goldBg;
-      borderColor = GwTokens.gold;
-      textColor = t.goldText;
-    } else if (isAncestor) {
-      bgColor = t.goldBg;
-      borderColor = t.goldLine;
-      textColor = t.goldText;
-    } else {
-      bgColor = t.inkLift;
-      borderColor = t.lineMid;
-      textColor = t.stoneDim;
-    }
-
-    return SizedBox(
-      width: 80,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+      child: Row(
         children: [
-          Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Container(
-                width: size,
-                height: size,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: bgColor,
-                  border:
-                      Border.all(color: borderColor, width: isCurrent ? 1.5 : 1),
-                  boxShadow: isCurrent
-                      ? [
-                          BoxShadow(
-                              color: t.goldGlow, blurRadius: 16)
-                        ]
-                      : null,
-                ),
-                child: Center(
-                    child: Text(chief.initials,
-                        style: GwType.display(
-                            fontSize: isCurrent ? 17 : 14,
-                            fontWeight: FontWeight.w500,
-                            color: textColor))),
-              ),
-              if (isCurrent)
-                const Positioned(
-                    top: -14,
-                    left: 0,
-                    right: 0,
-                    child: Center(
-                        child: Text('👑', style: TextStyle(fontSize: 14)))),
-            ],
+          Icon(Symbols.history_edu, size: 20, color: t.stoneDim),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Ligne dynastique non renseignée',
+                    style: GwType.ui(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w600,
+                        color: t.stone)),
+                const SizedBox(height: 3),
+                Text(
+                    'La succession des chefs de ce village n\'a pas encore été documentée.',
+                    style:
+                        GwType.ui(fontSize: 12, color: t.stoneDim, height: 1.4)),
+              ],
+            ),
           ),
-          const SizedBox(height: 6),
-          Text(chief.name,
-              style: GwType.ui(
-                  fontSize: 11,
-                  fontWeight: isCurrent ? FontWeight.w600 : FontWeight.w400,
-                  color: isCurrent ? t.goldText : t.stoneMid),
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis),
-          Text(chief.years,
-              style: GwType.mono(fontSize: 9, color: t.stoneFaint),
-              textAlign: TextAlign.center),
         ],
       ),
     );
@@ -2804,31 +2728,75 @@ class _FiliationTree extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Ligne de filiation construite depuis la LIGNÉE RÉELLE de l'utilisateur
+    // (getMyPerson → familyTree) : vous → parents → aïeuls. Rien d'inventé.
+    final meAsync = ref.watch(genealogyNotifierProvider);
+    return meAsync.when(
+      loading: () => _loader(context),
+      error: (_, __) => _empty(context),
+      data: (me) {
+        final treeAsync = ref.watch(familyTreeProvider(me.id));
+        return treeAsync.when(
+          loading: () => _loader(context),
+          error: (_, __) => _empty(context),
+          data: (tree) => _content(context, tree),
+        );
+      },
+    );
+  }
+
+  Widget _content(BuildContext context, FamilyTree tree) {
     final t = GwTokens.of(context);
+    final me = tree.subject;
+    final father = tree.father.isNotEmpty ? tree.father.first : null;
+    final mother = tree.mother.isNotEmpty ? tree.mother.first : null;
+    final patGP = tree.paternalGP;
+    final matGP = tree.maternalGP;
+    final ascendants = <PersonGenealogy>[
+      if (father != null) father,
+      if (mother != null) mother,
+      ...patGP,
+      ...matGP,
+    ];
+
+    if (ascendants.isEmpty) return _empty(context);
+
+    Widget gpNode(PersonGenealogy gp) => _filNode(
+        context, _ini(gp), _full(gp), 'Aïeul·e',
+        gp.isAlive ? 'Vivant·e' : 'In memoriam',
+        GwTokens.sageBg, GwTokens.sageLine, t.sageText);
+
+    final parentBlock = <Widget>[];
+    if (father != null) {
+      parentBlock.add(_filNode(
+          context, _ini(father), _full(father), 'Père',
+          father.isAlive ? 'Vivant' : 'In memoriam',
+          GwTokens.azureBg, GwTokens.azureLine, t.azureText,
+          isMine: true));
+      if (patGP.isNotEmpty) {
+        parentBlock.add(const SizedBox(height: 6));
+        parentBlock.add(_indentWrap(context, patGP.map(gpNode).toList()));
+      }
+    }
+    if (mother != null) {
+      if (parentBlock.isNotEmpty) parentBlock.add(const SizedBox(height: 6));
+      parentBlock.add(_filNode(
+          context, _ini(mother), _full(mother), 'Mère',
+          mother.isAlive ? 'Vivante' : 'In memoriam',
+          GwTokens.emberBg, GwTokens.emberLine, t.emberText));
+      if (matGP.isNotEmpty) {
+        parentBlock.add(const SizedBox(height: 6));
+        parentBlock.add(_indentWrap(context, matGP.map(gpNode).toList()));
+      }
+    }
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
       child: Column(
         children: [
-          _filNode(context, 'SM', 'Stéphane Mbopda', 'Vous', 'Fondateur',
-              t.goldBg, t.goldLine, t.goldText,
-              isMine: true),
-          _indentWrap(context, [
-            _filNode(context, 'EM', 'Emmanuel Mbopda', 'Père', 'Résident',
-                GwTokens.azureBg, GwTokens.azureLine, t.azureText,
-                isMine: true),
-            const SizedBox(height: 6),
-            Opacity(
-              opacity: 0.6,
-              child: _filNode(context, 'MN', 'Marie Njock', 'Mère', '🔒',
-                  GwTokens.emberBg, GwTokens.emberLine, t.emberText),
-            ),
-            const SizedBox(height: 6),
-            _indentWrap(context, [
-              _filNode(context, 'DM', 'Daniel Mbopda', 'Gd-père', 'Fondateur',
-                  GwTokens.sageBg, GwTokens.sageLine, t.sageText,
-                  isMine: true),
-            ]),
-          ]),
+          _filNode(context, _ini(me), _full(me), 'Vous', 'Moi',
+              t.goldBg, t.goldLine, t.goldText, isMine: true),
+          if (parentBlock.isNotEmpty) _indentWrap(context, parentBlock),
           const SizedBox(height: 10),
           Container(
             padding: const EdgeInsets.all(10),
@@ -2837,16 +2805,92 @@ class _FiliationTree extends ConsumerWidget {
                 borderRadius: BorderRadius.circular(GwTokens.rBtn),
                 border: Border.all(color: GwTokens.sageLine)),
             child: Row(children: [
-              Icon(Symbols.check_circle, size: 14, color: t.sageText),
+              Icon(Symbols.account_tree, size: 14, color: t.sageText),
               const SizedBox(width: 8),
-              Text('3 liens confirmés · accès validé',
-                  style: GwType.ui(fontSize: 12, color: t.sageText)),
+              Expanded(
+                child: Text(
+                    '${ascendants.length} ascendant${ascendants.length > 1 ? 's' : ''} dans votre lignée',
+                    style: GwType.ui(fontSize: 12, color: t.sageText)),
+              ),
             ]),
           ),
         ],
       ),
     );
   }
+
+  Widget _loader(BuildContext context) {
+    final t = GwTokens.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
+      child: Row(children: [
+        SizedBox(
+            width: 16,
+            height: 16,
+            child:
+                CircularProgressIndicator(strokeWidth: 2, color: t.goldText)),
+        const SizedBox(width: 10),
+        Text('Chargement de votre lignée…',
+            style: GwType.ui(fontSize: 12, color: t.stoneDim)),
+      ]),
+    );
+  }
+
+  Widget _empty(BuildContext context) {
+    final t = GwTokens.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+            color: t.inkCard,
+            borderRadius: BorderRadius.circular(GwTokens.rCard),
+            border: Border.all(color: t.line)),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(children: [
+              Icon(Symbols.account_tree, size: 16, color: t.stoneDim),
+              const SizedBox(width: 8),
+              Text('Lignée à compléter',
+                  style: GwType.ui(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: t.stone)),
+            ]),
+            const SizedBox(height: 6),
+            Text(
+                'Ajoutez vos parents et aïeuls dans votre arbre pour voir votre ligne de filiation ici.',
+                style: GwType.ui(fontSize: 12, color: t.stoneDim, height: 1.5)),
+            const SizedBox(height: 10),
+            GestureDetector(
+              onTap: () => context.go(Routes.genealogy),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                Icon(Symbols.arrow_forward, size: 15, color: t.goldText),
+                const SizedBox(width: 6),
+                Text('Ouvrir mon arbre',
+                    style: GwType.ui(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                        color: t.goldText)),
+              ]),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _ini(PersonGenealogy p) {
+    final f = p.firstName.trim();
+    final l = p.lastName.trim();
+    final s = ((f.isNotEmpty ? f[0] : '') + (l.isNotEmpty ? l[0] : ''))
+        .toUpperCase();
+    return s.isEmpty ? '?' : s;
+  }
+
+  String _full(PersonGenealogy p) => '${p.firstName} ${p.lastName}'.trim();
 
   Widget _filNode(BuildContext context, String initials, String name,
       String rel, String tag, Color bg, Color border, Color text,

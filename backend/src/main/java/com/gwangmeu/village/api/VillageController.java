@@ -269,6 +269,14 @@ public class VillageController {
         Village village = villageService.findById(villageId)
                 .orElseThrow(() -> new EntityNotFoundException("Village introuvable : " + villageId));
 
+        // Un village materialise depuis le referentiel (chefferie) n'a PAS de chef
+        // traditionnel designe : le fondateur n'en est que l'administrateur. On ne
+        // presente donc personne comme chef tant qu'aucun chef n'est explicitement
+        // renseigne (evite d'inventer un chef, ex. Bandenkop).
+        if (village.getChefferieId() != null) {
+            return ResponseEntity.noContent().build();
+        }
+
         UUID creatorId = village.getCreatorId();
         if (creatorId == null) {
             return ResponseEntity.noContent().build();
