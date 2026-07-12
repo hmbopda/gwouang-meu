@@ -38,6 +38,7 @@ import org.springframework.web.bind.annotation.*;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -126,6 +127,27 @@ public class VillageController {
         }
         Village village = villageService.foundFromChefferie(UUID.fromString(raw), userId);
         return ResponseEntity.ok(ApiResponse.ok(villageMapper.toDto(village), "Village rejoint"));
+    }
+
+    @PostMapping("/from-origin")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Rejoindre son village d'origine",
+            description = "Materialise et rejoint le village correspondant a l'origine referentielle "
+                    + "de l'utilisateur (nom + region + pays). Reponse 200 avec data=null si aucune "
+                    + "origine renseignee ou aucune chefferie correspondante. Idempotent.")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Village d'origine rejoint (ou null)"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Non authentifie")
+    })
+    public ResponseEntity<ApiResponse<VillageDto>> foundFromOrigin(@CurrentUser Jwt jwt) {
+        UUID userId = resolveUserId(jwt);
+        Optional<Village> village = villageService.foundFromOrigin(userId);
+        if (village.isPresent()) {
+            return ResponseEntity.ok(ApiResponse.ok(
+                    villageMapper.toDto(village.get()), "Village d'origine rejoint"));
+        }
+        VillageDto none = null;
+        return ResponseEntity.ok(ApiResponse.ok(none, "Aucun village d'origine"));
     }
 
     @GetMapping("/{villageId}")

@@ -3,6 +3,8 @@ package com.gwangmeu.village.application;
 import com.gwangmeu.geo.domain.Chefferie;
 import com.gwangmeu.geo.dto.ChefferieDto;
 import com.gwangmeu.geo.infrastructure.ChefferieRepository;
+import com.gwangmeu.user.User;
+import com.gwangmeu.user.UserRepository;
 import com.gwangmeu.village.domain.Village;
 import com.gwangmeu.village.domain.VillageSubscription;
 import com.gwangmeu.village.events.UserJoinedVillageEvent;
@@ -28,6 +30,7 @@ class VillageServiceImpl implements VillageService {
     private final VillageRepository villageRepository;
     private final VillageSubscriptionRepository subscriptionRepository;
     private final ChefferieRepository chefferieRepository;
+    private final UserRepository userRepository;
     private final ApplicationEventPublisher eventPublisher;
 
     @Override
@@ -122,6 +125,32 @@ class VillageServiceImpl implements VillageService {
             join(userId, village.getId(), VillageSubscription.SubscriptionType.MEMBER);
         }
         return village;
+    }
+
+    @Override
+    public Optional<Village> foundFromOrigin(UUID userId) {
+        User user = userRepository.findById(userId).orElse(null);
+        if (user == null) {
+            return Optional.empty();
+        }
+        String name = user.getOriginVillage();
+        String country = user.getOriginCountry();
+        if (name == null || name.isBlank() || country == null || country.isBlank()) {
+            return Optional.empty();
+        }
+        // Résolution floue de la chefferie d'origine (accent/faute-tolérante),
+        // filtrée sur la région d'origine quand disponible.
+        List<Chefferie> matches = chefferieRepository.searchGlobalFuzzy(country, name.trim(), 5);
+        if (matches.isEmpty()) {
+            return Optional.empty();
+        }
+        String region = user.getOriginRegion();
+        Chefferie chosen = matches.stream()
+                .filter(c -> region == null || region.isBlank()
+                        || region.equalsIgnoreCase(c.getRegionName()))
+                .findFirst()
+                .orElse(matches.get(0));
+        return Optional.of(foundFromChefferie(chosen.getId(), userId));
     }
 
     @Override

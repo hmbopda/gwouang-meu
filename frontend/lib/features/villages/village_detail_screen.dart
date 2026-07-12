@@ -517,16 +517,22 @@ class _CenterPanelState extends ConsumerState<_CenterPanel>
           if (MediaQuery.sizeOf(context).width < 800)
             Padding(
               padding: const EdgeInsets.only(bottom: 12),
-              child: GestureDetector(
-                onTap: () => Navigator.of(context).maybePop(),
-                child: Row(
-                  children: [
-                    Icon(Symbols.arrow_back, color: t.stoneMid, size: 20),
-                    const SizedBox(width: 6),
-                    Text('Retour',
-                        style: GwType.ui(fontSize: 13, color: t.stoneMid)),
-                  ],
-                ),
+              child: Row(
+                children: [
+                  GestureDetector(
+                    onTap: () => Navigator.of(context).maybePop(),
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      Icon(Symbols.arrow_back, color: t.stoneMid, size: 20),
+                      const SizedBox(width: 6),
+                      Text('Retour',
+                          style: GwType.ui(fontSize: 13, color: t.stoneMid)),
+                    ]),
+                  ),
+                  const Spacer(),
+                  // Sélecteur de village (mobile) : bascule entre tous les
+                  // villages de l'utilisateur, comme le panneau gauche desktop.
+                  _MobileVillageSwitcher(currentId: v.id),
+                ],
               ),
             ),
           // Méta mono : région / pays
@@ -693,6 +699,109 @@ class _FollowButtonState extends ConsumerState<_FollowButton> {
         ),
       ),
     );
+  }
+}
+
+/// Sélecteur de village (mobile) : liste les villages de l'utilisateur et
+/// permet de basculer vers la fiche d'un autre village. Masqué si < 2 villages.
+class _MobileVillageSwitcher extends ConsumerWidget {
+  const _MobileVillageSwitcher({required this.currentId});
+  final String currentId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = GwTokens.of(context);
+    final mine = ref.watch(myVillagesNotifierProvider).valueOrNull ?? const [];
+    if (mine.length < 2) return const SizedBox.shrink();
+    return Material(
+      color: t.inkLift,
+      borderRadius: BorderRadius.circular(GwTokens.rPill),
+      child: InkWell(
+        onTap: () => _open(context, ref, mine),
+        borderRadius: BorderRadius.circular(GwTokens.rPill),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(GwTokens.rPill),
+            border: Border.all(color: t.line),
+          ),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            Icon(Symbols.swap_horiz, size: 15, color: t.goldText),
+            const SizedBox(width: 6),
+            Text('Changer',
+                style: GwType.ui(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: t.stoneMid)),
+          ]),
+        ),
+      ),
+    );
+  }
+
+  void _open(BuildContext context, WidgetRef ref, List<VillageModel> mine) {
+    showGwDialog(context, builder: (dctx) {
+      final t = GwTokens.of(dctx);
+      return GwDialog(
+        title: 'Tes villages',
+        subtitle: 'Basculer d\'un village à l\'autre',
+        icon: Symbols.holiday_village,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (final village in mine)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Material(
+                  color: village.id == currentId ? t.goldBg : t.inkLift,
+                  borderRadius: BorderRadius.circular(GwTokens.rBtn),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(GwTokens.rBtn),
+                    onTap: () {
+                      Navigator.of(dctx).maybePop();
+                      if (village.id != currentId) {
+                        context.go(Routes.villageDetail(village.id));
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 12),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(GwTokens.rBtn),
+                        border: Border.all(
+                            color: village.id == currentId
+                                ? t.goldLine
+                                : t.line),
+                      ),
+                      child: Row(children: [
+                        Icon(
+                            village.id == currentId
+                                ? Symbols.check_circle
+                                : Symbols.location_city,
+                            size: 18,
+                            color: village.id == currentId
+                                ? t.goldText
+                                : t.stoneDim),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(village.name,
+                              style: GwType.ui(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: t.stone),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis),
+                        ),
+                      ]),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      );
+    });
   }
 }
 

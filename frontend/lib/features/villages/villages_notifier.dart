@@ -230,6 +230,18 @@ class MyVillagesNotifier extends _$MyVillagesNotifier {
     await future;
   }
 
+  /// Matérialise + rejoint le village d'origine de l'utilisateur (référentiel).
+  /// Retourne le village, ou `null` si aucune origine / chefferie correspondante.
+  Future<VillageModel?> joinOriginVillage() async {
+    final client = ref.read(apiClientProvider);
+    final json = await client.post('/api/v1/villages/from-origin');
+    final data = json['data'];
+    if (data == null) return null;
+    final village = VillageModel.fromJson(data as Map<String, dynamic>);
+    ref.invalidateSelf();
+    return village;
+  }
+
   bool isSubscribed(String villageId) {
     final villages = state.valueOrNull ?? [];
     return villages.any((v) => v.id == villageId);

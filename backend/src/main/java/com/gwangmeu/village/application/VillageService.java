@@ -32,6 +32,13 @@ public interface VillageService {
      */
     Village foundFromChefferie(UUID chefferieId, UUID userId);
 
+    /**
+     * Matérialise et rejoint le village d'origine de l'utilisateur, résolu depuis
+     * son origine référentielle (nom + région + pays). {@code Optional.empty()} si
+     * l'origine n'est pas renseignée ou qu'aucune chefferie ne correspond. Idempotent.
+     */
+    Optional<Village> foundFromOrigin(UUID userId);
+
     void leave(UUID userId, UUID villageId);
 
     List<VillageSubscription> getMemberships(UUID userId);
