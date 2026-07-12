@@ -21,7 +21,9 @@ import 'package:gwangmeu/features/genealogy/services/genealogy_api_service.dart'
 import 'package:gwangmeu/features/profile/profile_notifier.dart';
 import 'package:gwangmeu/features/villages/villages_notifier.dart';
 import 'package:gwangmeu/features/villages/services/village_governance_service.dart';
+import 'package:gwangmeu/features/villages/services/village_heritage_service.dart';
 import 'package:gwangmeu/features/villages/widgets/village_management_panel.dart';
+import 'package:gwangmeu/shared/widgets/gw_dialog.dart';
 
 // ═══════════════════════════════════════════════════════════════
 // ÉCRAN DÉTAIL VILLAGE — charte « Tissage » (ivoire/crème, cartes
@@ -402,8 +404,8 @@ class _CenterPanelState extends ConsumerState<_CenterPanel>
   late final TabController _tabCtrl;
   static const _tabs = [
     'Aperçu',
-    'Plan',
     'Ligne des chefs',
+    'Temps forts',
     'Membres',
     'Publications',
     'Chat'
@@ -447,10 +449,10 @@ class _CenterPanelState extends ConsumerState<_CenterPanel>
             labelPadding: const EdgeInsets.symmetric(horizontal: 16),
             tabs: [
               _tabItem(context, 'Aperçu', null),
-              _tabItem(context, 'Plan', '267'),
-              _tabItem(context, 'Ligne des chefs', '12'),
+              _tabItem(context, 'Ligne des chefs', null),
+              _tabItem(context, 'Temps forts', null),
               _tabItem(context, 'Membres', '${v.memberCount}'),
-              _tabItem(context, 'Publications', '89'),
+              _tabItem(context, 'Publications', null),
               _tabItem(context, 'Chat', null),
             ],
           ),
@@ -461,8 +463,8 @@ class _CenterPanelState extends ConsumerState<_CenterPanel>
             children: [
               _ApercuTab(
                   village: v, includeRightPanel: widget.includeRightPanel),
-              _PlanTab(village: v),
               _ChefsTab(village: v),
+              _TempsFortsTab(village: v),
               _MembresTab(village: v),
               _PublicationsTab(village: v),
               _ChatTab(village: v),
@@ -527,25 +529,17 @@ class _CenterPanelState extends ConsumerState<_CenterPanel>
                 ),
               ),
             ),
-          // Méta mono : région · ● LIVE EN COURS
-          Row(
-            children: [
-              Flexible(
-                child: Text(
-                  [
-                    if (v.region != null)
-                      'RÉGION ${v.region!.toUpperCase()}'
-                    else
-                      v.country.toUpperCase(),
-                  ].join(' · '),
-                  style: GwType.mono(
-                      fontSize: 10, letterSpacing: 1.8, color: t.stoneDim),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              const SizedBox(width: 12),
-              _livePill(context),
-            ],
+          // Méta mono : région / pays
+          Text(
+            [
+              if (v.region != null)
+                'RÉGION ${v.region!.toUpperCase()}'
+              else
+                v.country.toUpperCase(),
+            ].join(' · '),
+            style: GwType.mono(
+                fontSize: 10, letterSpacing: 1.8, color: t.stoneDim),
+            overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 12),
           // Nom du village — Fraunces, seconde moitié italique or
@@ -579,16 +573,12 @@ class _CenterPanelState extends ConsumerState<_CenterPanel>
             ],
           ),
           const SizedBox(height: 18),
-          Row(
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
             children: [
-              _heroButton(context, 'Rejoindre le Live',
-                  isPrimary: true, onTap: () {}),
-              const SizedBox(width: 10),
               _FollowButton(villageId: v.id),
-              if (canManage) ...[
-                const SizedBox(width: 10),
-                _manageButton(context),
-              ],
+              if (canManage) _manageButton(context),
             ],
           ),
         ],
@@ -609,27 +599,6 @@ class _CenterPanelState extends ConsumerState<_CenterPanel>
       ];
     }
     return [TextSpan(text: name)];
-  }
-
-  Widget _heroButton(BuildContext context, String label,
-      {required bool isPrimary, required VoidCallback onTap}) {
-    final t = GwTokens.of(context);
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 11),
-        decoration: BoxDecoration(
-          color: isPrimary ? GwTokens.gold : Colors.transparent,
-          borderRadius: BorderRadius.circular(GwTokens.rBtn),
-          border: Border.all(color: isPrimary ? GwTokens.gold : t.lineMid),
-        ),
-        child: Text(label,
-            style: GwType.ui(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: isPrimary ? GwTokens.inkOnGold : t.stoneMid)),
-      ),
-    );
   }
 
   Widget _manageButton(BuildContext context) {
@@ -656,31 +625,6 @@ class _CenterPanelState extends ConsumerState<_CenterPanel>
     );
   }
 
-  Widget _livePill(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
-      decoration: BoxDecoration(
-          color: GwTokens.emberBg,
-          borderRadius: BorderRadius.circular(GwTokens.rPill),
-          border: Border.all(color: GwTokens.emberLine)),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-              width: 5,
-              height: 5,
-              decoration: const BoxDecoration(
-                  color: GwTokens.ember, shape: BoxShape.circle)),
-          const SizedBox(width: 5),
-          Text('LIVE EN COURS',
-              style: GwType.mono(
-                  fontSize: 9,
-                  letterSpacing: 0.8,
-                  color: GwTokens.of(context).emberText)),
-        ],
-      ),
-    );
-  }
 }
 
 /// Bouton « Suivre le village » — POST /join?type=FOLLOW (best-effort).
@@ -799,11 +743,11 @@ class _RightPanel extends StatelessWidget {
             child: ListView(
               padding: EdgeInsets.zero,
               children: [
-                _rightSectionLabel(context, 'Chef actuel · Administrateur'),
+                _rightSectionLabel(context, 'Chef du village'),
                 _ChefCard(village: village),
                 _rightSectionLabel(context, 'Votre ligne de filiation'),
                 const _FiliationTree(),
-                _rightSectionLabel(context, 'En ligne maintenant'),
+                _rightSectionLabel(context, 'Membres'),
                 _OnlineMembers(village: village),
                 const SizedBox(height: 40),
               ],
@@ -838,37 +782,30 @@ class _ApercuTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final t = GwTokens.of(context);
     final membersAsync = ref.watch(villageMembersProvider(village.id));
+    final canEdit = ref
+            .watch(villageMyPermissionsProvider(village.id))
+            .valueOrNull
+            ?.has('EDIT_VILLAGE') ??
+        false;
 
     return ListView(
       padding: EdgeInsets.zero,
       children: [
         _StatsRow(village: village),
         _Section(
-          title: 'Plan du village',
-          badge: 'Temps réel',
-          trailing: GestureDetector(
-            onTap: () {},
-            child: Text('PLEIN ÉCRAN →',
-                style: GwType.mono(
-                    fontSize: 10, color: t.goldText, letterSpacing: 0.6)),
-          ),
-          child: const _MapPlaceholder(),
-        ),
-        _Section(
-          title: 'Ligne dynastique',
-          badge: village.foundedYear != null
-              ? '${village.foundedYear} – auj.'
+          title: 'Genèse',
+          trailing: canEdit
+              ? _sectionEditBtn(
+                  context, () => _showGenesisDialog(context, ref, village))
               : null,
-          trailing: Text('Voir tout →',
-              style: GwType.mono(
-                  fontSize: 10, color: t.goldText, letterSpacing: 0.6)),
-          child: const _DynastyTimeline(),
+          child: _GenesisContent(
+            village: village,
+            canEdit: canEdit,
+            onEdit: () => _showGenesisDialog(context, ref, village),
+          ),
         ),
         _Section(
           title: 'Votre lignée dans ce village',
-          trailing: Text('Tous les membres →',
-              style: GwType.mono(
-                  fontSize: 10, color: t.goldText, letterSpacing: 0.6)),
           child: membersAsync.when(
             loading: () => SizedBox(
                 height: 80,
@@ -883,7 +820,7 @@ class _ApercuTab extends ConsumerWidget {
             data: (members) => _MembersGrid(members: members.take(4).toList()),
           ),
         ),
-        if (village.description != null)
+        if (village.description != null && village.description!.trim().isNotEmpty)
           _Section(
             title: 'À propos',
             child: Padding(
@@ -896,7 +833,7 @@ class _ApercuTab extends ConsumerWidget {
         if (includeRightPanel) ...[
           Container(height: 1, color: t.line),
           _Section(
-              title: 'Chef actuel · Administrateur',
+              title: 'Chef du village',
               isMonoTitle: true,
               child: _ChefCard(village: village)),
           const _Section(
@@ -904,13 +841,9 @@ class _ApercuTab extends ConsumerWidget {
               isMonoTitle: true,
               child: _FiliationTree()),
           _Section(
-              title: 'En ligne maintenant',
+              title: 'Membres',
               isMonoTitle: true,
               child: _OnlineMembers(village: village)),
-          _Section(
-              title: 'Activité récente',
-              isMonoTitle: true,
-              child: _ActivityLog(villageName: village.name)),
         ],
         const SizedBox(height: 40),
       ],
@@ -918,120 +851,1073 @@ class _ApercuTab extends ConsumerWidget {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════
-// ONGLET 2 — PLAN
-// ═══════════════════════════════════════════════════════════════
-
-class _PlanTab extends StatelessWidget {
-  const _PlanTab({required this.village});
+/// Contenu de la section Genèse : année de fondation + récit fondateur réels,
+/// ou état vide honnête (avec action de saisie si l'utilisateur peut éditer).
+class _GenesisContent extends StatelessWidget {
+  const _GenesisContent({
+    required this.village,
+    required this.canEdit,
+    required this.onEdit,
+  });
   final VillageModel village;
+  final bool canEdit;
+  final VoidCallback onEdit;
 
   @override
   Widget build(BuildContext context) {
     final t = GwTokens.of(context);
-    return ListView(
-      padding: EdgeInsets.zero,
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-          decoration: BoxDecoration(
-              color: t.ink, border: Border(bottom: BorderSide(color: t.line))),
-          child: Row(
-            children: [
-              Text('PLAN INTERACTIF',
-                  style: GwType.mono(
-                      fontSize: 10, letterSpacing: 1.4, color: t.stoneDim)),
-              const SizedBox(width: 10),
-              Container(
-                  width: 6,
-                  height: 6,
-                  decoration: const BoxDecoration(
-                      color: GwTokens.sage, shape: BoxShape.circle)),
-              const SizedBox(width: 5),
-              Text('Synchronisé',
-                  style: GwType.mono(fontSize: 10, color: GwTokens.sage)),
-              const Spacer(),
-              const _PlanBtn(label: '+ Concession', isPrimary: false),
-              const SizedBox(width: 8),
-              const _PlanBtn(label: 'Satellite', isPrimary: true),
-            ],
-          ),
+    final hasFounded = village.foundedYear != null;
+    final summary = village.historicalSummary?.trim() ?? '';
+    final hasSummary = summary.isNotEmpty;
+
+    if (!hasFounded && !hasSummary) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+        child: _EmptyHeritage(
+          icon: Symbols.auto_stories,
+          title: 'Genèse non renseignée',
+          message: canEdit
+              ? 'Racontez l\'origine du village : année de fondation, fondateurs, migration, sens du nom.'
+              : 'L\'origine de ce village n\'a pas encore été documentée.',
+          actionLabel: canEdit ? 'Renseigner la genèse' : null,
+          onAction: onEdit,
         ),
-        const SizedBox(height: 480, child: _MapPlaceholder(fullScreen: true)),
-      ],
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (hasFounded) ...[
+            Row(children: [
+              Icon(Symbols.event, size: 15, color: t.goldText),
+              const SizedBox(width: 6),
+              Text('Fondé en ${village.foundedYear}',
+                  style: GwType.ui(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: t.stone)),
+            ]),
+            if (hasSummary) const SizedBox(height: 10),
+          ],
+          if (hasSummary)
+            Text(summary,
+                style: GwType.quote(fontSize: 14, color: t.stoneMid, height: 1.8)),
+        ],
+      ),
     );
   }
 }
 
-class _PlanBtn extends StatelessWidget {
-  const _PlanBtn({required this.label, required this.isPrimary});
-  final String label;
-  final bool isPrimary;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = GwTokens.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-          color: isPrimary ? t.goldBg : t.inkLift,
-          borderRadius: BorderRadius.circular(GwTokens.rBtn),
-          border: Border.all(color: isPrimary ? t.goldLine : t.line)),
-      child: Text(label,
-          style: GwType.ui(
-              fontSize: 12, color: isPrimary ? t.goldText : t.stoneMid)),
-    );
-  }
+/// Petit bouton « MODIFIER » or pour l'en-tête d'une section éditable.
+Widget _sectionEditBtn(BuildContext context, VoidCallback onTap) {
+  final t = GwTokens.of(context);
+  return GestureDetector(
+    onTap: onTap,
+    behavior: HitTestBehavior.opaque,
+    child: Row(mainAxisSize: MainAxisSize.min, children: [
+      Icon(Symbols.edit, size: 13, color: t.goldText),
+      const SizedBox(width: 4),
+      Text('MODIFIER',
+          style: GwType.mono(
+              fontSize: 10, color: t.goldText, letterSpacing: 0.6)),
+    ]),
+  );
 }
 
 // ═══════════════════════════════════════════════════════════════
 // ONGLET 3 — LIGNE DES CHEFS
 // ═══════════════════════════════════════════════════════════════
 
-class _ChefsTab extends StatelessWidget {
+class _ChefsTab extends ConsumerWidget {
   const _ChefsTab({required this.village});
   final VillageModel village;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final t = GwTokens.of(context);
+    final dynastyAsync = ref.watch(villageDynastyProvider(village.id));
+    final canEdit = ref
+            .watch(villageMyPermissionsProvider(village.id))
+            .valueOrNull
+            ?.has('EDIT_VILLAGE') ??
+        false;
+
     return ListView(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 44),
       children: [
-        Text('Ligne dynastique complète',
-            style: GwType.display(fontSize: 28, color: t.stone)),
-        const SizedBox(height: 8),
-        Text(
-          village.foundedYear != null
-              ? 'Archives depuis ${village.foundedYear}. Récits de chaque règne disponibles.'
-              : 'Archives historiques du village.',
-          style: GwType.ui(fontSize: 13, color: t.stoneDim, height: 1.9),
-        ),
-        const SizedBox(height: 28),
-        const _DynastyTimeline(extended: true),
-        const SizedBox(height: 40),
-        if (village.historicalSummary != null)
-          Container(
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-                color: t.inkCard,
-                borderRadius: BorderRadius.circular(GwTokens.rCard),
-                border: Border.all(color: t.line)),
-            child: Column(
+        Text('Ligne des chefs',
+            style: GwType.display(fontSize: 26, color: t.stone)),
+        const SizedBox(height: 6),
+        Text('La dynastie du village : chef actuel et anciens chefs.',
+            style: GwType.ui(fontSize: 13, color: t.stoneDim, height: 1.6)),
+        const SizedBox(height: 20),
+        dynastyAsync.when(
+          loading: () => const Padding(
+            padding: EdgeInsets.symmetric(vertical: 36),
+            child: Center(child: CircularProgressIndicator(color: GwTokens.gold)),
+          ),
+          error: (_, __) => Padding(
+            padding: const EdgeInsets.symmetric(vertical: 20),
+            child: Text('Impossible de charger la dynastie',
+                style: GwType.ui(fontSize: 13, color: t.stoneDim)),
+          ),
+          data: (chiefs) {
+            if (chiefs.isEmpty) {
+              return _EmptyHeritage(
+                icon: Symbols.history_edu,
+                title: 'Dynastie non renseignée',
+                message: canEdit
+                    ? 'Aucun chef n\'a encore été documenté. Ajoutez le chef actuel et les anciens chefs pour bâtir la dynastie du village.'
+                    : 'La succession des chefs de ce village n\'a pas encore été documentée.',
+                actionLabel: canEdit ? 'Ajouter un chef' : null,
+                onAction: () => _showChiefDialog(context, ref, village.id),
+              );
+            }
+            final current = chiefs.where((c) => c.current).toList();
+            final formers = chiefs.where((c) => !c.current).toList();
+            return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('RÉSUMÉ HISTORIQUE',
-                    style: GwType.mono(
-                        fontSize: 10, letterSpacing: 1.4, color: t.stoneFaint)),
-                const SizedBox(height: 12),
-                Text(village.historicalSummary!,
-                    style: GwType.ui(
-                        fontSize: 13, color: t.stoneMid, height: 1.9)),
+                for (final c in current)
+                  _ChiefEntryCard(
+                      villageId: village.id, chief: c, canEdit: canEdit),
+                if (formers.isNotEmpty) ...[
+                  const SizedBox(height: 20),
+                  Text('ANCIENS CHEFS',
+                      style: GwType.mono(
+                          fontSize: 10,
+                          letterSpacing: 1.6,
+                          color: t.stoneFaint)),
+                  const SizedBox(height: 10),
+                  for (final c in formers)
+                    _ChiefEntryCard(
+                        villageId: village.id, chief: c, canEdit: canEdit),
+                ],
+                if (canEdit) ...[
+                  const SizedBox(height: 14),
+                  _HeritageAddButton(
+                    label: 'Ajouter un chef',
+                    onTap: () => _showChiefDialog(context, ref, village.id),
+                  ),
+                ],
               ],
-            ),
-          ),
+            );
+          },
+        ),
       ],
     );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ONGLET TEMPS FORTS — jalons historiques réels (éditables)
+// ═══════════════════════════════════════════════════════════════
+
+class _TempsFortsTab extends ConsumerWidget {
+  const _TempsFortsTab({required this.village});
+  final VillageModel village;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = GwTokens.of(context);
+    final milestonesAsync = ref.watch(villageMilestonesProvider(village.id));
+    final canEdit = ref
+            .watch(villageMyPermissionsProvider(village.id))
+            .valueOrNull
+            ?.has('EDIT_VILLAGE') ??
+        false;
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 44),
+      children: [
+        Text('Temps forts',
+            style: GwType.display(fontSize: 26, color: t.stone)),
+        const SizedBox(height: 6),
+        Text('Les jalons marquants de l\'histoire du village.',
+            style: GwType.ui(fontSize: 13, color: t.stoneDim, height: 1.6)),
+        const SizedBox(height: 20),
+        milestonesAsync.when(
+          loading: () => const Padding(
+            padding: EdgeInsets.symmetric(vertical: 36),
+            child: Center(child: CircularProgressIndicator(color: GwTokens.gold)),
+          ),
+          error: (_, __) => Padding(
+            padding: const EdgeInsets.symmetric(vertical: 20),
+            child: Text('Impossible de charger les temps forts',
+                style: GwType.ui(fontSize: 13, color: t.stoneDim)),
+          ),
+          data: (items) {
+            if (items.isEmpty) {
+              return _EmptyHeritage(
+                icon: Symbols.timeline,
+                title: 'Aucun temps fort',
+                message: canEdit
+                    ? 'Documentez les grands moments du village : fondation, migrations, intronisations, événements marquants.'
+                    : 'Les temps forts de ce village n\'ont pas encore été documentés.',
+                actionLabel: canEdit ? 'Ajouter un temps fort' : null,
+                onAction: () => _showMilestoneDialog(context, ref, village.id),
+              );
+            }
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (int i = 0; i < items.length; i++)
+                  _MilestoneCard(
+                    villageId: village.id,
+                    milestone: items[i],
+                    canEdit: canEdit,
+                    isLast: i == items.length - 1,
+                  ),
+                if (canEdit) ...[
+                  const SizedBox(height: 8),
+                  _HeritageAddButton(
+                    label: 'Ajouter un temps fort',
+                    onTap: () => _showMilestoneDialog(context, ref, village.id),
+                  ),
+                ],
+              ],
+            );
+          },
+        ),
+      ],
+    );
+  }
+}
+
+// ── Carte d'un temps fort (frise verticale) ──────────────────────
+
+class _MilestoneCard extends ConsumerWidget {
+  const _MilestoneCard({
+    required this.villageId,
+    required this.milestone,
+    required this.canEdit,
+    required this.isLast,
+  });
+  final String villageId;
+  final VillageMilestone milestone;
+  final bool canEdit;
+  final bool isLast;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = GwTokens.of(context);
+    final date = milestone.dateText;
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Column(
+            children: [
+              Container(
+                width: 12,
+                height: 12,
+                margin: const EdgeInsets.only(top: 5),
+                decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: GwTokens.gold,
+                    border: Border.all(color: t.goldLine, width: 3)),
+              ),
+              if (!isLast) Expanded(child: Container(width: 2, color: t.line)),
+            ],
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 14),
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                  color: t.inkCard,
+                  borderRadius: BorderRadius.circular(GwTokens.rCard),
+                  border: Border.all(color: t.line)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      if (date.isNotEmpty)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                              color: t.goldBg,
+                              borderRadius: BorderRadius.circular(GwTokens.rPill),
+                              border: Border.all(color: t.goldLine)),
+                          child: Text(date,
+                              style: GwType.mono(
+                                  fontSize: 10,
+                                  letterSpacing: 0.5,
+                                  color: t.goldText)),
+                        ),
+                      const Spacer(),
+                      if (canEdit) ...[
+                        _heritageIconBtn(context, Symbols.edit, 'Modifier',
+                            () => _showMilestoneDialog(context, ref, villageId,
+                                existing: milestone)),
+                        _heritageIconBtn(context, Symbols.delete, 'Supprimer',
+                            () => _confirmDeleteMilestone(
+                                context, ref, villageId, milestone),
+                            danger: true),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(milestone.title,
+                      style: GwType.display(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: t.stone)),
+                  if (milestone.description != null &&
+                      milestone.description!.trim().isNotEmpty) ...[
+                    const SizedBox(height: 5),
+                    Text(milestone.description!.trim(),
+                        style: GwType.ui(
+                            fontSize: 12.5, color: t.stoneMid, height: 1.6)),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PATRIMOINE — widgets partagés + carte chef + édition (Tissage)
+// ═══════════════════════════════════════════════════════════════
+
+/// État vide honnête d'une section patrimoine, avec action facultative.
+class _EmptyHeritage extends StatelessWidget {
+  const _EmptyHeritage({
+    required this.icon,
+    required this.title,
+    required this.message,
+    this.actionLabel,
+    this.onAction,
+  });
+  final IconData icon;
+  final String title;
+  final String message;
+  final String? actionLabel;
+  final VoidCallback? onAction;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = GwTokens.of(context);
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: t.inkCard,
+        borderRadius: BorderRadius.circular(GwTokens.rCard),
+        border: Border.all(color: t.line),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            Icon(icon, size: 20, color: t.stoneDim),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(title,
+                  style: GwType.ui(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: t.stone)),
+            ),
+          ]),
+          const SizedBox(height: 6),
+          Text(message,
+              style: GwType.ui(fontSize: 12.5, color: t.stoneDim, height: 1.5)),
+          if (actionLabel != null && onAction != null) ...[
+            const SizedBox(height: 12),
+            _HeritageAddButton(label: actionLabel!, onTap: onAction!),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// Bouton « + Ajouter … » or discret, réutilisé par les sections patrimoine.
+class _HeritageAddButton extends StatelessWidget {
+  const _HeritageAddButton({required this.label, required this.onTap});
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = GwTokens.of(context);
+    return Material(
+      color: t.goldBg,
+      borderRadius: BorderRadius.circular(GwTokens.rBtn),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(GwTokens.rBtn),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(GwTokens.rBtn),
+            border: Border.all(color: t.goldLine),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Symbols.add, size: 17, color: t.goldText),
+              const SizedBox(width: 7),
+              Text(label,
+                  style: GwType.ui(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: t.goldText)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Carte d'un chef de la dynastie (actuel mis en avant en or).
+class _ChiefEntryCard extends ConsumerWidget {
+  const _ChiefEntryCard({
+    required this.villageId,
+    required this.chief,
+    required this.canEdit,
+  });
+  final String villageId;
+  final DynastyChief chief;
+  final bool canEdit;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = GwTokens.of(context);
+    final reign = chief.reignLabel;
+    final hasAvatar = chief.avatarUrl != null && chief.avatarUrl!.isNotEmpty;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: chief.current ? t.goldGlow : t.inkCard,
+        borderRadius: BorderRadius.circular(GwTokens.rCard),
+        border: Border.all(color: chief.current ? t.goldLine : t.line),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: chief.current
+                      ? const LinearGradient(
+                          colors: [GwTokens.goldLight, GwTokens.gold])
+                      : null,
+                  color: chief.current ? null : t.inkLift,
+                  border: Border.all(
+                      color: chief.current ? t.goldLine : t.lineMid,
+                      width: 1.5),
+                  image: hasAvatar
+                      ? DecorationImage(
+                          image: NetworkImage(chief.avatarUrl!),
+                          fit: BoxFit.cover)
+                      : null,
+                ),
+                alignment: Alignment.center,
+                child: hasAvatar
+                    ? null
+                    : Text(_initialsOf(chief.displayName),
+                        style: GwType.display(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: chief.current
+                                ? GwTokens.inkOnGold
+                                : t.stoneMid)),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(chief.displayName,
+                              style: GwType.display(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: t.stone),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis),
+                        ),
+                        if (chief.current) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 7, vertical: 2),
+                            decoration: BoxDecoration(
+                                color: t.goldBg,
+                                borderRadius:
+                                    BorderRadius.circular(GwTokens.rPill),
+                                border: Border.all(color: t.goldLine)),
+                            child: Text('CHEF ACTUEL',
+                                style: GwType.mono(
+                                    fontSize: 8,
+                                    letterSpacing: 0.8,
+                                    color: t.goldText)),
+                          ),
+                        ],
+                      ],
+                    ),
+                    if (reign.isNotEmpty) ...[
+                      const SizedBox(height: 3),
+                      Text(reign,
+                          style: GwType.mono(
+                              fontSize: 10,
+                              letterSpacing: 0.5,
+                              color: t.stoneFaint)),
+                    ],
+                  ],
+                ),
+              ),
+              if (canEdit) ...[
+                _heritageIconBtn(context, Symbols.edit, 'Modifier',
+                    () => _showChiefDialog(context, ref, villageId, existing: chief)),
+                _heritageIconBtn(context, Symbols.delete, 'Supprimer',
+                    () => _confirmDeleteChief(context, ref, villageId, chief),
+                    danger: true),
+              ],
+            ],
+          ),
+          if (chief.note != null && chief.note!.trim().isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Text(chief.note!.trim(),
+                style: GwType.ui(fontSize: 12.5, color: t.stoneMid, height: 1.6)),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// Initiales (1–2 lettres MAJ) d'un nom complet.
+String _initialsOf(String name) {
+  final parts = name
+      .trim()
+      .split(RegExp(r'\s+'))
+      .where((p) => p.isNotEmpty)
+      .toList();
+  if (parts.isEmpty) return '?';
+  if (parts.length == 1) {
+    final w = parts.first;
+    return (w.length >= 2 ? w.substring(0, 2) : w).toUpperCase();
+  }
+  return (parts.first[0] + parts.last[0]).toUpperCase();
+}
+
+/// Petit bouton icône (32 px) pour éditer/supprimer une entrée patrimoine.
+Widget _heritageIconBtn(BuildContext context, IconData icon, String tooltip,
+    VoidCallback onTap,
+    {bool danger = false}) {
+  final t = GwTokens.of(context);
+  return IconButton(
+    icon: Icon(icon, size: 17, color: danger ? t.emberText : t.stoneDim),
+    tooltip: tooltip,
+    padding: EdgeInsets.zero,
+    constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
+    onPressed: onTap,
+  );
+}
+
+void _heritageToast(BuildContext context, String msg, {bool error = false}) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(msg,
+          style: GwType.ui(
+              fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white)),
+      backgroundColor: error ? GwTokens.ember : GwTokens.sage,
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(GwTokens.rPill)),
+    ),
+  );
+}
+
+// ── Édition : chef ───────────────────────────────────────────────
+
+void _showChiefDialog(BuildContext context, WidgetRef ref, String villageId,
+    {DynastyChief? existing}) {
+  showGwDialog(context,
+      builder: (_) => _ChiefFormSheet(villageId: villageId, existing: existing));
+}
+
+class _ChiefFormSheet extends ConsumerStatefulWidget {
+  const _ChiefFormSheet({required this.villageId, this.existing});
+  final String villageId;
+  final DynastyChief? existing;
+
+  @override
+  ConsumerState<_ChiefFormSheet> createState() => _ChiefFormSheetState();
+}
+
+class _ChiefFormSheetState extends ConsumerState<_ChiefFormSheet> {
+  late final TextEditingController _name;
+  late final TextEditingController _start;
+  late final TextEditingController _end;
+  late final TextEditingController _note;
+  late bool _current;
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final e = widget.existing;
+    _name = TextEditingController(text: e?.displayName ?? '');
+    _start = TextEditingController(text: e?.reignStart?.toString() ?? '');
+    _end = TextEditingController(text: e?.reignEnd?.toString() ?? '');
+    _note = TextEditingController(text: e?.note ?? '');
+    _current = e?.current ?? false;
+  }
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _start.dispose();
+    _end.dispose();
+    _note.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    final name = _name.text.trim();
+    if (name.isEmpty) {
+      _heritageToast(context, 'Le nom du chef est requis', error: true);
+      return;
+    }
+    setState(() => _saving = true);
+    try {
+      await ref.read(villageHeritageServiceProvider).saveChief(
+            widget.villageId,
+            chiefId: widget.existing?.id,
+            displayName: name,
+            reignStart: int.tryParse(_start.text.trim()),
+            reignEnd: int.tryParse(_end.text.trim()),
+            current: _current,
+            ordinal: widget.existing?.ordinal,
+            note: _note.text.trim().isEmpty ? null : _note.text.trim(),
+            avatarUrl: widget.existing?.avatarUrl,
+          );
+      ref.invalidate(villageDynastyProvider(widget.villageId));
+      ref.invalidate(villageChiefProvider(widget.villageId));
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      _heritageToast(context, 'Chef enregistré');
+    } catch (_) {
+      if (mounted) {
+        setState(() => _saving = false);
+        _heritageToast(context, 'Impossible d\'enregistrer', error: true);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = GwTokens.of(context);
+    final isEdit = widget.existing != null;
+    return GwDialog(
+      title: isEdit ? 'Modifier le chef' : 'Ajouter un chef',
+      subtitle: 'Chef actuel ou ancien chef de la dynastie',
+      icon: Symbols.workspace_premium,
+      actions: [
+        GwDialogAction(
+            label: 'Annuler', onPressed: () => Navigator.of(context).maybePop()),
+        GwDialogAction(
+            label: 'Enregistrer',
+            primary: true,
+            loading: _saving,
+            onPressed: _save),
+      ],
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextField(
+            controller: _name,
+            textCapitalization: TextCapitalization.words,
+            style: GwType.ui(fontSize: 14, color: t.stone),
+            decoration: gwInputDecoration(context,
+                label: 'Nom du chef', prefixIcon: Symbols.person),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _start,
+                  keyboardType: TextInputType.number,
+                  style: GwType.ui(fontSize: 14, color: t.stone),
+                  decoration: gwInputDecoration(context, label: 'Début de règne'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: TextField(
+                  controller: _end,
+                  keyboardType: TextInputType.number,
+                  style: GwType.ui(fontSize: 14, color: t.stone),
+                  decoration: gwInputDecoration(context, label: 'Fin de règne'),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text('Années facultatives. Laissez la fin vide s\'il est en fonction.',
+              style: GwType.ui(fontSize: 11.5, color: t.stoneFaint)),
+          const SizedBox(height: 14),
+          GwChoicePill(
+            label: 'Chef actuellement en fonction',
+            selected: _current,
+            icon: Symbols.verified,
+            expand: true,
+            onTap: () => setState(() => _current = !_current),
+          ),
+          const SizedBox(height: 14),
+          TextField(
+            controller: _note,
+            maxLines: 4,
+            minLines: 2,
+            style: GwType.ui(fontSize: 14, color: t.stone, height: 1.5),
+            decoration: gwInputDecoration(context,
+                label: 'Récit de règne (facultatif)',
+                hint: 'Faits marquants, intronisation, réalisations…'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+Future<void> _confirmDeleteChief(
+    BuildContext context, WidgetRef ref, String villageId, DynastyChief chief) {
+  return _confirmHeritageDelete(
+    context,
+    title: 'Supprimer ce chef ?',
+    message: '« ${chief.displayName} » sera retiré de la dynastie du village.',
+    onConfirm: () async {
+      await ref
+          .read(villageHeritageServiceProvider)
+          .deleteChief(villageId, chief.id);
+      ref.invalidate(villageDynastyProvider(villageId));
+      ref.invalidate(villageChiefProvider(villageId));
+    },
+  );
+}
+
+// ── Édition : temps fort ─────────────────────────────────────────
+
+void _showMilestoneDialog(BuildContext context, WidgetRef ref, String villageId,
+    {VillageMilestone? existing}) {
+  showGwDialog(context,
+      builder: (_) =>
+          _MilestoneFormSheet(villageId: villageId, existing: existing));
+}
+
+class _MilestoneFormSheet extends ConsumerStatefulWidget {
+  const _MilestoneFormSheet({required this.villageId, this.existing});
+  final String villageId;
+  final VillageMilestone? existing;
+
+  @override
+  ConsumerState<_MilestoneFormSheet> createState() =>
+      _MilestoneFormSheetState();
+}
+
+class _MilestoneFormSheetState extends ConsumerState<_MilestoneFormSheet> {
+  late final TextEditingController _title;
+  late final TextEditingController _year;
+  late final TextEditingController _dateLabel;
+  late final TextEditingController _desc;
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final e = widget.existing;
+    _title = TextEditingController(text: e?.title ?? '');
+    _year = TextEditingController(text: e?.year?.toString() ?? '');
+    _dateLabel = TextEditingController(text: e?.dateLabel ?? '');
+    _desc = TextEditingController(text: e?.description ?? '');
+  }
+
+  @override
+  void dispose() {
+    _title.dispose();
+    _year.dispose();
+    _dateLabel.dispose();
+    _desc.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    final title = _title.text.trim();
+    if (title.isEmpty) {
+      _heritageToast(context, 'Le titre est requis', error: true);
+      return;
+    }
+    setState(() => _saving = true);
+    try {
+      await ref.read(villageHeritageServiceProvider).saveMilestone(
+            widget.villageId,
+            milestoneId: widget.existing?.id,
+            title: title,
+            year: int.tryParse(_year.text.trim()),
+            dateLabel:
+                _dateLabel.text.trim().isEmpty ? null : _dateLabel.text.trim(),
+            description: _desc.text.trim().isEmpty ? null : _desc.text.trim(),
+            ordinal: widget.existing?.ordinal,
+          );
+      ref.invalidate(villageMilestonesProvider(widget.villageId));
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      _heritageToast(context, 'Temps fort enregistré');
+    } catch (_) {
+      if (mounted) {
+        setState(() => _saving = false);
+        _heritageToast(context, 'Impossible d\'enregistrer', error: true);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = GwTokens.of(context);
+    final isEdit = widget.existing != null;
+    return GwDialog(
+      title: isEdit ? 'Modifier le temps fort' : 'Ajouter un temps fort',
+      subtitle: 'Un jalon marquant de l\'histoire du village',
+      icon: Symbols.timeline,
+      actions: [
+        GwDialogAction(
+            label: 'Annuler', onPressed: () => Navigator.of(context).maybePop()),
+        GwDialogAction(
+            label: 'Enregistrer',
+            primary: true,
+            loading: _saving,
+            onPressed: _save),
+      ],
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextField(
+            controller: _title,
+            textCapitalization: TextCapitalization.sentences,
+            style: GwType.ui(fontSize: 14, color: t.stone),
+            decoration: gwInputDecoration(context,
+                label: 'Titre', prefixIcon: Symbols.flag),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              SizedBox(
+                width: 120,
+                child: TextField(
+                  controller: _year,
+                  keyboardType: TextInputType.number,
+                  style: GwType.ui(fontSize: 14, color: t.stone),
+                  decoration: gwInputDecoration(context, label: 'Année'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: TextField(
+                  controller: _dateLabel,
+                  style: GwType.ui(fontSize: 14, color: t.stone),
+                  decoration: gwInputDecoration(context,
+                      label: 'Ou date libre', hint: 'ex. XVIIIe siècle'),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          TextField(
+            controller: _desc,
+            maxLines: 5,
+            minLines: 3,
+            style: GwType.ui(fontSize: 14, color: t.stone, height: 1.5),
+            decoration: gwInputDecoration(context,
+                label: 'Récit (facultatif)',
+                hint: 'Décrivez l\'événement et son importance…'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+Future<void> _confirmDeleteMilestone(BuildContext context, WidgetRef ref,
+    String villageId, VillageMilestone milestone) {
+  return _confirmHeritageDelete(
+    context,
+    title: 'Supprimer ce temps fort ?',
+    message: '« ${milestone.title} » sera retiré de l\'histoire du village.',
+    onConfirm: () async {
+      await ref
+          .read(villageHeritageServiceProvider)
+          .deleteMilestone(villageId, milestone.id);
+      ref.invalidate(villageMilestonesProvider(villageId));
+    },
+  );
+}
+
+// ── Édition : genèse (founded_year + historical_summary) ──────────
+
+void _showGenesisDialog(
+    BuildContext context, WidgetRef ref, VillageModel village) {
+  showGwDialog(context, builder: (_) => _GenesisFormSheet(village: village));
+}
+
+class _GenesisFormSheet extends ConsumerStatefulWidget {
+  const _GenesisFormSheet({required this.village});
+  final VillageModel village;
+
+  @override
+  ConsumerState<_GenesisFormSheet> createState() => _GenesisFormSheetState();
+}
+
+class _GenesisFormSheetState extends ConsumerState<_GenesisFormSheet> {
+  late final TextEditingController _founded;
+  late final TextEditingController _summary;
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _founded =
+        TextEditingController(text: widget.village.foundedYear?.toString() ?? '');
+    _summary =
+        TextEditingController(text: widget.village.historicalSummary ?? '');
+  }
+
+  @override
+  void dispose() {
+    _founded.dispose();
+    _summary.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    setState(() => _saving = true);
+    try {
+      await ref.read(villageHeritageServiceProvider).updateGenesis(
+            widget.village.id,
+            foundedYear: int.tryParse(_founded.text.trim()),
+            historicalSummary:
+                _summary.text.trim().isEmpty ? null : _summary.text.trim(),
+          );
+      ref.invalidate(villageDetailProvider(widget.village.id));
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      _heritageToast(context, 'Genèse enregistrée');
+    } catch (_) {
+      if (mounted) {
+        setState(() => _saving = false);
+        _heritageToast(context, 'Impossible d\'enregistrer', error: true);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = GwTokens.of(context);
+    return GwDialog(
+      title: 'Genèse du village',
+      subtitle: 'Origine et récit fondateur',
+      icon: Symbols.auto_stories,
+      actions: [
+        GwDialogAction(
+            label: 'Annuler', onPressed: () => Navigator.of(context).maybePop()),
+        GwDialogAction(
+            label: 'Enregistrer',
+            primary: true,
+            loading: _saving,
+            onPressed: _save),
+      ],
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 160,
+            child: TextField(
+              controller: _founded,
+              keyboardType: TextInputType.number,
+              style: GwType.ui(fontSize: 14, color: t.stone),
+              decoration: gwInputDecoration(context,
+                  label: 'Année de fondation', prefixIcon: Symbols.event),
+            ),
+          ),
+          const SizedBox(height: 14),
+          TextField(
+            controller: _summary,
+            maxLines: 8,
+            minLines: 5,
+            style: GwType.ui(fontSize: 14, color: t.stone, height: 1.6),
+            decoration: gwInputDecoration(context,
+                label: 'Récit fondateur',
+                hint:
+                    'Origine du village, migration, fondateurs, sens du nom…'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Confirmation de suppression (Tissage) ────────────────────────
+
+Future<void> _confirmHeritageDelete(
+  BuildContext context, {
+  required String title,
+  required String message,
+  required Future<void> Function() onConfirm,
+}) async {
+  final ok = await showGwDialog<bool>(
+    context,
+    builder: (dctx) {
+      final t = GwTokens.of(dctx);
+      return GwDialog(
+        title: title,
+        icon: Symbols.delete,
+        showWeave: false,
+        actions: [
+          GwDialogAction(
+              label: 'Annuler',
+              onPressed: () => Navigator.of(dctx).pop(false)),
+          GwDialogAction(
+              label: 'Supprimer',
+              primary: true,
+              icon: Symbols.delete,
+              onPressed: () => Navigator.of(dctx).pop(true)),
+        ],
+        child: Text(message,
+            style: GwType.ui(fontSize: 13.5, color: t.stoneMid, height: 1.6)),
+      );
+    },
+  );
+  if (ok != true) return;
+  if (!context.mounted) return;
+  try {
+    await onConfirm();
+    if (context.mounted) _heritageToast(context, 'Supprimé');
+  } catch (_) {
+    if (context.mounted) {
+      _heritageToast(context, 'Impossible de supprimer', error: true);
+    }
   }
 }
 
@@ -1094,7 +1980,6 @@ class _PublicationsTab extends ConsumerStatefulWidget {
 class _PublicationsTabState extends ConsumerState<_PublicationsTab> {
   final _composeCtrl = TextEditingController();
   bool _posting = false;
-  String _filter = 'all';
 
   @override
   void dispose() {
@@ -1151,30 +2036,9 @@ class _PublicationsTabState extends ConsumerState<_PublicationsTab> {
           child: Row(
             children: [
               Expanded(
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      _FilterBtn(
-                          label: 'Tout',
-                          active: _filter == 'all',
-                          onTap: () => setState(() => _filter = 'all')),
-                      _FilterBtn(
-                          label: 'Publications',
-                          active: _filter == 'post',
-                          onTap: () => setState(() => _filter = 'post')),
-                      _FilterBtn(
-                          label: 'Lives',
-                          active: _filter == 'live',
-                          onTap: () => setState(() => _filter = 'live'),
-                          hasLiveDot: true),
-                      _FilterBtn(
-                          label: 'Conférences',
-                          active: _filter == 'conf',
-                          onTap: () => setState(() => _filter = 'conf')),
-                    ],
-                  ),
-                ),
+                child: Text('PUBLICATIONS',
+                    style: GwType.mono(
+                        fontSize: 11, letterSpacing: 1.4, color: t.stoneDim)),
               ),
               const SizedBox(width: 8),
               GestureDetector(
@@ -1235,7 +2099,6 @@ class _PublicationsTabState extends ConsumerState<_PublicationsTab> {
               child: ListView(
                 padding: EdgeInsets.zero,
                 children: [
-                  const _LiveBanner(),
                   if (posts.isEmpty)
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 40),
@@ -1554,101 +2417,114 @@ class _GroupList extends ConsumerWidget {
   }
 
   void _showCreateDialog(BuildContext context, WidgetRef ref) {
-    final t = GwTokens.of(context);
-    final nameCtrl = TextEditingController();
-    final descCtrl = TextEditingController();
-    String type = 'GENERAL';
+    showGwDialog(context,
+        builder: (_) => _CreateGroupSheet(villageId: village.id));
+  }
+}
 
-    showDialog(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setD) => AlertDialog(
-          backgroundColor: t.inkCard,
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(GwTokens.rCard)),
-          title: Text('Nouveau groupe',
-              style: GwType.display(fontSize: 20, color: t.stone)),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameCtrl,
-                style: GwType.ui(fontSize: 14, color: t.stone),
-                decoration: InputDecoration(
-                    labelText: 'Nom du groupe *',
-                    labelStyle: GwType.ui(fontSize: 13, color: t.stoneDim),
-                    isDense: true),
-              ),
-              const SizedBox(height: 10),
-              TextField(
-                controller: descCtrl,
-                style: GwType.ui(fontSize: 14, color: t.stone),
-                decoration: InputDecoration(
-                    labelText: 'Description',
-                    labelStyle: GwType.ui(fontSize: 13, color: t.stoneDim),
-                    isDense: true),
-                maxLines: 2,
-              ),
-              const SizedBox(height: 10),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Type :',
-                        style: GwType.ui(fontSize: 13, color: t.stoneMid)),
-                    const SizedBox(height: 6),
-                    Wrap(
-                      spacing: 8,
-                      children: [
-                        ChoiceChip(
-                          label: const Text('Général'),
-                          selected: type == 'GENERAL',
-                          onSelected: (_) => setD(() => type = 'GENERAL'),
-                          selectedColor: t.goldBg,
-                        ),
-                        ChoiceChip(
-                          label: const Text('Commission'),
-                          selected: type == 'COMMISSION',
-                          onSelected: (_) => setD(() => type = 'COMMISSION'),
-                          selectedColor: t.goldBg,
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
+/// Création d'un groupe de discussion de village (dialog Tissage).
+class _CreateGroupSheet extends ConsumerStatefulWidget {
+  const _CreateGroupSheet({required this.villageId});
+  final String villageId;
+
+  @override
+  ConsumerState<_CreateGroupSheet> createState() => _CreateGroupSheetState();
+}
+
+class _CreateGroupSheetState extends ConsumerState<_CreateGroupSheet> {
+  final _name = TextEditingController();
+  final _desc = TextEditingController();
+  String _type = 'GENERAL';
+  bool _saving = false;
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _desc.dispose();
+    super.dispose();
+  }
+
+  Future<void> _create() async {
+    if (_name.text.trim().length < 2) {
+      _heritageToast(context, 'Le nom du groupe est requis', error: true);
+      return;
+    }
+    setState(() => _saving = true);
+    try {
+      await ref.read(createChatGroupProvider.notifier).create(
+            villageId: widget.villageId,
+            name: _name.text.trim(),
+            description:
+                _desc.text.trim().isEmpty ? null : _desc.text.trim(),
+            type: _type,
+          );
+      if (!mounted) return;
+      Navigator.of(context).pop();
+    } catch (_) {
+      if (mounted) {
+        setState(() => _saving = false);
+        _heritageToast(context, 'Impossible de créer le groupe', error: true);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = GwTokens.of(context);
+    return GwDialog(
+      title: 'Nouveau groupe',
+      subtitle: 'Une discussion pour ce village',
+      icon: Symbols.forum,
+      actions: [
+        GwDialogAction(
+            label: 'Annuler', onPressed: () => Navigator.of(context).maybePop()),
+        GwDialogAction(
+            label: 'Créer',
+            primary: true,
+            loading: _saving,
+            onPressed: _create),
+      ],
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextField(
+            controller: _name,
+            textCapitalization: TextCapitalization.sentences,
+            style: GwType.ui(fontSize: 14, color: t.stone),
+            decoration: gwInputDecoration(context,
+                label: 'Nom du groupe', prefixIcon: Symbols.tag),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: Text('Annuler',
-                  style: GwType.ui(color: t.stoneDim)),
-            ),
-            FilledButton(
-              onPressed: () async {
-                if (nameCtrl.text.trim().length < 2) return;
-                Navigator.pop(ctx);
-                try {
-                  await ref.read(createChatGroupProvider.notifier).create(
-                        villageId: village.id,
-                        name: nameCtrl.text.trim(),
-                        description: descCtrl.text.trim().isNotEmpty
-                            ? descCtrl.text.trim()
-                            : null,
-                        type: type,
-                      );
-                } catch (_) {}
-              },
-              style: FilledButton.styleFrom(
-                backgroundColor: GwTokens.gold,
-                foregroundColor: GwTokens.inkOnGold,
+          const SizedBox(height: 12),
+          TextField(
+            controller: _desc,
+            maxLines: 2,
+            style: GwType.ui(fontSize: 14, color: t.stone),
+            decoration:
+                gwInputDecoration(context, label: 'Description (facultatif)'),
+          ),
+          const SizedBox(height: 14),
+          const GwSectionLabel('Type'),
+          const SizedBox(height: 8),
+          Row(children: [
+            Expanded(
+              child: GwChoicePill(
+                label: 'Général',
+                icon: Symbols.chat_bubble,
+                selected: _type == 'GENERAL',
+                onTap: () => setState(() => _type = 'GENERAL'),
               ),
-              child: const Text('Créer'),
             ),
-          ],
-        ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: GwChoicePill(
+                label: 'Commission',
+                icon: Symbols.groups,
+                selected: _type == 'COMMISSION',
+                onTap: () => setState(() => _type = 'COMMISSION'),
+              ),
+            ),
+          ]),
+        ],
       ),
     );
   }
@@ -1814,16 +2690,21 @@ class _InlineMessagesState extends ConsumerState<_InlineMessages> {
                     minLines: 1,
                     style: GwType.ui(fontSize: 13, color: t.stone),
                     decoration: InputDecoration(
-                      hintText: 'Aa',
-                      hintStyle: GwType.ui(color: t.stoneDim),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(18),
-                        borderSide: BorderSide.none,
+                      hintText: 'Écrire au groupe…',
+                      hintStyle: GwType.ui(color: t.stoneDim, fontSize: 13),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(GwTokens.rPill),
+                        borderSide: BorderSide(color: t.lineMid),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(GwTokens.rPill),
+                        borderSide:
+                            const BorderSide(color: GwTokens.gold, width: 1.5),
                       ),
                       filled: true,
-                      fillColor: t.inkLift,
+                      fillColor: t.inkCard,
                       contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 8),
+                          horizontal: 16, vertical: 10),
                       isDense: true,
                     ),
                   ),
@@ -1925,29 +2806,33 @@ class _InlineBubble extends StatelessWidget {
                   ),
                 Container(
                   constraints: BoxConstraints(
-                      maxWidth: MediaQuery.of(context).size.width * 0.65),
+                      maxWidth: MediaQuery.of(context).size.width * 0.72),
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 7),
+                      horizontal: 14, vertical: 10),
                   decoration: BoxDecoration(
-                    color: isMe ? GwTokens.gold : t.inkCard,
-                    border: isMe ? null : Border.all(color: t.line),
+                    color: isMe ? t.goldBg : t.inkLift,
+                    border: isMe
+                        ? Border.all(
+                            color: GwTokens.gold.withValues(alpha: 0.3))
+                        : null,
                     borderRadius: BorderRadius.only(
-                      topLeft: const Radius.circular(16),
-                      topRight: const Radius.circular(16),
-                      bottomLeft: Radius.circular(isMe ? 16 : 4),
-                      bottomRight: Radius.circular(isMe ? 4 : 16),
+                      topLeft: const Radius.circular(18),
+                      topRight: const Radius.circular(18),
+                      bottomLeft: Radius.circular(isMe ? 18 : 6),
+                      bottomRight: Radius.circular(isMe ? 6 : 18),
                     ),
                   ),
                   child: Text(message.content,
                       style: GwType.ui(
-                          fontSize: 13,
-                          color: isMe ? GwTokens.inkOnGold : t.stone,
-                          height: 1.3)),
+                          fontSize: 14.5, color: t.stone, height: 1.55)),
                 ),
                 Padding(
-                  padding: const EdgeInsets.only(top: 1, left: 4, right: 4),
+                  padding: const EdgeInsets.only(top: 2, left: 4, right: 4),
                   child: Text(time,
-                      style: GwType.mono(fontSize: 9, color: t.stoneFaint)),
+                      style: GwType.mono(
+                          fontSize: 10,
+                          letterSpacing: 0.5,
+                          color: t.stoneFaint)),
                 ),
               ],
             ),
@@ -1965,22 +2850,26 @@ class _InlineBubble extends StatelessWidget {
 
 // ── Stats Row ──
 
-class _StatsRow extends StatelessWidget {
+class _StatsRow extends ConsumerWidget {
   const _StatsRow({required this.village});
   final VillageModel village;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final t = GwTokens.of(context);
+    final dynasty = ref.watch(villageDynastyProvider(village.id)).valueOrNull;
+    final milestones =
+        ref.watch(villageMilestonesProvider(village.id)).valueOrNull;
     return Container(
       decoration:
           BoxDecoration(border: Border(bottom: BorderSide(color: t.line))),
       child: Row(
         children: [
           _stat(context, '${village.memberCount}', 'MEMBRES', isGold: true),
-          _stat(context, '124', 'CONCESSIONS'),
-          _stat(context, '58', 'FAMILLES'),
-          _stat(context, '2', 'PAYS'),
+          _stat(context, village.foundedYear?.toString() ?? '—', 'FONDATION'),
+          _stat(context, dynasty != null ? '${dynasty.length}' : '—', 'CHEFS'),
+          _stat(context, milestones != null ? '${milestones.length}' : '—',
+              'TEMPS FORTS'),
         ],
       ),
     );
@@ -2026,12 +2915,10 @@ class _Section extends StatelessWidget {
   const _Section(
       {required this.title,
       required this.child,
-      this.badge,
       this.trailing,
       this.isMonoTitle = false});
   final String title;
   final Widget child;
-  final String? badge;
   final Widget? trailing;
   final bool isMonoTitle;
 
@@ -2055,31 +2942,10 @@ class _Section extends StatelessWidget {
                               fontSize: 10,
                               letterSpacing: 1.4,
                               color: t.stoneFaint))
-                      : Row(
-                          children: [
-                            Flexible(
-                              child: Text(title,
-                                  style: GwType.display(
-                                      fontSize: 20, color: t.stone),
-                                  overflow: TextOverflow.ellipsis),
-                            ),
-                            if (badge != null) ...[
-                              const SizedBox(width: 10),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 7, vertical: 2),
-                                decoration: BoxDecoration(
-                                    border: Border.all(color: t.line),
-                                    borderRadius: BorderRadius.circular(3)),
-                                child: Text(badge!.toUpperCase(),
-                                    style: GwType.mono(
-                                        fontSize: 8,
-                                        letterSpacing: 0.8,
-                                        color: t.stoneFaint)),
-                              ),
-                            ],
-                          ],
-                        ),
+                      : Text(title,
+                          style:
+                              GwType.display(fontSize: 20, color: t.stone),
+                          overflow: TextOverflow.ellipsis),
                 ),
                 if (trailing != null) trailing!,
               ],
@@ -2092,185 +2958,25 @@ class _Section extends StatelessWidget {
   }
 }
 
-// ── Map placeholder ──
-
-class _MapPlaceholder extends StatelessWidget {
-  const _MapPlaceholder({this.fullScreen = false});
-  final bool fullScreen;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = GwTokens.of(context);
-    return Container(
-      height: fullScreen ? double.infinity : 300,
-      constraints: fullScreen ? null : const BoxConstraints(maxHeight: 300),
-      color: t.inkDeep,
-      child: Stack(
-        children: [
-          Positioned.fill(
-              child: CustomPaint(
-                  painter: _MapPatternPainter(brightness: t.brightness))),
-          Positioned(
-            top: 14,
-            left: 14,
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                  color: t.inkCard.withValues(alpha: 0.92),
-                  borderRadius: BorderRadius.circular(GwTokens.rBtn),
-                  border: Border.all(color: t.lineMid)),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _LegendRow(
-                      color: t.goldText,
-                      label: 'Concession familiale',
-                      isGem: true),
-                  const SizedBox(height: 6),
-                  _LegendRow(
-                      color: GwTokens.gold,
-                      label: 'Votre ligne',
-                      isGem: true),
-                  const SizedBox(height: 6),
-                  _LegendRow(color: GwTokens.ember, label: 'Point du chef'),
-                  const SizedBox(height: 6),
-                  _LegendRow(color: GwTokens.sage, label: 'Zone sacrée'),
-                  const SizedBox(height: 6),
-                  _LegendRow(color: GwTokens.azure, label: 'Place publique'),
-                ],
-              ),
-            ),
-          ),
-          const Positioned(
-            bottom: 14,
-            right: 14,
-            child: Column(children: [
-              _MapCtrlBtn('+'),
-              SizedBox(height: 4),
-              _MapCtrlBtn('−'),
-              SizedBox(height: 4),
-              _MapCtrlBtn('⊙')
-            ]),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _LegendRow extends StatelessWidget {
-  const _LegendRow(
-      {required this.color, required this.label, this.isGem = false});
-  final Color color;
-  final String label;
-  final bool isGem;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = GwTokens.of(context);
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (isGem)
-          Transform.rotate(
-              angle: 0.785,
-              child: Container(
-                  width: 8,
-                  height: 8,
-                  decoration: BoxDecoration(
-                      color: color, borderRadius: BorderRadius.circular(2))))
-        else
-          Container(
-              width: 8,
-              height: 8,
-              decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-        const SizedBox(width: 9),
-        Text(label, style: GwType.ui(fontSize: 11, color: t.stoneMid)),
-      ],
-    );
-  }
-}
-
-class _MapCtrlBtn extends StatelessWidget {
-  const _MapCtrlBtn(this.label);
-  final String label;
-  @override
-  Widget build(BuildContext context) {
-    final t = GwTokens.of(context);
-    return Container(
-      width: 32,
-      height: 32,
-      decoration: BoxDecoration(
-          color: t.inkCard.withValues(alpha: 0.92),
-          borderRadius: BorderRadius.circular(GwTokens.rBtn),
-          border: Border.all(color: t.lineMid)),
-      child: Center(
-          child: Text(label,
-              style: TextStyle(fontSize: 16, color: t.stoneMid))),
-    );
-  }
-}
-
-// ── Dynasty Timeline ──
-
-/// Ligne dynastique du village. La succession des chefs n'est pas encore
-/// modélisée côté données : plutôt que d'inventer une dynastie, on affiche un
-/// état honnête tant que rien n'a été documenté pour ce village.
-class _DynastyTimeline extends StatelessWidget {
-  const _DynastyTimeline({this.extended = false});
-  final bool extended;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = GwTokens.of(context);
-    return Container(
-      margin: EdgeInsets.symmetric(horizontal: extended ? 24 : 0),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: t.inkCard,
-        borderRadius: BorderRadius.circular(GwTokens.rCard),
-        border: Border.all(color: t.line),
-      ),
-      child: Row(
-        children: [
-          Icon(Symbols.history_edu, size: 20, color: t.stoneDim),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Ligne dynastique non renseignée',
-                    style: GwType.ui(
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w600,
-                        color: t.stone)),
-                const SizedBox(height: 3),
-                Text(
-                    'La succession des chefs de ce village n\'a pas encore été documentée.',
-                    style:
-                        GwType.ui(fontSize: 12, color: t.stoneDim, height: 1.4)),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 // ── Members Grid (aperçu lignée) ──
+
+/// Libellé de rôle réel dérivé du type d'adhésion au village.
+String _memberRoleLabel(String type) {
+  switch (type.toUpperCase()) {
+    case 'AMBASSADOR':
+      return 'Ambassadeur';
+    case 'MEMBER':
+      return 'Membre';
+    case 'FOLLOW':
+      return 'Abonné';
+    default:
+      return 'Membre';
+  }
+}
 
 class _MembersGrid extends StatelessWidget {
   const _MembersGrid({required this.members});
   final List<VillageMemberModel> members;
-
-  static const _roles = [
-    'Père · G3',
-    'Grand-père · G2',
-    'Grand-mère · G2',
-    'Frère · G4'
-  ];
-  static const _badges = ['Résident', 'Fondateur', 'Résidente', 'Diaspora'];
 
   @override
   Widget build(BuildContext context) {
@@ -2281,18 +2987,12 @@ class _MembersGrid extends StatelessWidget {
       GwTokens.emberBg,
       t.goldBg
     ];
-    final cellBorders = [
-      GwTokens.azureLine,
-      GwTokens.sageLine,
-      GwTokens.emberLine,
-      t.goldLine
-    ];
     final cellTexts = [t.azureText, t.sageText, t.emberText, t.goldText];
 
     if (members.isEmpty) {
       return Padding(
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-        child: Text('Aucun membre',
+        child: Text('Aucun membre pour l\'instant',
             style: GwType.ui(fontSize: 12, color: t.stoneFaint)),
       );
     }
@@ -2305,7 +3005,7 @@ class _MembersGrid extends StatelessWidget {
         padding: const EdgeInsets.all(1),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 2,
-            childAspectRatio: 1.1,
+            childAspectRatio: 1.3,
             mainAxisSpacing: 1,
             crossAxisSpacing: 1),
         itemCount: members.length.clamp(0, 4),
@@ -2337,24 +3037,10 @@ class _MembersGrid extends StatelessWidget {
                     textAlign: TextAlign.center,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis),
-                const SizedBox(height: 2),
-                Text(i < _roles.length ? _roles[i] : m.type,
-                    style: GwType.mono(fontSize: 9, color: t.stoneFaint)),
-                const SizedBox(height: 6),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                  decoration: BoxDecoration(
-                      color: cellColors[ci],
-                      borderRadius: BorderRadius.circular(3),
-                      border: Border.all(color: cellBorders[ci])),
-                  child: Text(i < _badges.length ? _badges[i] : 'Membre',
-                      style: GwType.mono(
-                          fontSize: 8,
-                          fontWeight: FontWeight.w500,
-                          letterSpacing: 0.5,
-                          color: cellTexts[ci])),
-                ),
+                const SizedBox(height: 3),
+                Text(_memberRoleLabel(m.type),
+                    style: GwType.mono(
+                        fontSize: 9, letterSpacing: 0.5, color: t.stoneFaint)),
               ],
             ),
           );
@@ -2656,17 +3342,6 @@ class _ChefCardState extends ConsumerState<_ChefCard> {
               loading: () => _headerSkeleton(context),
               data: (chief) => _header(context, chief),
             ),
-            const SizedBox(height: 12),
-            Row(children: [
-              Container(
-                  width: 6,
-                  height: 6,
-                  decoration: const BoxDecoration(
-                      color: GwTokens.sage, shape: BoxShape.circle)),
-              const SizedBox(width: 6),
-              Text('En ligne maintenant',
-                  style: GwType.mono(fontSize: 9, color: GwTokens.sage)),
-            ]),
             const SizedBox(height: 14),
             Row(
               children: [
@@ -2999,38 +3674,19 @@ class _OnlineMembers extends ConsumerWidget {
                     ),
                     child: Row(
                       children: [
-                        Stack(
-                          clipBehavior: Clip.none,
-                          children: [
-                            CircleAvatar(
-                              radius: 18,
-                              backgroundColor: GwTokens.sageBg,
-                              backgroundImage: member.avatarUrl != null &&
-                                      member.avatarUrl!.isNotEmpty
-                                  ? NetworkImage(member.avatarUrl!)
-                                  : null,
-                              child: member.avatarUrl == null ||
-                                      member.avatarUrl!.isEmpty
-                                  ? Text(initials,
-                                      style: GwType.display(
-                                          fontSize: 11, color: t.sageText))
-                                  : null,
-                            ),
-                            Positioned(
-                              bottom: 0,
-                              right: 0,
-                              child: Container(
-                                width: 8,
-                                height: 8,
-                                decoration: BoxDecoration(
-                                  color: GwTokens.sage,
-                                  shape: BoxShape.circle,
-                                  border:
-                                      Border.all(color: t.ink, width: 1.5),
-                                ),
-                              ),
-                            ),
-                          ],
+                        CircleAvatar(
+                          radius: 18,
+                          backgroundColor: GwTokens.sageBg,
+                          backgroundImage: member.avatarUrl != null &&
+                                  member.avatarUrl!.isNotEmpty
+                              ? NetworkImage(member.avatarUrl!)
+                              : null,
+                          child: member.avatarUrl == null ||
+                                  member.avatarUrl!.isEmpty
+                              ? Text(initials,
+                                  style: GwType.display(
+                                      fontSize: 11, color: t.sageText))
+                              : null,
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -3040,13 +3696,9 @@ class _OnlineMembers extends ConsumerWidget {
                               Text(name,
                                   style: GwType.ui(
                                       fontSize: 12.5, color: t.stoneMid)),
-                              Text(
-                                member.type == 'CHEF'
-                                    ? 'Chef · Administrateur'
-                                    : 'Résident',
-                                style: GwType.mono(
-                                    fontSize: 9, color: t.stoneFaint),
-                              ),
+                              Text(_memberRoleLabel(member.type),
+                                  style: GwType.mono(
+                                      fontSize: 9, color: t.stoneFaint)),
                             ],
                           ),
                         ),
@@ -3152,151 +3804,6 @@ class _OnlineMembers extends ConsumerWidget {
         ),
       );
     }
-  }
-}
-
-// ── Activity Log ──
-
-class _ActivityLog extends StatelessWidget {
-  const _ActivityLog({required this.villageName});
-  final String villageName;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-      child: Column(children: [
-        _logRow(context, 'Kofi A.', 'a ajouté 6 photos à la concession', '2h',
-            isGold: true),
-        _logRow(context, 'Chef Ndoumbe', 'Plan mis à jour', '4h'),
-        _logRow(context, 'Ama D.', 'a complété l\'arbre de la famille', '6h'),
-        _logRow(context, 'Chef Ndoumbe', 'a anobli Ama Diallo', '3j',
-            isGold: true),
-      ]),
-    );
-  }
-
-  Widget _logRow(BuildContext context, String actor, String action, String time,
-      {bool isGold = false}) {
-    final t = GwTokens.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 9),
-      decoration:
-          BoxDecoration(border: Border(bottom: BorderSide(color: t.line))),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-              width: 6,
-              height: 6,
-              margin: const EdgeInsets.only(top: 4),
-              decoration: BoxDecoration(
-                  color: isGold ? t.goldText : t.stoneFaint,
-                  shape: BoxShape.circle)),
-          const SizedBox(width: 10),
-          Expanded(
-            child: RichText(
-                text: TextSpan(
-                    style: GwType.ui(
-                        fontSize: 12, height: 1.6, color: t.stoneMid),
-                    children: [
-                  TextSpan(
-                      text: actor,
-                      style: GwType.ui(
-                          fontSize: 12,
-                          color: t.stone,
-                          fontWeight: FontWeight.w600)),
-                  TextSpan(text: ' $action'),
-                ])),
-          ),
-          const SizedBox(width: 8),
-          Text(time, style: GwType.mono(fontSize: 9, color: t.stoneFaint)),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Live Banner ──
-
-class _LiveBanner extends StatelessWidget {
-  const _LiveBanner();
-
-  @override
-  Widget build(BuildContext context) {
-    final t = GwTokens.of(context);
-    return Container(
-      margin: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: GwTokens.emberBg,
-        borderRadius: BorderRadius.circular(GwTokens.rCard),
-        border: Border.all(color: GwTokens.emberLine),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                        color: t.inkCard,
-                        borderRadius: BorderRadius.circular(GwTokens.rPill),
-                        border: Border.all(color: GwTokens.emberLine)),
-                    child: Row(mainAxisSize: MainAxisSize.min, children: [
-                      Container(
-                          width: 5,
-                          height: 5,
-                          decoration: const BoxDecoration(
-                              color: GwTokens.ember, shape: BoxShape.circle)),
-                      const SizedBox(width: 5),
-                      Text('EN DIRECT',
-                          style: GwType.mono(
-                              fontSize: 9, color: t.emberText)),
-                    ]),
-                  ),
-                  const SizedBox(height: 8),
-                  Text('Cérémonie des premiers fruits',
-                      style: GwType.display(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: t.stone)),
-                  const SizedBox(height: 2),
-                  Text('Retransmission officielle',
-                      style: GwType.quote(fontSize: 12, color: t.stoneDim)),
-                  const SizedBox(height: 6),
-                  Row(children: [
-                    Icon(Symbols.person, size: 12, color: t.stoneFaint),
-                    const SizedBox(width: 4),
-                    Text('247',
-                        style: GwType.mono(fontSize: 10, color: t.stoneFaint)),
-                  ]),
-                ],
-              ),
-            ),
-            GestureDetector(
-              onTap: () {},
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-                decoration: BoxDecoration(
-                    color: GwTokens.ember,
-                    borderRadius: BorderRadius.circular(GwTokens.rBtn)),
-                child: Text('Rejoindre',
-                    style: GwType.ui(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white)),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 }
 
@@ -3452,52 +3959,6 @@ class _PostCard extends ConsumerWidget {
   }
 }
 
-// ── Filter Button ──
-
-class _FilterBtn extends StatelessWidget {
-  const _FilterBtn(
-      {required this.label,
-      required this.active,
-      required this.onTap,
-      this.hasLiveDot = false});
-  final String label;
-  final bool active;
-  final VoidCallback onTap;
-  final bool hasLiveDot;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = GwTokens.of(context);
-    return Padding(
-      padding: const EdgeInsets.only(right: 4),
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
-          decoration: BoxDecoration(
-              color: active ? t.inkLift : Colors.transparent,
-              borderRadius: BorderRadius.circular(GwTokens.rPill),
-              border:
-                  Border.all(color: active ? t.lineMid : Colors.transparent)),
-          child: Row(mainAxisSize: MainAxisSize.min, children: [
-            if (hasLiveDot) ...[
-              Container(
-                  width: 6,
-                  height: 6,
-                  decoration: const BoxDecoration(
-                      color: GwTokens.ember, shape: BoxShape.circle)),
-              const SizedBox(width: 6)
-            ],
-            Text(label,
-                style: GwType.ui(
-                    fontSize: 12, color: active ? t.stone : t.stoneDim)),
-          ]),
-        ),
-      ),
-    );
-  }
-}
-
 // ── Subtitle separator ──
 
 class _SubSep extends StatelessWidget {
@@ -3507,83 +3968,6 @@ class _SubSep extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8),
       child: Text('·',
           style: TextStyle(color: GwTokens.of(context).stoneFaint)));
-}
-
-// ═══════════════════════════════════════════════════════════════
-// PAINTERS
-// ═══════════════════════════════════════════════════════════════
-
-class _MapPatternPainter extends CustomPainter {
-  _MapPatternPainter({required this.brightness});
-  final Brightness brightness;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final t = brightness == Brightness.dark ? GwTokens.dark : GwTokens.light;
-
-    final gridPaint = Paint()
-      ..color = t.stoneFaint.withAlpha(24)
-      ..strokeWidth = 0.5;
-    for (double x = 0; x < size.width; x += 40) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), gridPaint);
-    }
-    for (double y = 0; y < size.height; y += 40) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
-    }
-
-    final dotPaint = Paint()..style = PaintingStyle.fill;
-    final concessions = [
-      [0.25, 0.3, GwTokens.gold],
-      [0.45, 0.45, GwTokens.goldLight],
-      [0.65, 0.35, GwTokens.gold],
-      [0.3, 0.65, GwTokens.sage],
-      [0.5, 0.55, GwTokens.azure],
-      [0.75, 0.6, GwTokens.gold],
-      [0.4, 0.75, GwTokens.ember],
-    ];
-    for (final cc in concessions) {
-      dotPaint.color = (cc[2] as Color).withAlpha(210);
-      canvas.drawCircle(
-          Offset(size.width * (cc[0] as double), size.height * (cc[1] as double)),
-          10,
-          dotPaint);
-    }
-
-    final roadPaint = Paint()
-      ..color = t.stoneFaint.withAlpha(80)
-      ..strokeWidth = 1.5
-      ..style = PaintingStyle.stroke;
-    final path = Path()
-      ..moveTo(size.width * 0.1, size.height * 0.5)
-      ..quadraticBezierTo(size.width * 0.4, size.height * 0.4,
-          size.width * 0.6, size.height * 0.5)
-      ..quadraticBezierTo(size.width * 0.8, size.height * 0.6,
-          size.width * 0.95, size.height * 0.55);
-    canvas.drawPath(path, roadPaint);
-
-    final labels = [
-      [0.32, 0.28, 'Bassa'],
-      [0.52, 0.43, 'Likoko'],
-      [0.42, 0.58, 'Place publique'],
-      [0.78, 0.58, 'Nkoulou'],
-    ];
-    for (final l in labels) {
-      final tp = TextPainter(
-        text: TextSpan(
-            text: l[2] as String,
-            style: GwType.mono(
-                fontSize: 10,
-                color: t.stoneDim.withAlpha(200))),
-        textDirection: TextDirection.ltr,
-      )..layout();
-      tp.paint(canvas,
-          Offset(size.width * (l[0] as double), size.height * (l[1] as double)));
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _MapPatternPainter oldDelegate) =>
-      oldDelegate.brightness != brightness;
 }
 
 // ═══════════════════════════════════════════════════════════════
