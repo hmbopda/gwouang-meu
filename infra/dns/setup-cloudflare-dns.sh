@@ -129,8 +129,12 @@ upsert_record "$CID" CNAME "api.${CANONICAL_DOMAIN}"        "$RAILWAY_API_TARGET
 upsert_record "$CID" CNAME "staging-api.${CANONICAL_DOMAIN}" "$RAILWAY_STAGING_TARGET" false
 
 upsert_txt "$CID" "${CANONICAL_DOMAIN}"                 "$SPF_RECORD"
-upsert_txt "$CID" "${RESEND_DKIM_NAME}.${CANONICAL_DOMAIN}" "$RESEND_DKIM_VALUE"
 upsert_txt "$CID" "_dmarc.${CANONICAL_DOMAIN}"         "$DMARC_RECORD"
+if [[ -n "${RESEND_DKIM_VALUE:-}" && "$RESEND_DKIM_VALUE" != *colle_ici* ]]; then
+  upsert_txt "$CID" "${RESEND_DKIM_NAME}.${CANONICAL_DOMAIN}" "$RESEND_DKIM_VALUE"
+else
+  echo "   ⏭ DKIM ignoré (aucune valeur — normal tant que tu n'envoies pas d'emails)"
+fi
 
 echo "   ℹ  media.${CANONICAL_DOMAIN} : à connecter via R2 → Custom Domains (record auto)."
 echo "   ℹ  Email entrant : active Cloudflare Email Routing (crée les MX pour toi)."

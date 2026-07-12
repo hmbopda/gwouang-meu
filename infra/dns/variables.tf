@@ -7,13 +7,13 @@ variable "cf_api_token" {
 variable "canonical_domain" {
   description = "Domaine canonique servant l'application"
   type        = string
-  default     = "gwouang-meu.com"
+  default     = "gwouangmeu.com"
 }
 
 variable "redirect_domains" {
-  description = "Domaines qui redirigent (301) vers le canonique"
+  description = "Domaines qui redirigent (301) vers le canonique (vide tant qu'il n'y a que le .com)"
   type        = list(string)
-  default     = ["gwouang-meu.fr", "gwouang-meu.org", "gwouang-meu.cm"]
+  default     = []
 }
 
 variable "vercel_apex_ip" {
@@ -43,10 +43,10 @@ variable "railway_staging_target" {
 
 variable "spf_record" {
   type    = string
-  default = "v=spf1 include:_spf.resend.com ~all"
+  default = "v=spf1 -all"
 }
 
 variable "dmarc_record" {
   type    = string
-  default = "v=DMARC1; p=quarantine; rua=mailto:dmarc@gwouang-meu.com"
+  default = "v=DMARC1; p=reject; rua=mailto:dmarc@gwouangmeu.com"
 }
