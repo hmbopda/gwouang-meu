@@ -1,5 +1,6 @@
 package com.gwangmeu.village.application;
 
+import com.gwangmeu.shared.mail.EmailService;
 import com.gwangmeu.user.User;
 import com.gwangmeu.user.UserRepository;
 import com.gwangmeu.village.domain.Village;
@@ -42,6 +43,7 @@ public class VillageInvitationService {
     private final VillageRepository villageRepository;
     private final VillageSubscriptionRepository subscriptionRepository;
     private final UserRepository userRepository;
+    private final EmailService emailService;
 
     // ------------------------------------------------------------------
     // Emission d'une invitation
@@ -95,6 +97,19 @@ public class VillageInvitationService {
         VillageInvitation saved = invitationRepository.save(invitation);
         log.info("Invitation village={} invited={} par={} statut=PENDING",
                 villageId, invitedUserId, byUserId);
+
+        // Notification email best-effort : l'invite est un membre existant (email connu).
+        // Un echec d'envoi ne bloque pas l'invitation (visible aussi in-app).
+        String invitedEmail = invited.getEmail();
+        if (invitedEmail != null && !invitedEmail.isBlank()) {
+            try {
+                emailService.sendVillageInvitationEmail(
+                        invitedEmail, invited.getDisplayName(),
+                        displayNameOf(byUserId), village.getName());
+            } catch (RuntimeException e) {
+                log.warn("Email invitation village non envoye a {} : {}", invitedEmail, e.getMessage());
+            }
+        }
 
         return toDto(saved, village.getName(), displayNameOf(byUserId));
     }

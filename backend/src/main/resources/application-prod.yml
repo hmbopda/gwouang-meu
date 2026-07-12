@@ -22,17 +22,23 @@ spring:
     connection-timeout: 10s
     max-transaction-retry-time: 15s
 
-  # ===== Mail (Gmail SMTP en prod) =====
+  # ===== Mail (Resend en prod — SMTP transactionnel, domaine verifie) =====
+  # Moteur unique : Resend (SMTPS 465). MAIL_PASSWORD = cle API Resend.
+  # MAIL_FROM doit etre une adresse du domaine verifie dans Resend
+  # (ex. noreply@gwangmeu.com). Surchargeable par variables d'env.
+  # Pour basculer sur l'API HTTP Resend (plus robuste sur Cloud Run), definir
+  # application.mail.provider=resend-api + application.mail.resend-api-key.
   mail:
-    host: ${MAIL_HOST:smtp.gmail.com}
-    port: ${MAIL_PORT:587}
-    username: ${MAIL_USERNAME:}
+    host: ${MAIL_HOST:smtp.resend.com}
+    port: ${MAIL_PORT:465}
+    username: ${MAIL_USERNAME:resend}
     password: ${MAIL_PASSWORD:}
+    protocol: smtps
     properties:
       mail:
         smtp:
           auth: true
-          starttls:
+          ssl:
             enable: true
 
   # ===== Datasource : Supavisor Pooler (IPv4, compatible Railway) =====
