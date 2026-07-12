@@ -507,14 +507,74 @@ class _CenterPanelState extends ConsumerState<_CenterPanel>
     final canManage = permsAsync.valueOrNull?.let((p) =>
             p.chief || p.superAdmin || p.permissions.isNotEmpty) ??
         false;
+    final isNarrowScreen = MediaQuery.sizeOf(context).width < 800;
+
+    final titleBlock = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Méta mono : région / pays
+        Text(
+          [
+            if (v.region != null)
+              'RÉGION ${v.region!.toUpperCase()}'
+            else
+              v.country.toUpperCase(),
+          ].join(' · '),
+          style: GwType.mono(fontSize: 10, letterSpacing: 1.8, color: t.stoneDim),
+          overflow: TextOverflow.ellipsis,
+        ),
+        const SizedBox(height: 12),
+        // Nom du village — Fraunces, seconde moitié italique or
+        RichText(
+          text: TextSpan(
+            children: _buildTitleSpans(context, v.name),
+            style: GwType.display(
+                fontSize: 40,
+                fontWeight: FontWeight.w600,
+                height: 1.0,
+                letterSpacing: -0.5,
+                color: t.stone),
+          ),
+        ),
+        const SizedBox(height: 10),
+        // Sous-ligne or
+        Wrap(
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            Text('Clan ${v.primaryDialect ?? v.name}',
+                style: GwType.ui(fontSize: 13, color: t.stoneMid)),
+            const _SubSep(),
+            Text('${v.memberCount} membre${v.memberCount > 1 ? 's' : ''}',
+                style: GwType.ui(fontSize: 13, color: t.stoneMid)),
+            const _SubSep(),
+            Text('Groupe privé',
+                style: GwType.ui(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: t.goldText)),
+          ],
+        ),
+      ],
+    );
+
+    final actions = Wrap(
+      spacing: 10,
+      runSpacing: 10,
+      children: [
+        _FollowButton(villageId: v.id),
+        if (canManage) _manageButton(context),
+      ],
+    );
 
     return Container(
+      width: double.infinity,
       color: t.inkDeep,
       padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (MediaQuery.sizeOf(context).width < 800)
+          if (isNarrowScreen)
             Padding(
               padding: const EdgeInsets.only(bottom: 12),
               child: Row(
@@ -535,57 +595,29 @@ class _CenterPanelState extends ConsumerState<_CenterPanel>
                 ],
               ),
             ),
-          // Méta mono : région / pays
-          Text(
-            [
-              if (v.region != null)
-                'RÉGION ${v.region!.toUpperCase()}'
-              else
-                v.country.toUpperCase(),
-            ].join(' · '),
-            style: GwType.mono(
-                fontSize: 10, letterSpacing: 1.8, color: t.stoneDim),
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 12),
-          // Nom du village — Fraunces, seconde moitié italique or
-          RichText(
-            text: TextSpan(
-              children: _buildTitleSpans(context, v.name),
-              style: GwType.display(
-                  fontSize: 40,
-                  fontWeight: FontWeight.w600,
-                  height: 1.0,
-                  letterSpacing: -0.5,
-                  color: t.stone),
-            ),
-          ),
-          const SizedBox(height: 10),
-          // Sous-ligne or
-          Wrap(
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              Text('Clan ${v.primaryDialect ?? v.name}',
-                  style: GwType.ui(fontSize: 13, color: t.stoneMid)),
-              const _SubSep(),
-              Text('${v.memberCount} membre${v.memberCount > 1 ? 's' : ''}',
-                  style: GwType.ui(fontSize: 13, color: t.stoneMid)),
-              const _SubSep(),
-              Text('Groupe privé',
-                  style: GwType.ui(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: t.goldText)),
-            ],
-          ),
-          const SizedBox(height: 18),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: [
-              _FollowButton(villageId: v.id),
-              if (canManage) _manageButton(context),
-            ],
+          // Sur écran large : titre/méta à gauche, actions à droite → le héros
+          // occupe toute la largeur. Sur étroit : actions empilées sous le titre.
+          LayoutBuilder(
+            builder: (context, c) {
+              if (c.maxWidth >= 620) {
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Expanded(child: titleBlock),
+                    const SizedBox(width: 24),
+                    actions,
+                  ],
+                );
+              }
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  titleBlock,
+                  const SizedBox(height: 18),
+                  actions,
+                ],
+              );
+            },
           ),
         ],
       ),
