@@ -42,6 +42,23 @@ public record CreateUserRequest(
         @Size(max = 50)
         String clan,
 
+        // ── Origine referentielle (ancre de la lignee, noms du referentiel) ──
+        @Schema(description = "Pays d'origine ISO-3166 alpha-2", example = "CM")
+        @Size(max = 2)
+        String originCountry,
+
+        @Schema(description = "Region d'origine (nom referentiel)", example = "Ouest")
+        String originRegion,
+
+        @Schema(description = "Departement d'origine (nom referentiel)", example = "Koung-Khi")
+        String originDepartment,
+
+        @Schema(description = "Commune / arrondissement d'origine (nom referentiel)")
+        String originArrondissement,
+
+        @Schema(description = "Chefferie / village d'origine (nom referentiel)", example = "Bandenkop")
+        String originVillage,
+
         @Schema(description = "Genre de l'utilisateur", example = "MALE")
         @NotNull(message = "Le genre est obligatoire")
         GenderEnum gender

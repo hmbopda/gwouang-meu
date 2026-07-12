@@ -68,6 +68,12 @@ class AuthNotifier extends _$AuthNotifier {
     String? bio,
     List<String>? villageIds,
     String? clan,
+    // Origine référentielle (ancre de la lignée) — atteint Bandenkop dès l'inscription.
+    String? originCountry,
+    String? originRegion,
+    String? originDepartment,
+    String? originArrondissement,
+    String? originVillage,
   }) async {
     _manualOperation = true;
     state = const AsyncLoading();
@@ -121,6 +127,12 @@ class AuthNotifier extends _$AuthNotifier {
         if (bio != null) 'bio': bio,
         if (villageIds != null && villageIds.isNotEmpty) 'villageIds': villageIds,
         if (clan != null) 'clan': clan,
+        // Origine référentielle (ancre de la lignée) persistée dès la création.
+        if (originCountry != null) 'originCountry': originCountry,
+        if (originRegion != null) 'originRegion': originRegion,
+        if (originDepartment != null) 'originDepartment': originDepartment,
+        if (originArrondissement != null) 'originArrondissement': originArrondissement,
+        if (originVillage != null) 'originVillage': originVillage,
       });
       debugPrint('Utilisateur enregistre en BDD avec succes');
 

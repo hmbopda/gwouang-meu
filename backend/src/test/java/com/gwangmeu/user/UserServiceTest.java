@@ -166,7 +166,9 @@ class UserServiceTest {
             return new CreateUserRequest(
                     SUPABASE_ID, EMAIL, DISPLAY_NAME,
                     "Cameroun", "Bassa", "Bio test",
-                    VILLAGE_ID, "Bakoko", GenderEnum.MALE
+                    VILLAGE_ID, "Bakoko",
+                    null, null, null, null, null,
+                    GenderEnum.MALE
             );
         }
 
@@ -249,7 +251,9 @@ class UserServiceTest {
             CreateUserRequest request = new CreateUserRequest(
                     SUPABASE_ID, EMAIL, DISPLAY_NAME,
                     null, null, null,
-                    null, null, GenderEnum.OTHER
+                    null, null,
+                    null, null, null, null, null,
+                    GenderEnum.OTHER
             );
 
             when(userRepository.findBySupabaseId(SUPABASE_ID)).thenReturn(Optional.empty());

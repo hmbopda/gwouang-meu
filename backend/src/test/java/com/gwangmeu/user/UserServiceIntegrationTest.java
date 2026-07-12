@@ -64,6 +64,7 @@ class UserServiceIntegrationTest extends BaseIntegrationTest {
                     "Je suis une passionnee de genealogie",
                     null,
                     "Diop",
+                    null, null, null, null, null,
                     GenderEnum.FEMALE
             );
 
@@ -100,6 +101,7 @@ class UserServiceIntegrationTest extends BaseIntegrationTest {
                     "Autre bio",
                     null,
                     null,
+                    null, null, null, null, null,
                     GenderEnum.MALE
             );
 
@@ -125,6 +127,7 @@ class UserServiceIntegrationTest extends BaseIntegrationTest {
                     null,
                     null,
                     null,
+                    null, null, null, null, null,
                     GenderEnum.FEMALE
             );
 

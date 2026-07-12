@@ -9,8 +9,8 @@ import 'package:gwangmeu/core/router/route_names.dart';
 import 'package:gwangmeu/core/theme/gw_tokens.dart';
 import 'package:gwangmeu/features/auth/auth_notifier.dart';
 import 'package:gwangmeu/features/geo/geo_notifier.dart';
+import 'package:gwangmeu/features/genealogy/widgets/dialogs/origin_cascade_selector.dart';
 import 'package:gwangmeu/shared/models/country_model.dart';
-import 'package:gwangmeu/shared/models/village_model.dart';
 
 /// Écran d'authentification « Tissage » — connexion + inscription en 3 étapes.
 ///
@@ -44,12 +44,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   bool _regObscure = true;
   String? _regSelectedGender;
   CountryModel? _regSelectedCountry;
-  List<VillageModel> _regSelectedVillages = [];
+  // Origine référentielle (ancre de la lignée) — atteint Bandenkop dès l'inscription.
+  OriginSelection _regOrigin = const OriginSelection();
   final _regClanCtrl = TextEditingController();
-
-  // Recherche village + saisie libre du clan (étape Origines).
-  final _villageSearchCtrl = TextEditingController();
-  String _villageSearchQuery = '';
   bool _clanOtherSelected = false;
 
   @override
@@ -62,7 +59,6 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     _regBioCtrl.dispose();
     _regLanguageCtrl.dispose();
     _regClanCtrl.dispose();
-    _villageSearchCtrl.dispose();
     super.dispose();
   }
 
@@ -496,12 +492,15 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
           _countryDropdown(t),
 
           const SizedBox(height: 14),
-          _sectionMono('VILLAGE(S) D\'ORIGINE'),
+          _sectionMono('VILLAGE / CHEFFERIE D\'ORIGINE'),
           const SizedBox(height: 8),
-          _villageSection(t),
+          OriginCascadeSelector(
+            initial: _regOrigin,
+            onChanged: (sel) => setState(() => _regOrigin = sel),
+          ),
 
           // ── Clan (facultatif) ──
-          if (_regSelectedVillages.isNotEmpty) ...[
+          if (_regOrigin.chefferieName != null) ...[
             const SizedBox(height: 14),
             _clanCard(t),
           ],
@@ -593,288 +592,18 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
             .toList(),
         onChanged: (c) => setState(() {
           _regSelectedCountry = c;
-          _regSelectedVillages = [];
           _regClanCtrl.clear();
           _clanOtherSelected = false;
-          _villageSearchCtrl.clear();
-          _villageSearchQuery = '';
         }),
       ),
     );
   }
 
-  /// Recherche + cartes de sélection village (maquette #3d).
-  Widget _villageSection(GwTokens t) {
-    if (_regSelectedCountry == null) {
-      return _infoCard(
-        t,
-        icon: Symbols.travel_explore,
-        text: 'Choisissez d\'abord un pays pour découvrir ses villages.',
-      );
-    }
-
-    final villagesAsync = ref.watch(
-      villagesByCountryNotifierProvider(_regSelectedCountry?.isoCode),
-    );
-
-    return villagesAsync.when(
-      loading: () => LinearProgressIndicator(
-        minHeight: 2,
-        color: GwTokens.gold,
-        backgroundColor: t.inkLift,
-      ),
-      error: (_, __) => _infoCard(
-        t,
-        icon: Symbols.error,
-        text: 'Impossible de charger les villages. Réessayez plus tard.',
-      ),
-      data: (villages) {
-        if (villages.isEmpty) {
-          return _infoCard(
-            t,
-            icon: Symbols.location_off,
-            text: 'Aucun village enregistré pour ce pays pour le moment.',
-          );
-        }
-
-        final query = _villageSearchQuery.trim().toLowerCase();
-        final selectedIds = _regSelectedVillages.map((v) => v.id).toSet();
-        final matches = villages
-            .where((v) => !selectedIds.contains(v.id))
-            .where((v) =>
-                query.isEmpty ||
-                v.name.toLowerCase().contains(query) ||
-                (v.region?.toLowerCase().contains(query) ?? false) ||
-                (v.primaryDialect?.toLowerCase().contains(query) ?? false))
-            .toList();
-        const maxShown = 8;
-        final shown = matches.take(maxShown).toList();
-        final hidden = matches.length - shown.length;
-        final selCount = _regSelectedVillages.length;
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _villageSearchField(t),
-            const SizedBox(height: 8),
-            Text(
-              '${villages.length} VILLAGES'
-              '${selCount > 0 ? ' · $selCount SÉLECTIONNÉ${selCount > 1 ? 'S' : ''}' : ''}',
-              style: GwType.mono(
-                  fontSize: 10, color: t.stoneFaint, letterSpacing: 1.5),
-            ),
-            const SizedBox(height: 8),
-
-            // Villages sélectionnés d'abord, puis les correspondances.
-            for (final v in _regSelectedVillages)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: _villageCard(t, v, selected: true, tintIndex: 0),
-              ),
-            for (var i = 0; i < shown.length; i++)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: _villageCard(t, shown[i], selected: false, tintIndex: i),
-              ),
-
-            if (shown.isEmpty && _regSelectedVillages.isEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Text(
-                  'Aucun village ne correspond à « $_villageSearchQuery ».',
-                  style: GwType.ui(fontSize: 13.5, color: t.stoneDim),
-                ),
-              )
-            else if (hidden > 0)
-              Center(
-                child: Padding(
-                  padding: const EdgeInsets.only(top: 2),
-                  child: Text(
-                    '+$hidden autres villages — affinez votre recherche',
-                    style: GwType.ui(fontSize: 12.5, color: t.stoneDim),
-                  ),
-                ),
-              ),
-          ],
-        );
-      },
-    );
-  }
-
-  /// Champ recherche village : ≥ 50 px, fond inkLift, rayon 14, icône search.
-  Widget _villageSearchField(GwTokens t) {
-    OutlineInputBorder border(Color c, [double w = 1]) => OutlineInputBorder(
-          borderRadius: BorderRadius.circular(GwTokens.rBtn),
-          borderSide: BorderSide(color: c, width: w),
-        );
-    return TextField(
-      controller: _villageSearchCtrl,
-      onChanged: (v) => setState(() => _villageSearchQuery = v),
-      style: GwType.ui(fontSize: 14.5, color: t.stone),
-      cursorColor: GwTokens.gold,
-      decoration: InputDecoration(
-        hintText: 'Rechercher un village…',
-        hintStyle: GwType.ui(fontSize: 14, color: t.stoneDim),
-        filled: true,
-        fillColor: t.inkLift,
-        prefixIcon: Icon(Symbols.search, size: 20, color: t.stoneDim),
-        suffixIcon: _villageSearchQuery.isNotEmpty
-            ? IconButton(
-                icon: Icon(Symbols.close, size: 18, color: t.stoneDim),
-                onPressed: () {
-                  _villageSearchCtrl.clear();
-                  setState(() => _villageSearchQuery = '');
-                },
-              )
-            : null,
-        isDense: true,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 13, vertical: 10),
-        enabledBorder: border(t.line),
-        focusedBorder: border(GwTokens.gold, 1.5),
-      ),
-    );
-  }
-
-  /// Carte village sélectionnable : tuile initiale Fraunces teintée,
-  /// nom 15 w600, méta 12.5 stoneDim ; sélectionnée = fond/bordure or +
-  /// check_circle rempli + preuve sociale mono sage.
-  Widget _villageCard(
-    GwTokens t,
-    VillageModel v, {
-    required bool selected,
-    required int tintIndex,
-  }) {
-    const tints = [
-      Color(0xFF70C090), // sage clair
-      Color(0xFF7AA8E0), // azure clair
-      GwTokens.rose,
-      GwTokens.goldLight,
-    ];
-    final tint = selected ? GwTokens.gold : tints[tintIndex % tints.length];
-
-    final metaParts = <String>[
-      v.region ?? v.country,
-      if (v.primaryDialect != null) 'dialecte ${v.primaryDialect}',
-      if (v.memberCount > 0) '${v.memberCount} membres',
-    ];
-
-    return Material(
-      color: selected ? GwTokens.gold.withValues(alpha: 0.12) : t.inkCard,
-      borderRadius: BorderRadius.circular(GwTokens.rCard),
-      child: InkWell(
-        onTap: () => _toggleVillage(v),
-        borderRadius: BorderRadius.circular(GwTokens.rCard),
-        child: Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(GwTokens.rCard),
-            border: Border.all(
-              color: selected ? GwTokens.gold.withValues(alpha: 0.55) : t.line,
-              width: selected ? 1.5 : 1,
-            ),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: tint,
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  v.name.isNotEmpty ? v.name[0].toUpperCase() : '?',
-                  style: GwType.display(
-                      fontSize: 20, color: GwTokens.inkOnGold),
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      v.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: GwType.ui(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: t.stone),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      metaParts.join(' · '),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: GwType.ui(fontSize: 12.5, color: t.stoneDim),
-                    ),
-                    if (selected) ...[
-                      const SizedBox(height: 5),
-                      Text(
-                        _socialProof(v),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: GwType.mono(
-                            fontSize: 11,
-                            color: t.sageText,
-                            letterSpacing: 0.8),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              const SizedBox(width: 10),
-              if (selected)
-                Icon(Symbols.check_circle,
-                    fill: 1, size: 24, color: t.goldText)
-              else
-                Container(
-                  width: 26,
-                  height: 26,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(color: t.lineMid, width: 1.5),
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// Preuve sociale mono sage sous la carte sélectionnée.
-  String _socialProof(VillageModel v) {
-    if (v.memberCount > 0) {
-      return '${v.memberCount} MEMBRE${v.memberCount > 1 ? 'S' : ''} '
-          'Y ${v.memberCount > 1 ? 'SONT' : 'EST'} DÉJÀ';
-    }
-    return 'VOTRE FAMILLE Y SERA LA PREMIÈRE';
-  }
-
-  void _toggleVillage(VillageModel v) {
-    setState(() {
-      final exists = _regSelectedVillages.any((sv) => sv.id == v.id);
-      if (exists) {
-        _regSelectedVillages =
-            _regSelectedVillages.where((sv) => sv.id != v.id).toList();
-      } else {
-        _regSelectedVillages = [..._regSelectedVillages, v];
-      }
-      // Le clan dépend du premier village sélectionné.
-      _regClanCtrl.clear();
-      _clanOtherSelected = false;
-    });
-  }
-
   /// Carte clan : chips pilules or + saisie libre + note de confidentialité.
   Widget _clanCard(GwTokens t) {
-    final firstVillageId =
-        _regSelectedVillages.isNotEmpty ? _regSelectedVillages.first.id : null;
-    final clansAsync = ref.watch(clansByVillageNotifierProvider(firstVillageId));
+    // Sans village-communauté à l'inscription, pas de suggestion de clans par
+    // village : le clan reste en saisie libre.
+    final clansAsync = ref.watch(clansByVillageNotifierProvider(null));
 
     return Container(
       padding: const EdgeInsets.all(14),
@@ -1089,9 +818,12 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                             : 'Autre'),
               if (_regSelectedCountry != null)
                 _recapRow(Symbols.public, 'Pays', _regSelectedCountry!.name),
-              if (_regSelectedVillages.isNotEmpty)
-                _recapRow(Symbols.location_on, 'Village(s)',
-                    _regSelectedVillages.map((v) => v.name).join(', ')),
+              if (_regOrigin.chefferieName != null)
+                _recapRow(Symbols.forest, 'Village / chefferie',
+                    _regOrigin.chefferieName!),
+              if (_regOrigin.departmentName != null)
+                _recapRow(Symbols.location_city, 'Département',
+                    _regOrigin.departmentName!),
               if (_regClanCtrl.text.isNotEmpty)
                 _recapRow(Symbols.shield, 'Clan', _regClanCtrl.text),
               if (_regLanguageCtrl.text.isNotEmpty)
@@ -1527,12 +1259,15 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
               ? null
               : _regLanguageCtrl.text.trim(),
           bio: _regBioCtrl.text.trim().isEmpty ? null : _regBioCtrl.text.trim(),
-          villageIds: _regSelectedVillages.isNotEmpty
-              ? _regSelectedVillages.map((v) => v.id).toList()
-              : null,
           clan: _regClanCtrl.text.trim().isEmpty
               ? null
               : _regClanCtrl.text.trim(),
+          // Origine référentielle (ancre de la lignée) — atteint Bandenkop.
+          originCountry: _regSelectedCountry?.iso2,
+          originRegion: _regOrigin.regionName,
+          originDepartment:
+              _regOrigin.arrondissementName ?? _regOrigin.departmentName,
+          originVillage: _regOrigin.chefferieName,
           gender: _regSelectedGender!,
         );
   }

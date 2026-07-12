@@ -156,6 +156,12 @@ public class UserService {
                 .bio(request.bio())
                 .originVillageId(request.villageId())
                 .clan(request.clan())
+                // Origine referentielle (ancre de la lignee) des l'inscription
+                .originCountry(request.originCountry())
+                .originRegion(request.originRegion())
+                .originDepartment(request.originDepartment())
+                .originArrondissement(request.originArrondissement())
+                .originVillage(request.originVillage())
                 .build();
 
         User saved = userRepository.save(newUser);
