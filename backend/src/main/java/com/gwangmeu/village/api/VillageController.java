@@ -11,8 +11,10 @@ import com.gwangmeu.village.application.VillageJoinService;
 import com.gwangmeu.village.application.VillagePermissionService;
 import com.gwangmeu.village.application.VillageService;
 import com.gwangmeu.village.domain.Village;
+import com.gwangmeu.village.domain.VillageChief;
 import com.gwangmeu.village.domain.VillagePermission;
 import com.gwangmeu.village.domain.VillageSubscription;
+import com.gwangmeu.village.infrastructure.VillageChiefRepository;
 import com.gwangmeu.village.dto.ChiefDto;
 import com.gwangmeu.village.dto.CreateVillageRequest;
 import com.gwangmeu.village.dto.InviteToVillageRequest;
@@ -51,6 +53,7 @@ public class VillageController {
     private final VillagePermissionService villagePermissionService;
     private final VillageJoinService villageJoinService;
     private final VillageInvitationService villageInvitationService;
+    private final VillageChiefRepository villageChiefRepository;
 
     private UUID resolveUserId(Jwt jwt) {
         return userRepository.findBySupabaseId(jwt.getSubject())
@@ -269,10 +272,20 @@ public class VillageController {
         Village village = villageService.findById(villageId)
                 .orElseThrow(() -> new EntityNotFoundException("Village introuvable : " + villageId));
 
-        // Un village materialise depuis le referentiel (chefferie) n'a PAS de chef
-        // traditionnel designe : le fondateur n'en est que l'administrateur. On ne
-        // presente donc personne comme chef tant qu'aucun chef n'est explicitement
-        // renseigne (evite d'inventer un chef, ex. Bandenkop).
+        // 1) Chef traditionnel renseigne dans le patrimoine (dynastie) : priorite absolue.
+        //    Permet a un super-admin / chef / delegue de nommer explicitement un chef,
+        //    meme pour un village materialise depuis une chefferie (ex. Bandenkop).
+        List<VillageChief> heritageCurrent = villageChiefRepository.findByVillageIdAndCurrentTrue(villageId);
+        if (!heritageCurrent.isEmpty()) {
+            VillageChief c = heritageCurrent.get(0);
+            ChiefDto dto = new ChiefDto(
+                    c.getUserId(), c.getDisplayName(), c.getAvatarUrl(), c.getReignStart(), false);
+            return ResponseEntity.ok(ApiResponse.ok(dto));
+        }
+
+        // 2) Village materialise depuis le referentiel (chefferie) sans chef traditionnel
+        //    renseigne : le fondateur n'en est que l'administrateur. On ne presente donc
+        //    personne comme chef (evite d'inventer un chef, ex. Bandenkop non renseigne).
         if (village.getChefferieId() != null) {
             return ResponseEntity.noContent().build();
         }
