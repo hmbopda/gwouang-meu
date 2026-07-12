@@ -18,6 +18,7 @@ import 'package:gwangmeu/features/genealogy/widgets/dialogs/add_person_dialog.da
 import 'package:gwangmeu/features/genealogy/widgets/dialogs/add_union_dialog.dart';
 import 'package:gwangmeu/features/genealogy/widgets/dialogs/griot_dialog.dart';
 import 'package:gwangmeu/features/genealogy/widgets/dialogs/origin_cascade_selector.dart';
+import 'package:gwangmeu/shared/widgets/gw_dialog.dart';
 import 'package:gwangmeu/features/geo/geo_notifier.dart';
 import 'package:gwangmeu/shared/models/country_model.dart';
 import 'package:gwangmeu/shared/widgets/country_selector.dart';
@@ -868,7 +869,12 @@ void _safeDialog(BuildContext context, Widget dialog) {
 }
 
 void _showEditDialog(BuildContext context, PersonGenealogy person, String treeOwnerId) {
-  _safeDialog(context, _InlineEditDialog(person: person, treeOwnerId: treeOwnerId));
+  // PWA : showGwDialog rend un bottom-sheet plein écran sur mobile et un dialog
+  // centré sur desktop/web (même appli, tous les form-factors).
+  showGwDialog(
+    context,
+    builder: (_) => _InlineEditDialog(person: person, treeOwnerId: treeOwnerId),
+  );
 }
 
 /// Fixed action buttons at the bottom of the person tab.
@@ -3200,25 +3206,32 @@ class _InlineEditDialogState extends ConsumerState<_InlineEditDialog> {
       _originCountry ??= _findByIso2(countries, _initialOriginCountryIso2);
       _residenceCountry ??= _findByIso2(countries, _initialResidenceCountryIso2);
     }
-    return AlertDialog(
-      title: const Row(
-        children: [
-          Icon(Symbols.edit_note, size: 22),
-          SizedBox(width: 8),
-          Text('Modifier la fiche', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-        ],
-      ),
-      content: SizedBox(
-        // PWA : même appli mobile/tablette/desktop/web. Largeur fixe 480 sur
-        // grand écran, mais pleine largeur du dialogue sur mobile (évite le
-        // débordement du formulaire sur les petits écrans).
-        width: MediaQuery.of(context).size.width < 560 ? double.maxFinite : 480,
-        child: SingleChildScrollView(
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
+    return GwDialog(
+      title: 'Modifier la fiche',
+      icon: Symbols.edit,
+      subtitle: '${widget.person.firstName} ${widget.person.lastName}'.trim(),
+      maxWidth: 560,
+      actions: [
+        GwDialogAction(
+          label: 'Annuler',
+          onPressed: _loading ? null : () => Navigator.of(context).pop(),
+        ),
+        GwDialogAction(
+          label: 'Enregistrer',
+          icon: Symbols.check,
+          primary: true,
+          loading: _loading,
+          onPressed: _loading ? null : _submit,
+        ),
+      ],
+      child: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+                _hero(context, t),
+                const SizedBox(height: 14),
                 TextFormField(
                   controller: _firstNameCtrl,
                   decoration: const InputDecoration(labelText: 'Prénom *', prefixIcon: Icon(Symbols.person)),
@@ -3241,24 +3254,10 @@ class _InlineEditDialogState extends ConsumerState<_InlineEditDialog> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                // Status — plain DropdownButton (no FormField) to avoid deprecated value issue
-                InputDecorator(
-                  decoration: const InputDecoration(labelText: 'Statut', prefixIcon: Icon(Symbols.favorite)),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: _status,
-                      isDense: true,
-                      isExpanded: true,
-                      items: const [
-                        DropdownMenuItem(value: 'ALIVE', child: Text('Vivant(e)')),
-                        DropdownMenuItem(value: 'DECEASED', child: Text('Décédé(e)')),
-                      ],
-                      onChanged: (v) {
-                        if (v != null) setState(() => _status = v);
-                      },
-                    ),
-                  ),
-                ),
+                _pillField(context, t, Symbols.favorite, 'Statut', const {
+                  'ALIVE': 'Vivant(e)',
+                  'DECEASED': 'In memoriam',
+                }, _status, (v) => setState(() => _status = v)),
 
                 // ── ORIGINE — ANCRE DE LA LIGNÉE ──
                 _sectionTitle('ORIGINE — ANCRE DE LA LIGNÉE', t.goldText),
@@ -3375,43 +3374,108 @@ class _InlineEditDialogState extends ConsumerState<_InlineEditDialog> {
                   keyboardType: TextInputType.emailAddress,
                 ),
                 const SizedBox(height: 12),
-                // Privacy — plain DropdownButton
-                InputDecorator(
-                  decoration: const InputDecoration(labelText: 'Visibilité', prefixIcon: Icon(Symbols.visibility)),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: _privacy,
-                      isDense: true,
-                      isExpanded: true,
-                      items: const [
-                        DropdownMenuItem(value: 'FAMILY_ONLY', child: Text('Famille uniquement')),
-                        DropdownMenuItem(value: 'MEMBERS_ONLY', child: Text('Membres du village')),
-                        DropdownMenuItem(value: 'PUBLIC', child: Text('Public')),
-                      ],
-                      onChanged: (v) {
-                        if (v != null) setState(() => _privacy = v);
-                      },
-                    ),
-                  ),
-                ),
+                _pillField(context, t, Symbols.visibility, 'Visibilité', const {
+                  'FAMILY_ONLY': 'Famille',
+                  'MEMBERS_ONLY': 'Village',
+                  'PUBLIC': 'Public',
+                }, _privacy, (v) => setState(() => _privacy = v)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Hero : avatar (initiales, dégradé or) + nom de la personne éditée.
+  Widget _hero(BuildContext context, GwTokens t) {
+    final p = widget.person;
+    final f = p.firstName.trim();
+    final l = p.lastName.trim();
+    final ini = ((f.isNotEmpty ? f[0] : '') + (l.isNotEmpty ? l[0] : ''))
+        .toUpperCase();
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: t.goldGlow,
+        borderRadius: BorderRadius.circular(GwTokens.rCardLg),
+        border: Border.all(color: t.goldLine),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              gradient:
+                  LinearGradient(colors: [GwTokens.goldLight, GwTokens.gold]),
+            ),
+            alignment: Alignment.center,
+            child: Text(ini.isEmpty ? '?' : ini,
+                style: GwType.display(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: GwTokens.inkOnGold)),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('$f $l'.trim(),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GwType.display(fontSize: 17, color: t.stone)),
+                const SizedBox(height: 2),
+                Text('FICHE GÉNÉALOGIQUE',
+                    style: GwType.mono(
+                        fontSize: 9, letterSpacing: 1.5, color: t.stoneDim)),
               ],
             ),
           ),
-        ),
+        ],
       ),
-      actions: [
-        TextButton(
-          onPressed: _loading ? null : () => Navigator.of(context).pop(),
-          child: const Text('Annuler'),
-        ),
-        ElevatedButton(
-          onPressed: _loading ? null : _submit,
-          style: ElevatedButton.styleFrom(
-              backgroundColor: GwTokens.gold,
-              foregroundColor: const Color(0xFF0C0B0F)),
-          child: _loading
-              ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-              : const Text('Enregistrer'),
+    );
+  }
+
+  /// Champ « pilules » (choix unique) : libellé mono + pilules or tactiles.
+  Widget _pillField(BuildContext context, GwTokens t, IconData icon,
+      String label, Map<String, String> options, String selected,
+      ValueChanged<String> onSelect) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(children: [
+          Icon(icon, size: 15, color: t.stoneDim),
+          const SizedBox(width: 7),
+          Text(label.toUpperCase(),
+              style: GwType.mono(
+                  fontSize: 10, letterSpacing: 1.5, color: t.stoneDim)),
+        ]),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: options.entries.map((e) {
+            final active = e.key == selected;
+            return GestureDetector(
+              onTap: () => onSelect(e.key),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 160),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                decoration: BoxDecoration(
+                  color: active ? t.goldBg : t.inkLift,
+                  borderRadius: BorderRadius.circular(GwTokens.rPill),
+                  border: Border.all(color: active ? t.goldLine : t.line),
+                ),
+                child: Text(e.value,
+                    style: GwType.ui(
+                        fontSize: 13,
+                        fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+                        color: active ? t.goldText : t.stoneMid)),
+              ),
+            );
+          }).toList(),
         ),
       ],
     );
