@@ -9,7 +9,7 @@ Cible des sous-domaines :
 | Sous-domaine | Pointe vers | Service |
 |---|---|---|
 | `gwouangmeu.com` | Landing (Next.js) | Vercel |
-| `app.gwouangmeu.com` | App Flutter Web | Cloudflare Pages (`gwangmeu-app`) |
+| `gwouangmeu.com` | App Flutter Web | Cloudflare Pages (`gwangmeu-app`) |
 | `api.gwouangmeu.com` | Backend Spring | Cloud Run |
 | `media.gwouangmeu.com` | Médias | Cloudflare R2 |
 | *(envoi email)* | `send`, `resend._domainkey`, `_dmarc` | Resend (DNS Cloudflare) |
@@ -42,7 +42,7 @@ printf '%s' 'REMPLACER_PAR_re_xxx' | gcloud secrets create resend-api-key --data
   || printf '%s' 'REMPLACER_PAR_re_xxx' | gcloud secrets versions add resend-api-key --data-file=-
 
 gcloud run services update gwangmeu-backend --region europe-west1 \
-  --update-env-vars MAIL_PROVIDER=resend-api,MAIL_FROM=noreply@gwouangmeu.com,APP_BASE_URL=https://app.gwouangmeu.com \
+  --update-env-vars MAIL_PROVIDER=resend-api,MAIL_FROM=noreply@gwouangmeu.com,APP_BASE_URL=https://gwouangmeu.com \
   --update-secrets RESEND_API_KEY=resend-api-key:latest
 ```
 
@@ -62,8 +62,8 @@ gcloud run services update gwangmeu-backend --region europe-west1 \
 | Sender | `noreply@gwouangmeu.com` — `Gwang Meu` |
 
 **Authentication → URL Configuration** :
-- Site URL : `https://app.gwouangmeu.com`
-- Redirect URLs : `https://app.gwouangmeu.com/auth-callback`, `io.supabase.gwangmeu://auth-callback`,
+- Site URL : `https://gwouangmeu.com`
+- Redirect URLs : `https://gwouangmeu.com/auth-callback`, `io.supabase.gwangmeu://auth-callback`,
   `http://localhost:*/auth-callback`
 
 **Authentication → Email Templates** : personnaliser *Confirm signup* + *Reset password*
@@ -71,10 +71,10 @@ gcloud run services update gwangmeu-backend --region europe-west1 \
 
 ---
 
-## 4. App Flutter → `app.gwouangmeu.com` (Cloudflare Pages)
+## 4. App Flutter → `gwouangmeu.com` (Cloudflare Pages)
 
 **Cloudflare → Workers & Pages → `gwangmeu-app` → Custom domains → Set up a custom domain**
-→ `app.gwouangmeu.com`. Même compte Cloudflare → le CNAME est créé automatiquement.
+→ `gwouangmeu.com`. Même compte Cloudflare → le CNAME est créé automatiquement.
 *(Rien à changer côté code : `--base-href "/"` est déjà OK pour un domaine racine de sous-domaine.)*
 
 ---
@@ -92,7 +92,7 @@ GitHub + l'env Cloudflare Pages du build Flutter.
 
 **Vercel → projet landing → Settings → Domains → Add** `gwouangmeu.com` (+ `www`).
 Vercel donne un enregistrement (A `76.76.21.21` ou CNAME) → l'ajouter dans Cloudflare.
-Mettre `NEXT_PUBLIC_SITE_URL=https://gwouangmeu.com`, `NEXT_PUBLIC_APP_URL=https://app.gwouangmeu.com`
+Mettre `NEXT_PUBLIC_SITE_URL=https://gwouangmeu.com`, `NEXT_PUBLIC_APP_URL=https://gwouangmeu.com`
 dans les env Vercel.
 
 ---
@@ -107,7 +107,7 @@ Puis `R2_PUBLIC_URL=https://media.gwouangmeu.com` sur Cloud Run.
 ## Vérification finale
 
 - [ ] Resend « Verified ». Test d'inscription → email confirmation depuis `noreply@gwouangmeu.com`.
-- [ ] `app.gwouangmeu.com` ouvre l'app ; reset mot de passe → retour dans l'app.
+- [ ] `gwouangmeu.com` ouvre l'app ; reset mot de passe → retour dans l'app.
 - [ ] Table `email_logs` : lignes `success=true`.
 - [ ] [mail-tester.com](https://www.mail-tester.com) ≥ 9/10.
 

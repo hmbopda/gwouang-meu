@@ -101,7 +101,7 @@ application:
     bucket-name: ${R2_BUCKET_NAME:gwangmeu-media}
     account-id: ${R2_ACCOUNT_ID:}
     public-url: ${R2_PUBLIC_URL:https://media.gwouangmeu.com}
-  base-url: ${APP_BASE_URL:https://app.gwouangmeu.com}
+  base-url: ${APP_BASE_URL:https://gwouangmeu.com}
   mail-from: ${MAIL_FROM:noreply@gwouangmeu.com}
   # Moteur email : 'smtp' (via spring.mail, defaut) ou 'resend-api' (API HTTP Resend).
   mail:

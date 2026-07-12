@@ -31,7 +31,7 @@ const nextConfig = {
     return [
       {
         source: '/app',
-        destination: process.env.NEXT_PUBLIC_APP_URL || 'https://app.gwouangmeu.com',
+        destination: process.env.NEXT_PUBLIC_APP_URL || 'https://gwouangmeu.com',
         permanent: false,
       },
     ];

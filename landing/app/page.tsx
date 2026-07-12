@@ -80,7 +80,7 @@ export default async function HomePage() {
               {stats.villages} villages · {stats.members.toLocaleString('fr')} membres · Gratuit pour toujours
             </p>
             <a
-              href={process.env.NEXT_PUBLIC_APP_URL || 'https://app.gwouangmeu.com'}
+              href={process.env.NEXT_PUBLIC_APP_URL || 'https://gwouangmeu.com'}
               className="btn-gold text-lg px-10 py-4 inline-block"
             >
               Commencer gratuitement →

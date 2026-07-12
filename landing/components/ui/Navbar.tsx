@@ -1,7 +1,7 @@
 import Link from 'next/link';
 
 export default function Navbar() {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.gwouangmeu.com';
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://gwouangmeu.com';
 
   return (
     <nav className="sticky top-0 z-50 bg-dark-bg/90 backdrop-blur-md border-b border-dark-border">

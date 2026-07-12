@@ -50,7 +50,7 @@ export default async function VillageDetailPage({ params }: Props) {
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://gwouangmeu.com';
   const pageUrl = `${siteUrl}/villages/${params.slug}`;
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.gwouangmeu.com';
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://gwouangmeu.com';
 
   return (
     <>

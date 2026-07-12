@@ -5,7 +5,7 @@ interface HeroSectionProps {
 }
 
 export default function HeroSection({ stats }: HeroSectionProps) {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.gwouangmeu.com';
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://gwouangmeu.com';
 
   return (
     <section className="relative min-h-[90vh] flex items-center justify-center px-4 overflow-hidden">

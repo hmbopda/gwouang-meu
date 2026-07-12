@@ -47,7 +47,7 @@ Définir sur le service Cloud Run :
 | `MAIL_HOST` | `smtp.resend.com` | (défaut, sinon inutile) |
 | `MAIL_PORT` | `465` | (défaut) |
 | `MAIL_USERNAME` | `resend` | (défaut) |
-| `APP_BASE_URL` | `https://app.gwouangmeu.com` | base des liens dans les emails |
+| `APP_BASE_URL` | `https://gwouangmeu.com` | base des liens dans les emails |
 
 ### Option robuste : API HTTP au lieu du SMTP (recommandé sur Cloud Run)
 
@@ -93,9 +93,9 @@ Personnaliser au minimum **Confirm signup** et **Reset password** aux couleurs G
 
 Autoriser les URL de retour utilisées par l'app (deep links P2) :
 
-- **Site URL** : `https://app.gwouangmeu.com`
+- **Site URL** : `https://gwouangmeu.com`
 - **Redirect URLs** (ajouter chacune) :
-  - `https://app.gwouangmeu.com/auth-callback`
+  - `https://gwouangmeu.com/auth-callback`
   - `io.supabase.gwangmeu://auth-callback` *(mobile)*
   - `http://localhost:*/auth-callback` *(dev web)*
 
