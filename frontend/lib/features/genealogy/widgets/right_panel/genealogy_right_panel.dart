@@ -3169,21 +3169,68 @@ class _InlineEditDialogState extends ConsumerState<_InlineEditDialog> {
   }
 
   /// Intitulé de section mono MAJ (mêmes intitulés que la fiche de vie).
-  Widget _sectionTitle(String label, Color color) {
+  /// Eyebrow de section « éditorial » : chiffre romain italique (Fraunces) +
+  /// libellé mono + filet dégradé (un fil qui s'estompe). Couleurs GwTokens.
+  Widget _eyebrow(String roman, String label, Color color) {
+    final t = GwTokens.of(context);
     return Padding(
-      padding: const EdgeInsets.only(top: 20, bottom: 4),
-      child: Align(
-        alignment: Alignment.centerLeft,
-        child: Text(
-          label,
-          style: GwType.mono(
-            fontSize: 9.5,
-            letterSpacing: 2,
-            color: color,
-            fontWeight: FontWeight.w600,
+      padding: const EdgeInsets.only(top: 18, bottom: 10),
+      child: Row(
+        children: [
+          Text('$roman.', style: GwType.quote(fontSize: 15, color: color)),
+          const SizedBox(width: 9),
+          Text(label.toUpperCase(),
+              style: GwType.mono(
+                  fontSize: 10, letterSpacing: 2.4, color: t.stoneDim)),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Container(
+              height: 1,
+              decoration: BoxDecoration(
+                gradient:
+                    LinearGradient(colors: [t.line, Colors.transparent]),
+              ),
+            ),
           ),
-        ),
+        ],
       ),
+    );
+  }
+
+  /// Puces vivantes de l'origine (Village · Département · Région) alimentées
+  /// par les champs texte, mises à jour à chaque sélection dans le référentiel.
+  Widget _originChips(GwTokens t) {
+    final chips = <Widget>[];
+    void add(String k, String val, bool primary) {
+      if (val.trim().isEmpty) return;
+      chips.add(Container(
+        padding: const EdgeInsets.fromLTRB(10, 6, 12, 6),
+        decoration: BoxDecoration(
+          color: primary ? t.goldBg : t.inkLift,
+          borderRadius: BorderRadius.circular(GwTokens.rPill),
+          border: Border.all(color: primary ? t.goldLine : t.line),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Text(k.toUpperCase(),
+              style: GwType.mono(
+                  fontSize: 8.5, letterSpacing: 1.2, color: t.stoneFaint)),
+          const SizedBox(width: 7),
+          Text(val.trim(),
+              style: GwType.ui(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600,
+                  color: primary ? t.goldText : t.stone)),
+        ]),
+      ));
+    }
+
+    add('Village', _originVillageCtrl.text, true);
+    add('Département', _originCityCtrl.text, false);
+    add('Région', _originRegionCtrl.text, false);
+    if (chips.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: Wrap(spacing: 8, runSpacing: 8, children: chips),
     );
   }
 
@@ -3231,17 +3278,20 @@ class _InlineEditDialogState extends ConsumerState<_InlineEditDialog> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
                 _hero(context, t),
-                const SizedBox(height: 14),
+                const SizedBox(height: 4),
+                _eyebrow('i', 'Identité', t.goldText),
                 TextFormField(
                   controller: _firstNameCtrl,
                   decoration: const InputDecoration(labelText: 'Prénom *', prefixIcon: Icon(Symbols.person)),
                   validator: (v) => (v == null || v.isEmpty) ? 'Requis' : null,
+                  onChanged: (_) => setState(() {}),
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: _lastNameCtrl,
                   decoration: const InputDecoration(labelText: 'Nom *', prefixIcon: Icon(Symbols.badge)),
                   validator: (v) => (v == null || v.isEmpty) ? 'Requis' : null,
+                  onChanged: (_) => setState(() {}),
                 ),
                 const SizedBox(height: 12),
                 GestureDetector(
@@ -3260,35 +3310,48 @@ class _InlineEditDialogState extends ConsumerState<_InlineEditDialog> {
                 }, _status, (v) => setState(() => _status = v)),
 
                 // ── ORIGINE — ANCRE DE LA LIGNÉE ──
-                _sectionTitle('ORIGINE — ANCRE DE LA LIGNÉE', t.goldText),
-                const SizedBox(height: 8),
-                // Recherche référentielle : tapez « Bandenkop » → remplit
-                // automatiquement village / ville / région ci-dessous.
-                OriginCascadeSelector(
-                  initial: OriginSelection(
-                    regionName: _originRegionCtrl.text.trim().isEmpty
-                        ? null
-                        : _originRegionCtrl.text.trim(),
-                    departmentName: _originCityCtrl.text.trim().isEmpty
-                        ? null
-                        : _originCityCtrl.text.trim(),
-                    chefferieName: _originVillageCtrl.text.trim().isEmpty
-                        ? null
-                        : _originVillageCtrl.text.trim(),
+                _eyebrow('ii', 'Origine — ancre de la lignée', t.goldText),
+                Text(
+                    'Cherchez la chefferie dans le référentiel — c\'est ce qui rattache la fiche à sa lignée.',
+                    style:
+                        GwType.ui(fontSize: 12, color: t.stoneDim, height: 1.4)),
+                const SizedBox(height: 10),
+                // Panneau « archive » incrusté : recherche référentielle.
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: t.inkDeep,
+                    borderRadius: BorderRadius.circular(GwTokens.rCard),
+                    border: Border.all(color: t.goldLine),
                   ),
-                  onChanged: (sel) {
-                    setState(() {
-                      if (sel.chefferieName != null) {
-                        _originVillageCtrl.text = sel.chefferieName!;
-                      }
-                      final city = sel.arrondissementName ?? sel.departmentName;
-                      if (city != null) _originCityCtrl.text = city;
-                      if (sel.regionName != null) {
-                        _originRegionCtrl.text = sel.regionName!;
-                      }
-                    });
-                  },
+                  child: OriginCascadeSelector(
+                    initial: OriginSelection(
+                      regionName: _originRegionCtrl.text.trim().isEmpty
+                          ? null
+                          : _originRegionCtrl.text.trim(),
+                      departmentName: _originCityCtrl.text.trim().isEmpty
+                          ? null
+                          : _originCityCtrl.text.trim(),
+                      chefferieName: _originVillageCtrl.text.trim().isEmpty
+                          ? null
+                          : _originVillageCtrl.text.trim(),
+                    ),
+                    onChanged: (sel) {
+                      setState(() {
+                        if (sel.chefferieName != null) {
+                          _originVillageCtrl.text = sel.chefferieName!;
+                        }
+                        final city =
+                            sel.arrondissementName ?? sel.departmentName;
+                        if (city != null) _originCityCtrl.text = city;
+                        if (sel.regionName != null) {
+                          _originRegionCtrl.text = sel.regionName!;
+                        }
+                      });
+                    },
+                  ),
                 ),
+                _originChips(t),
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: _originVillageCtrl,
@@ -3333,8 +3396,7 @@ class _InlineEditDialogState extends ConsumerState<_InlineEditDialog> {
                 ),
 
                 // ── ÉVOLUTION — AUJOURD'HUI ──
-                _sectionTitle("ÉVOLUTION — AUJOURD'HUI", t.sageText),
-                const SizedBox(height: 8),
+                _eyebrow('iii', 'Vie — aujourd\'hui', t.sageText),
                 TextFormField(
                   controller: _residenceCityCtrl,
                   decoration: const InputDecoration(labelText: 'Ville de résidence', prefixIcon: Icon(Symbols.home)),
@@ -3385,52 +3447,88 @@ class _InlineEditDialogState extends ConsumerState<_InlineEditDialog> {
     );
   }
 
-  /// Hero : avatar (initiales, dégradé or) + nom de la personne éditée.
+  /// Hero « médaillon » : disque or (dégradé conique) + initiales serif vivantes,
+  /// sur un fond de fils de chaîne tissés (motif Tissage). Couleurs GwTokens.
   Widget _hero(BuildContext context, GwTokens t) {
-    final p = widget.person;
-    final f = p.firstName.trim();
-    final l = p.lastName.trim();
-    final ini = ((f.isNotEmpty ? f[0] : '') + (l.isNotEmpty ? l[0] : ''))
-        .toUpperCase();
+    final f = _firstNameCtrl.text.trim();
+    final l = _lastNameCtrl.text.trim();
+    final ini =
+        ((f.isNotEmpty ? f[0] : '') + (l.isNotEmpty ? l[0] : '')).toUpperCase();
+    final full = '$f $l'.trim();
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: t.goldGlow,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [t.goldGlow, t.goldBg],
+        ),
         borderRadius: BorderRadius.circular(GwTokens.rCardLg),
         border: Border.all(color: t.goldLine),
       ),
-      child: Row(
+      child: Stack(
         children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: const BoxDecoration(
-              shape: BoxShape.circle,
-              gradient:
-                  LinearGradient(colors: [GwTokens.goldLight, GwTokens.gold]),
+          Positioned.fill(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(GwTokens.rCardLg),
+              child: CustomPaint(painter: _LoomAccentPainter()),
             ),
-            alignment: Alignment.center,
-            child: Text(ini.isEmpty ? '?' : ini,
-                style: GwType.display(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: GwTokens.inkOnGold)),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('$f $l'.trim(),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: GwType.display(fontSize: 17, color: t.stone)),
-                const SizedBox(height: 2),
-                Text('FICHE GÉNÉALOGIQUE',
-                    style: GwType.mono(
-                        fontSize: 9, letterSpacing: 1.5, color: t.stoneDim)),
-              ],
-            ),
+          Row(
+            children: [
+              // Médaillon : anneau or conique + disque ink + initiales.
+              Container(
+                width: 58,
+                height: 58,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: const SweepGradient(
+                    startAngle: 3.6,
+                    endAngle: 3.6 + 6.283,
+                    colors: [
+                      GwTokens.goldDeep,
+                      GwTokens.goldLight,
+                      GwTokens.gold,
+                      GwTokens.goldDeep,
+                    ],
+                    stops: [0.0, 0.35, 0.72, 1.0],
+                  ),
+                  boxShadow: [BoxShadow(color: t.goldGlow, blurRadius: 22)],
+                ),
+                alignment: Alignment.center,
+                child: Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: t.inkCard,
+                    border: Border.all(color: t.goldLine),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(ini.isEmpty ? '?' : ini,
+                      style: GwType.display(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w600,
+                          color: t.goldText)),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(full.isEmpty ? 'Nouvelle fiche' : full,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GwType.display(fontSize: 19, color: t.stone)),
+                    const SizedBox(height: 3),
+                    Text('FICHE GÉNÉALOGIQUE',
+                        style: GwType.mono(
+                            fontSize: 9, letterSpacing: 2, color: t.goldText)),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -3464,15 +3562,20 @@ class _InlineEditDialogState extends ConsumerState<_InlineEditDialog> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
                 decoration: BoxDecoration(
-                  color: active ? t.goldBg : t.inkLift,
+                  gradient: active
+                      ? const LinearGradient(
+                          colors: [GwTokens.goldLight, GwTokens.gold])
+                      : null,
+                  color: active ? null : t.inkLift,
                   borderRadius: BorderRadius.circular(GwTokens.rPill),
-                  border: Border.all(color: active ? t.goldLine : t.line),
+                  border:
+                      Border.all(color: active ? Colors.transparent : t.line),
                 ),
                 child: Text(e.value,
                     style: GwType.ui(
                         fontSize: 13,
                         fontWeight: active ? FontWeight.w700 : FontWeight.w500,
-                        color: active ? t.goldText : t.stoneMid)),
+                        color: active ? GwTokens.inkOnGold : t.stoneMid)),
               ),
             );
           }).toList(),
@@ -3572,4 +3675,40 @@ class _InlineEditDialogState extends ConsumerState<_InlineEditDialog> {
       if (mounted) setState(() => _loading = false);
     }
   }
+}
+
+/// Fond décoratif « fils de chaîne » (motif Tissage) du hero de la fiche :
+/// fils verticaux or discrets + petites trames. Uniquement des couleurs GwTokens.
+class _LoomAccentPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final warp = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1;
+    const n = 8;
+    for (int i = 0; i < n; i++) {
+      final x = size.width * (i + 0.5) / n;
+      warp.color = GwTokens.gold.withValues(alpha: i.isEven ? 0.08 : 0.05);
+      final path = Path();
+      for (double y = 0; y <= size.height; y += 4) {
+        final px = x + 1.3 * math.sin(y / 20 + i);
+        if (y == 0) {
+          path.moveTo(px, y);
+        } else {
+          path.lineTo(px, y);
+        }
+      }
+      canvas.drawPath(path, warp);
+    }
+    final weft = Paint()..color = GwTokens.gold.withValues(alpha: 0.07);
+    for (int i = 0; i < n; i++) {
+      final x = size.width * (i + 0.5) / n;
+      for (double y = (i.isEven ? 6.0 : 16.0); y < size.height; y += 26) {
+        canvas.drawRect(Rect.fromLTWH(x - 3, y, 6, 1.3), weft);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _LoomAccentPainter oldDelegate) => false;
 }
