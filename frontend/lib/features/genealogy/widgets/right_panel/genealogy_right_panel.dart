@@ -17,6 +17,7 @@ import 'package:gwangmeu/features/genealogy/state/tree_view_state.dart';
 import 'package:gwangmeu/features/genealogy/widgets/dialogs/add_person_dialog.dart';
 import 'package:gwangmeu/features/genealogy/widgets/dialogs/add_union_dialog.dart';
 import 'package:gwangmeu/features/genealogy/widgets/dialogs/griot_dialog.dart';
+import 'package:gwangmeu/features/genealogy/widgets/dialogs/origin_cascade_selector.dart';
 import 'package:gwangmeu/features/geo/geo_notifier.dart';
 import 'package:gwangmeu/shared/models/country_model.dart';
 import 'package:gwangmeu/shared/widgets/country_selector.dart';
@@ -3208,7 +3209,10 @@ class _InlineEditDialogState extends ConsumerState<_InlineEditDialog> {
         ],
       ),
       content: SizedBox(
-        width: 480,
+        // PWA : même appli mobile/tablette/desktop/web. Largeur fixe 480 sur
+        // grand écran, mais pleine largeur du dialogue sur mobile (évite le
+        // débordement du formulaire sur les petits écrans).
+        width: MediaQuery.of(context).size.width < 560 ? double.maxFinite : 480,
         child: SingleChildScrollView(
           child: Form(
             key: _formKey,
@@ -3259,6 +3263,34 @@ class _InlineEditDialogState extends ConsumerState<_InlineEditDialog> {
                 // ── ORIGINE — ANCRE DE LA LIGNÉE ──
                 _sectionTitle('ORIGINE — ANCRE DE LA LIGNÉE', t.goldText),
                 const SizedBox(height: 8),
+                // Recherche référentielle : tapez « Bandenkop » → remplit
+                // automatiquement village / ville / région ci-dessous.
+                OriginCascadeSelector(
+                  initial: OriginSelection(
+                    regionName: _originRegionCtrl.text.trim().isEmpty
+                        ? null
+                        : _originRegionCtrl.text.trim(),
+                    departmentName: _originCityCtrl.text.trim().isEmpty
+                        ? null
+                        : _originCityCtrl.text.trim(),
+                    chefferieName: _originVillageCtrl.text.trim().isEmpty
+                        ? null
+                        : _originVillageCtrl.text.trim(),
+                  ),
+                  onChanged: (sel) {
+                    setState(() {
+                      if (sel.chefferieName != null) {
+                        _originVillageCtrl.text = sel.chefferieName!;
+                      }
+                      final city = sel.arrondissementName ?? sel.departmentName;
+                      if (city != null) _originCityCtrl.text = city;
+                      if (sel.regionName != null) {
+                        _originRegionCtrl.text = sel.regionName!;
+                      }
+                    });
+                  },
+                ),
+                const SizedBox(height: 12),
                 TextFormField(
                   controller: _originVillageCtrl,
                   decoration: const InputDecoration(labelText: "Village d'origine", prefixIcon: Icon(Symbols.holiday_village)),
