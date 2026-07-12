@@ -6,12 +6,13 @@ import 'package:material_symbols_icons/symbols.dart';
 
 import 'package:gwangmeu/core/router/route_names.dart';
 import 'package:gwangmeu/core/theme/gw_tokens.dart';
+import 'package:gwangmeu/features/home/home_screen.dart';
+import 'package:gwangmeu/features/messages/conversation_screen.dart';
 import 'package:gwangmeu/features/messages/messages_providers.dart';
 
-/// Messages — liste des conversations, refonte « messagerie » : en-tête serif,
-/// recherche, filtres en pilules (Tous · Villages · Clans · Directs) et rangées
-/// à avatar rond. Alimenté par les vraies conversations (villages + famille +
-/// directs). Le tap ouvre le fil (conversation_screen).
+/// Messages — refonte « messagerie ». Mobile : liste → navigation vers le fil.
+/// Desktop/web : split 3 colonnes (liste · fil embarqué · panneau contact).
+/// Alimenté par les vraies conversations (villages + famille + directs).
 enum _MsgFilter { tous, villages, clans, directs }
 
 class MessagesScreen extends ConsumerStatefulWidget {
@@ -24,6 +25,7 @@ class MessagesScreen extends ConsumerStatefulWidget {
 class _MessagesScreenState extends ConsumerState<MessagesScreen> {
   _MsgFilter _filter = _MsgFilter.tous;
   String _query = '';
+  Conversation? _selected; // desktop split
 
   static const _labels = {
     _MsgFilter.tous: 'Tous',
@@ -35,91 +37,116 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
   @override
   Widget build(BuildContext context) {
     final t = GwTokens.of(context);
+    final desktop = isDesktopLayout(context);
+
+    if (desktop) {
+      return Container(
+        color: t.ink,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SizedBox(width: 340, child: _listColumn(t, desktop: true)),
+            Container(width: 1, color: t.line),
+            Expanded(child: _thread(t)),
+            Container(width: 1, color: t.line),
+            SizedBox(width: 300, child: _ContextPanel(conversation: _selected)),
+          ],
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: t.ink,
-      body: SafeArea(
-        child: Column(
+      body: SafeArea(child: _listColumn(t, desktop: false)),
+    );
+  }
+
+  Widget _listColumn(GwTokens t, {required bool desktop}) {
+    return Column(
+      children: [
+        if (!desktop) const GwWeaveBand(),
+        _header(t),
+        _search(t),
+        _filters(t),
+        const SizedBox(height: 12),
+        Expanded(
+          child: _ConvList(
+            filter: _filter,
+            query: _query,
+            selectedId: desktop ? _selected?.group.id : null,
+            onSelect:
+                desktop ? (c) => setState(() => _selected = c) : null,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _header(GwTokens t) => Padding(
+        padding: const EdgeInsets.fromLTRB(20, 16, 14, 10),
+        child: Row(
           children: [
-            const GwWeaveBand(),
-
-            // ── En-tête ──
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 14, 10),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text('Messages',
-                        style: GwType.display(fontSize: 24, color: t.stone)),
-                  ),
-                  Material(
-                    color: t.goldBg,
-                    borderRadius: BorderRadius.circular(GwTokens.rBtn),
-                    child: InkWell(
-                      onTap: () => _showNewMessageHint(context),
-                      borderRadius: BorderRadius.circular(GwTokens.rBtn),
-                      child: SizedBox(
-                        width: GwTokens.tapTarget,
-                        height: GwTokens.tapTarget,
-                        child: Icon(Symbols.edit_square,
-                            size: 21, color: t.goldText),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+            Expanded(
+              child: Text('Messages',
+                  style: GwType.display(fontSize: 24, color: t.stone)),
             ),
-
-            // ── Recherche ──
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
-              child: TextField(
-                onChanged: (v) => setState(() => _query = v.trim()),
-                style: GwType.ui(fontSize: 14, color: t.stone),
-                decoration: InputDecoration(
-                  hintText: 'Rechercher un message, une personne…',
-                  hintStyle: GwType.ui(fontSize: 14, color: t.stoneDim),
-                  prefixIcon:
-                      Icon(Symbols.search, size: 20, color: t.stoneDim),
-                  filled: true,
-                  fillColor: t.inkLift,
-                  isDense: true,
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(GwTokens.rBtn),
-                    borderSide: BorderSide(color: t.line),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(GwTokens.rBtn),
-                    borderSide: const BorderSide(color: GwTokens.gold),
-                  ),
+            Material(
+              color: t.goldBg,
+              borderRadius: BorderRadius.circular(GwTokens.rBtn),
+              child: InkWell(
+                onTap: () => _showNewMessageHint(context),
+                borderRadius: BorderRadius.circular(GwTokens.rBtn),
+                child: SizedBox(
+                  width: GwTokens.tapTarget,
+                  height: GwTokens.tapTarget,
+                  child:
+                      Icon(Symbols.edit_square, size: 21, color: t.goldText),
                 ),
               ),
             ),
-
-            // ── Filtres en pilules ──
-            SizedBox(
-              height: 38,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                children: [
-                  for (final f in _MsgFilter.values) ...[
-                    _pill(t, _labels[f]!, f),
-                    const SizedBox(width: 8),
-                  ],
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            // ── Liste unifiée ──
-            Expanded(child: _ConvList(filter: _filter, query: _query)),
           ],
         ),
-      ),
-    );
-  }
+      );
+
+  Widget _search(GwTokens t) => Padding(
+        padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+        child: TextField(
+          onChanged: (v) => setState(() => _query = v.trim()),
+          style: GwType.ui(fontSize: 14, color: t.stone),
+          decoration: InputDecoration(
+            hintText: 'Rechercher un message, une personne…',
+            hintStyle: GwType.ui(fontSize: 14, color: t.stoneDim),
+            prefixIcon: Icon(Symbols.search, size: 20, color: t.stoneDim),
+            filled: true,
+            fillColor: t.inkLift,
+            isDense: true,
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(GwTokens.rBtn),
+              borderSide: BorderSide(color: t.line),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(GwTokens.rBtn),
+              borderSide: const BorderSide(color: GwTokens.gold),
+            ),
+          ),
+        ),
+      );
+
+  Widget _filters(GwTokens t) => SizedBox(
+        height: 38,
+        child: ListView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          children: [
+            for (final f in _MsgFilter.values) ...[
+              _pill(t, _labels[f]!, f),
+              const SizedBox(width: 8),
+            ],
+          ],
+        ),
+      );
 
   Widget _pill(GwTokens t, String label, _MsgFilter f) {
     final active = _filter == f;
@@ -143,6 +170,32 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
     );
   }
 
+  Widget _thread(GwTokens t) {
+    final sel = _selected;
+    if (sel == null) {
+      return Container(
+        color: t.inkDeep,
+        alignment: Alignment.center,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Symbols.forum, size: 54, color: t.stoneFaint),
+            const SizedBox(height: 14),
+            Text('Sélectionnez une conversation',
+                style: GwType.ui(fontSize: 15, color: t.stoneMid)),
+          ],
+        ),
+      );
+    }
+    return ConversationScreen(
+      key: ValueKey(sel.group.id),
+      groupId: sel.group.id,
+      group: sel.group,
+      villageName: sel.scopeLabel,
+      embedded: true,
+    );
+  }
+
   void _showNewMessageHint(BuildContext context) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -160,10 +213,17 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
 // ─────────────────────────────────────────────────────────────
 
 class _ConvList extends ConsumerWidget {
-  const _ConvList({required this.filter, required this.query});
+  const _ConvList({
+    required this.filter,
+    required this.query,
+    this.onSelect,
+    this.selectedId,
+  });
 
   final _MsgFilter filter;
   final String query;
+  final void Function(Conversation)? onSelect;
+  final String? selectedId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -175,7 +235,6 @@ class _ConvList extends ConsumerWidget {
         ? ref.watch(myFamilyConversationsProvider)
         : const AsyncData<List<Conversation>>([]);
 
-    // Chargement / erreur
     if (convAsync.isLoading || famAsync.isLoading) {
       return Center(child: CircularProgressIndicator(color: t.goldText));
     }
@@ -201,10 +260,9 @@ class _ConvList extends ConsumerWidget {
         list = fam;
         break;
     }
-    // Tri antéchronologique (plus récent d'abord).
     list.sort((a, b) => (b.group.createdAt ?? DateTime(1970))
         .compareTo(a.group.createdAt ?? DateTime(1970)));
-    list = _filter(list, query);
+    list = _filterByQuery(list, query);
 
     final emptyMsg = switch (filter) {
       _MsgFilter.directs => 'Aucun message direct pour le moment',
@@ -230,14 +288,33 @@ class _ConvList extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
               itemCount: list.length,
               separatorBuilder: (_, __) => const SizedBox(height: 2),
-              itemBuilder: (context, i) =>
-                  _ConversationRow(conversation: list[i], index: i),
+              itemBuilder: (context, i) {
+                final c = list[i];
+                return _ConversationRow(
+                  conversation: c,
+                  index: i,
+                  selected: selectedId != null && selectedId == c.group.id,
+                  onTap: () {
+                    if (onSelect != null) {
+                      onSelect!(c);
+                    } else {
+                      context.push(
+                        Routes.conversation(c.group.id),
+                        extra: <String, Object>{
+                          'group': c.group,
+                          'villageName': c.scopeLabel,
+                        },
+                      );
+                    }
+                  },
+                );
+              },
             ),
     );
   }
 }
 
-List<Conversation> _filter(List<Conversation> list, String query) {
+List<Conversation> _filterByQuery(List<Conversation> list, String query) {
   if (query.isEmpty) return list;
   final q = query.toLowerCase();
   return list
@@ -270,10 +347,17 @@ Widget _emptyState(GwTokens t, IconData icon, String message) {
 // ─────────────────────────────────────────────────────────────
 
 class _ConversationRow extends StatelessWidget {
-  const _ConversationRow({required this.conversation, required this.index});
+  const _ConversationRow({
+    required this.conversation,
+    required this.index,
+    required this.onTap,
+    this.selected = false,
+  });
 
   final Conversation conversation;
   final int index;
+  final VoidCallback onTap;
+  final bool selected;
 
   static const _tints = [
     GwTokens.gold,
@@ -293,22 +377,20 @@ class _ConversationRow extends StatelessWidget {
         : '${g.memberCount} membre${g.memberCount > 1 ? 's' : ''}';
 
     return Material(
-      color: Colors.transparent,
+      color: selected ? t.goldBg : Colors.transparent,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
-        onTap: () => context.push(
-          Routes.conversation(g.id),
-          extra: <String, Object>{
-            'group': g,
-            'villageName': conversation.scopeLabel,
-          },
-        ),
+        onTap: onTap,
         borderRadius: BorderRadius.circular(16),
-        child: Padding(
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+                color: selected ? t.goldLine : Colors.transparent),
+          ),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
           child: Row(
             children: [
-              // Avatar rond teinté (icône famille pour les lignées).
               Container(
                 width: 50,
                 height: 50,
@@ -396,5 +478,136 @@ class _ConversationRow extends StatelessWidget {
       return DateFormat('HH:mm').format(dt);
     }
     return DateFormat('d MMM', 'fr').format(dt);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+//  Panneau contact (colonne droite desktop) — infos RÉELLES du groupe
+// ─────────────────────────────────────────────────────────────
+
+class _ContextPanel extends StatelessWidget {
+  const _ContextPanel({required this.conversation});
+  final Conversation? conversation;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = GwTokens.of(context);
+    final c = conversation;
+    if (c == null) {
+      return Container(color: t.inkCard);
+    }
+    final g = c.group;
+    final tint = c.isFamily ? GwTokens.gold : GwTokens.sage;
+
+    return Container(
+      color: t.inkCard,
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
+        children: [
+          // Avatar + nom + portée.
+          Center(
+            child: Column(
+              children: [
+                Container(
+                  width: 76,
+                  height: 76,
+                  decoration: BoxDecoration(
+                    color: tint.withValues(alpha: 0.18),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: tint.withValues(alpha: 0.5)),
+                  ),
+                  alignment: Alignment.center,
+                  child: c.isFamily
+                      ? Icon(Symbols.family_history, size: 34, color: tint)
+                      : Text(
+                          g.name.isNotEmpty ? g.name[0].toUpperCase() : '?',
+                          style: GwType.display(
+                              fontSize: 30,
+                              fontWeight: FontWeight.w600,
+                              color: tint),
+                        ),
+                ),
+                const SizedBox(height: 12),
+                Text(g.name,
+                    textAlign: TextAlign.center,
+                    style: GwType.display(fontSize: 19, color: t.stone)),
+                const SizedBox(height: 4),
+                Text(
+                    '${c.scopeLabel.toUpperCase()} · ${g.memberCount} MEMBRE${g.memberCount > 1 ? 'S' : ''}',
+                    textAlign: TextAlign.center,
+                    style: GwType.mono(
+                        fontSize: 9.5, letterSpacing: 1, color: t.stoneDim)),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // Description réelle si présente.
+          if (g.description?.isNotEmpty == true) ...[
+            _panelLabel(t, 'À propos'),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: t.inkLift,
+                borderRadius: BorderRadius.circular(GwTokens.rCard),
+                border: Border.all(color: t.line),
+              ),
+              child: Text(g.description!,
+                  style: GwType.ui(
+                      fontSize: 13, color: t.stoneMid, height: 1.5)),
+            ),
+            const SizedBox(height: 20),
+          ],
+
+          // Action : ouvrir en plein écran.
+          _panelAction(
+            t,
+            icon: Symbols.open_in_full,
+            label: 'Ouvrir en plein écran',
+            onTap: () => context.push(
+              Routes.conversation(g.id),
+              extra: <String, Object>{
+                'group': g,
+                'villageName': c.scopeLabel,
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _panelLabel(GwTokens t, String text) => Text(text.toUpperCase(),
+      style: GwType.mono(fontSize: 10, letterSpacing: 1.5, color: t.stoneDim));
+
+  Widget _panelAction(GwTokens t,
+      {required IconData icon,
+      required String label,
+      required VoidCallback onTap}) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(GwTokens.rBtn),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: t.inkLift,
+            borderRadius: BorderRadius.circular(GwTokens.rBtn),
+            border: Border.all(color: t.line),
+          ),
+          child: Row(children: [
+            Icon(icon, size: 18, color: t.goldText),
+            const SizedBox(width: 10),
+            Text(label,
+                style: GwType.ui(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w600,
+                    color: t.stone)),
+          ]),
+        ),
+      ),
+    );
   }
 }

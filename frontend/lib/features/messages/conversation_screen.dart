@@ -21,11 +21,16 @@ class ConversationScreen extends ConsumerStatefulWidget {
     required this.groupId,
     this.group,
     this.villageName,
+    this.embedded = false,
   });
 
   final String groupId;
   final ChatGroupModel? group;
   final String? villageName;
+
+  /// Embarqué dans le split 3 colonnes desktop : pas de Scaffold, ni bande
+  /// tissée, ni flèche retour (la liste reste visible à côté).
+  final bool embedded;
 
   @override
   ConsumerState<ConversationScreen> createState() =>
@@ -61,28 +66,29 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
         ref.watch(chatMessagesNotifierProvider(widget.groupId));
     final myId = Supabase.instance.client.auth.currentUser?.id;
 
-    return Scaffold(
-      body: SafeArea(
-        child: Column(
-          children: [
-            const GwWeaveBand(),
-            _header(t),
-            Expanded(
-              child: messagesAsync.when(
-                loading: () => Center(
-                    child: CircularProgressIndicator(color: t.goldText)),
-                error: (e, _) => Center(
-                  child: Text('Erreur de chargement',
-                      style: GwType.ui(fontSize: 14, color: t.stoneMid)),
-                ),
-                data: (messages) => _messageList(t, messages, myId),
-              ),
+    final body = Column(
+      children: [
+        if (!widget.embedded) const GwWeaveBand(),
+        _header(t),
+        Expanded(
+          child: messagesAsync.when(
+            loading: () =>
+                Center(child: CircularProgressIndicator(color: t.goldText)),
+            error: (e, _) => Center(
+              child: Text('Erreur de chargement',
+                  style: GwType.ui(fontSize: 14, color: t.stoneMid)),
             ),
-            _inputBar(t),
-          ],
+            data: (messages) => _messageList(t, messages, myId),
+          ),
         ),
-      ),
+        _inputBar(t),
+      ],
     );
+
+    if (widget.embedded) {
+      return Container(color: t.ink, child: body);
+    }
+    return Scaffold(body: SafeArea(child: body));
   }
 
   // ── Header ─────────────────────────────────────────────────
@@ -102,16 +108,18 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
       ),
       child: Row(
         children: [
-          SizedBox(
-            width: GwTokens.tapTarget,
-            height: GwTokens.tapTarget,
-            child: IconButton(
-              onPressed: () => context.pop(),
-              icon: Icon(Symbols.arrow_back, size: 24, color: t.stone),
-              tooltip: 'Retour',
+          if (!widget.embedded) ...[
+            SizedBox(
+              width: GwTokens.tapTarget,
+              height: GwTokens.tapTarget,
+              child: IconButton(
+                onPressed: () => context.pop(),
+                icon: Icon(Symbols.arrow_back, size: 24, color: t.stone),
+                tooltip: 'Retour',
+              ),
             ),
-          ),
-          const SizedBox(width: 4),
+            const SizedBox(width: 4),
+          ],
           Container(
             width: 44,
             height: 44,
@@ -559,23 +567,21 @@ class _DashedBorderPainter extends CustomPainter {
   const _DashedBorderPainter({
     required this.color,
     required this.radius,
-    this.strokeWidth = 1,
-    this.dash = 5,
-    this.gap = 4,
   });
 
   final Color color;
   final double radius;
-  final double strokeWidth;
-  final double dash;
-  final double gap;
+
+  static const double _strokeWidth = 1;
+  static const double _dash = 5;
+  static const double _gap = 4;
 
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
       ..color = color
       ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeWidth;
+      ..strokeWidth = _strokeWidth;
 
     final path = Path()
       ..addRRect(RRect.fromRectAndRadius(
@@ -584,8 +590,8 @@ class _DashedBorderPainter extends CustomPainter {
     for (final ui.PathMetric metric in path.computeMetrics()) {
       double d = 0;
       while (d < metric.length) {
-        canvas.drawPath(metric.extractPath(d, d + dash), paint);
-        d += dash + gap;
+        canvas.drawPath(metric.extractPath(d, d + _dash), paint);
+        d += _dash + _gap;
       }
     }
   }
