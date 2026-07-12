@@ -99,42 +99,66 @@ class _ProfileView extends ConsumerWidget {
     final t = GwTokens.of(context);
     final desktop = isDesktopLayout(context);
 
+    // Colonne « aperçu » gauche (origines, fiche de vie, lignée) et droite
+    // (villages, clans, complétion). Les cartes « nues » sont insérées avec la
+    // même marge horizontale (20) que les cartes existantes pour un alignement
+    // homogène dans les deux colonnes.
+    Widget hpad(Widget child) => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20), child: child);
+
+    final leftCol = <Widget>[
+      hpad(_OriginesCard(user: user)),
+      const SizedBox(height: 20),
+      const _SectionLabel('FICHE DE VIE'),
+      const SizedBox(height: 8),
+      _LifeSheetCard(user: user),
+      const SizedBox(height: 20),
+      const _SectionLabel('MA LIGNÉE'),
+      const SizedBox(height: 8),
+      _ActionsBlock(user: user),
+    ];
+    final rightCol = <Widget>[
+      hpad(_ClansCard(user: user)),
+      const SizedBox(height: 20),
+      const _SectionLabel('MES VILLAGES'),
+      const SizedBox(height: 8),
+      const _MyVillagesCard(),
+      const SizedBox(height: 16),
+      hpad(_CompletionCard(user: user)),
+    ];
+
     final content = RefreshIndicator(
       color: t.goldText,
       onRefresh: () => ref.read(profileNotifierProvider.notifier).refresh(),
       child: ListView(
-        padding: EdgeInsets.only(top: desktop ? 24 : 8, bottom: 40),
+        padding: EdgeInsets.only(top: desktop ? 20 : 8, bottom: 40),
         children: [
           _ProfileHeader(user: user),
           const SizedBox(height: 16),
           _StatsRow(user: user),
           const SizedBox(height: 20),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: _OriginesCard(user: user),
-          ),
-          const SizedBox(height: 16),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: _ClansCard(user: user),
-          ),
-          const SizedBox(height: 20),
-          const _SectionLabel('FICHE DE VIE'),
-          const SizedBox(height: 8),
-          _LifeSheetCard(user: user),
-          const SizedBox(height: 20),
-          const _SectionLabel('MES VILLAGES'),
-          const SizedBox(height: 8),
-          const _MyVillagesCard(),
-          const SizedBox(height: 16),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: _CompletionCard(user: user),
-          ),
-          const SizedBox(height: 20),
-          const _SectionLabel('MA LIGNÉE'),
-          const SizedBox(height: 8),
-          _ActionsBlock(user: user),
+          if (desktop)
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                    flex: 3,
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: leftCol)),
+                const SizedBox(width: 4),
+                Expanded(
+                    flex: 2,
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: rightCol)),
+              ],
+            )
+          else ...[
+            ...leftCol,
+            const SizedBox(height: 20),
+            ...rightCol,
+          ],
           const SizedBox(height: 24),
           const _SectionLabel('RÉGLAGES'),
           const SizedBox(height: 8),
@@ -145,21 +169,13 @@ class _ProfileView extends ConsumerWidget {
       ),
     );
 
-    // Contenu centré et borné en largeur de lecture — évite l'étirement
-    // « bande » sur les moniteurs larges ; le shell fournit rail + topbar.
-    final bounded = Align(
-      alignment: Alignment.topCenter,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 640),
-        child: content,
-      ),
-    );
-
+    // Desktop/web : le profil remplit toute la largeur de la zone de contenu
+    // (comme les autres écrans), pas de colonne centrée bornée.
     if (desktop) {
       return Container(
         color: t.ink,
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        child: bounded,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        child: content,
       );
     }
 
@@ -170,7 +186,7 @@ class _ProfileView extends ConsumerWidget {
         child: Column(
           children: [
             const GwWeaveBand(),
-            Expanded(child: bounded),
+            Expanded(child: content),
           ],
         ),
       ),
