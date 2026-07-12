@@ -1,0 +1,7 @@
+# Secrets & état — jamais versionnés
+config.env
+terraform.tfvars
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl

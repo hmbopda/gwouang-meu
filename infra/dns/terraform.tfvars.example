@@ -1,0 +1,7 @@
+# Copie en terraform.tfvars puis remplis. Fichier ignoré par git.
+cf_api_token           = "cf_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+canonical_domain       = "gwouang-meu.com"
+redirect_domains       = ["gwouang-meu.fr", "gwouang-meu.org", "gwouang-meu.cm"]
+pages_target           = "gwouang-meu-app.pages.dev"
+railway_api_target     = "votre-service-prod.up.railway.app"
+railway_staging_target = "votre-service-staging.up.railway.app"
