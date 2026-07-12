@@ -1,16 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:material_symbols_icons/symbols.dart';
 
+import 'package:gwangmeu/core/theme/gw_tokens.dart';
 import 'package:gwangmeu/shared/models/country_model.dart';
 import 'package:gwangmeu/shared/models/village_model.dart';
 import 'package:gwangmeu/shared/widgets/country_village_selector.dart';
 import 'package:gwangmeu/shared/widgets/country_selector.dart';
+import 'package:gwangmeu/shared/widgets/gw_dialog.dart';
 import 'package:gwangmeu/features/genealogy/widgets/dialogs/origin_cascade_selector.dart';
 import 'package:gwangmeu/features/genealogy/models/person_genealogy.dart';
 import 'package:gwangmeu/features/genealogy/services/genealogy_api_service.dart';
 
-/// Dialog to edit a person's info, pre-filled with current data.
+/// Dialog « Modifier la fiche » — refonte Tissage : hero de la personne,
+/// cartes douces regroupées, pilules tactiles pour le statut et la visibilité,
+/// et sélection intégrée du village (communauté + origine référentielle).
 class EditPersonDialog extends ConsumerStatefulWidget {
   final PersonGenealogy person;
   final String treeOwnerId;
@@ -44,47 +49,42 @@ class _EditPersonDialogState extends ConsumerState<EditPersonDialog> {
   CountryModel? _originCountry;
   bool _loading = false;
 
+  static const _statusOptions = {
+    'ALIVE': 'Vivant(e)',
+    'DECEASED': 'In memoriam',
+  };
+
   static const _privacyOptions = {
-    'FAMILY_ONLY': 'Famille uniquement',
-    'MEMBERS_ONLY': 'Membres du village uniquement',
+    'FAMILY_ONLY': 'Famille',
+    'MEMBERS_ONLY': 'Village',
     'PUBLIC': 'Public',
   };
 
   @override
   void initState() {
     super.initState();
-    debugPrint('[EDIT_DIALOG] initState START');
-    try {
-      final p = widget.person;
-      debugPrint('[EDIT_DIALOG] person: ${p.firstName} ${p.lastName}, privacy=${p.privacy}, isAlive=${p.isAlive}, birthDate=${p.birthDate}');
-      _firstNameCtrl = TextEditingController(text: p.firstName);
-      _lastNameCtrl = TextEditingController(text: p.lastName);
-      _birthPlaceCtrl = TextEditingController(text: p.birthPlace ?? '');
-      _residenceCtrl = TextEditingController();
-      _professionCtrl = TextEditingController();
-      _bioCtrl = TextEditingController();
-      _birthDate = p.birthDate;
-      _dateCtrl = TextEditingController(
-        text: p.birthDate != null
-            ? DateFormat('dd/MM/yyyy').format(p.birthDate!)
-            : '',
-      );
-      _status = p.isAlive ? 'ALIVE' : 'DECEASED';
-      _privacy = _privacyOptions.containsKey(p.privacy)
-          ? p.privacy
-          : 'FAMILY_ONLY';
-      // Origine référentielle (ancre de la lignée) — pré-remplissage.
-      _origin = OriginSelection(
-        regionName: p.originRegion,
-        departmentName: p.originCity,
-        chefferieName: p.originVillage,
-      );
-      debugPrint('[EDIT_DIALOG] initState OK — status=$_status, privacy=$_privacy');
-    } catch (e, st) {
-      debugPrint('[EDIT_DIALOG] initState ERROR: $e');
-      debugPrint('[EDIT_DIALOG] STACKTRACE: $st');
-      rethrow;
-    }
+    final p = widget.person;
+    _firstNameCtrl = TextEditingController(text: p.firstName);
+    _lastNameCtrl = TextEditingController(text: p.lastName);
+    _birthPlaceCtrl = TextEditingController(text: p.birthPlace ?? '');
+    _residenceCtrl = TextEditingController();
+    _professionCtrl = TextEditingController();
+    _bioCtrl = TextEditingController();
+    _birthDate = p.birthDate;
+    _dateCtrl = TextEditingController(
+      text: p.birthDate != null
+          ? DateFormat('dd/MM/yyyy').format(p.birthDate!)
+          : '',
+    );
+    _status = p.isAlive ? 'ALIVE' : 'DECEASED';
+    _privacy =
+        _privacyOptions.containsKey(p.privacy) ? p.privacy : 'FAMILY_ONLY';
+    // Origine référentielle (ancre de la lignée) — pré-remplissage.
+    _origin = OriginSelection(
+      regionName: p.originRegion,
+      departmentName: p.originCity,
+      chefferieName: p.originVillage,
+    );
   }
 
   @override
@@ -101,277 +101,313 @@ class _EditPersonDialogState extends ConsumerState<EditPersonDialog> {
 
   @override
   Widget build(BuildContext context) {
-    debugPrint('[EDIT_DIALOG] build START');
-    return Dialog(
-      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxWidth: 520,
-          maxHeight: MediaQuery.of(context).size.height * 0.85,
+    final p = widget.person;
+    return GwDialog(
+      title: 'Modifier la fiche',
+      subtitle: '${p.firstName} ${p.lastName}'.trim(),
+      icon: Symbols.edit,
+      maxWidth: 540,
+      contentPadding: const EdgeInsets.fromLTRB(16, 6, 16, 8),
+      actions: [
+        GwDialogAction(
+          label: 'Annuler',
+          onPressed: _loading ? null : () => Navigator.of(context).pop(),
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _buildHeader(),
-            const Divider(height: 1),
-            Flexible(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: _buildForm(),
-              ),
-            ),
-            const Divider(height: 1),
-            _buildActions(),
-          ],
+        GwDialogAction(
+          label: 'Enregistrer',
+          icon: Symbols.check,
+          primary: true,
+          loading: _loading,
+          onPressed: _loading ? null : _submit,
         ),
-      ),
+      ],
+      child: Form(key: _formKey, child: _buildForm(context)),
     );
   }
 
-  Widget _buildHeader() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 8, 10),
+  Widget _buildForm(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _hero(context),
+        const SizedBox(height: 14),
+
+        // ── Identité ──
+        _card(context, icon: Symbols.badge, title: 'Identité', children: [
+          Row(
+            children: [
+              Expanded(
+                child: _field(_firstNameCtrl, 'Prénom',
+                    icon: Symbols.person, validator: _req),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _field(_lastNameCtrl, 'Nom',
+                    icon: Symbols.badge, validator: _req),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          _dateField(context),
+          const SizedBox(height: 12),
+          _pillLabel(context, Symbols.favorite, 'Statut'),
+          const SizedBox(height: 8),
+          _pillGroup(context, _statusOptions, _status,
+              (v) => setState(() => _status = v)),
+        ]),
+        const SizedBox(height: 12),
+
+        // ── Origine & village (sélection intégrée) ──
+        _card(context,
+            icon: Symbols.forest,
+            title: 'Origine & village',
+            subtitle:
+                'Le village d\'origine ancre la lignée. Tapez son nom (ex : Bandenkop).',
+            children: [
+              OriginCascadeSelector(
+                initial: _origin,
+                onChanged: (sel) => _origin = sel,
+              ),
+              const SizedBox(height: 10),
+              CountrySelector(
+                label: 'Pays d\'origine',
+                value: _originCountry,
+                onChanged: (c) => setState(() => _originCountry = c),
+              ),
+              const SizedBox(height: 12),
+              _pillLabel(
+                  context, Symbols.holiday_village, 'Village(s) d\'appartenance'),
+              const SizedBox(height: 8),
+              CountryVillageSelector(
+                selectedCountry: _selectedCountry,
+                selectedVillages: _selectedVillages,
+                multiSelect: true,
+                onCountryChanged: (c) => setState(() {
+                  _selectedCountry = c;
+                  _selectedVillages = [];
+                }),
+                onVillagesChanged: (v) =>
+                    setState(() => _selectedVillages = v),
+              ),
+            ]),
+        const SizedBox(height: 12),
+
+        // ── Naissance & vie ──
+        _card(context, icon: Symbols.home, title: 'Naissance & vie', children: [
+          _field(_birthPlaceCtrl, 'Lieu de naissance',
+              icon: Symbols.location_city, hint: 'Ex : Douala, Paris…'),
+          const SizedBox(height: 8),
+          _field(_residenceCtrl, 'Résidence actuelle',
+              icon: Symbols.location_on, hint: 'Ex : Paris, Bruxelles…'),
+          const SizedBox(height: 8),
+          _field(_professionCtrl, 'Profession', icon: Symbols.work),
+        ]),
+        const SizedBox(height: 12),
+
+        // ── Récit ──
+        _card(context, icon: Symbols.notes, title: 'Récit', children: [
+          _field(_bioCtrl, 'Biographie',
+              icon: Symbols.notes, maxLines: 4, alignTop: true),
+        ]),
+        const SizedBox(height: 12),
+
+        // ── Visibilité ──
+        _card(context, icon: Symbols.visibility, title: 'Visibilité', children: [
+          _pillGroup(context, _privacyOptions, _privacy,
+              (v) => setState(() => _privacy = v)),
+        ]),
+      ],
+    );
+  }
+
+  // ── Hero : avatar (initiales, dégradé or) + nom ──
+  Widget _hero(BuildContext context) {
+    final t = GwTokens.of(context);
+    final p = widget.person;
+    final initials = _initials(p.firstName, p.lastName);
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: t.goldGlow,
+        borderRadius: BorderRadius.circular(GwTokens.rCardLg),
+        border: Border.all(color: t.goldLine),
+      ),
       child: Row(
         children: [
-          Icon(Icons.edit_note, color: Theme.of(context).colorScheme.primary),
-          const SizedBox(width: 8),
-          const Expanded(
-            child: Text(
-              'Modifier la fiche',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+          Container(
+            width: 46,
+            height: 46,
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              gradient:
+                  LinearGradient(colors: [GwTokens.goldLight, GwTokens.gold]),
             ),
+            alignment: Alignment.center,
+            child: Text(initials,
+                style: GwType.display(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w600,
+                    color: GwTokens.inkOnGold)),
           ),
-          IconButton(
-            icon: const Icon(Icons.close),
-            onPressed: () => Navigator.of(context).pop(),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('${p.firstName} ${p.lastName}'.trim(),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GwType.display(fontSize: 18, color: t.stone)),
+                const SizedBox(height: 2),
+                Text('Fiche généalogique',
+                    style: GwType.mono(
+                        fontSize: 10, letterSpacing: 1.5, color: t.stoneDim)),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildForm() {
-    return Form(
-      key: _formKey,
+  // ── Carte de section douce ──
+  Widget _card(BuildContext context,
+      {required IconData icon,
+      required String title,
+      String? subtitle,
+      required List<Widget> children}) {
+    final t = GwTokens.of(context);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: t.inkCard,
+        borderRadius: BorderRadius.circular(GwTokens.rCardLg),
+        border: Border.all(color: t.line),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Identité ──
-          _sectionLabel('IDENTITÉ'),
-          const SizedBox(height: 8),
           Row(
             children: [
-              Expanded(
-                child: TextFormField(
-                  controller: _firstNameCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Prénom *',
-                    prefixIcon: Icon(Icons.person_outline),
-                    isDense: true,
-                    contentPadding:
-                        EdgeInsets.symmetric(horizontal: 13, vertical: 10),
-                  ),
-                  validator: (v) =>
-                      (v == null || v.isEmpty) ? 'Requis' : null,
-                ),
-              ),
+              Icon(icon, size: 16, color: t.goldText),
               const SizedBox(width: 8),
-              Expanded(
-                child: TextFormField(
-                  controller: _lastNameCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Nom *',
-                    prefixIcon: Icon(Icons.badge_outlined),
-                    isDense: true,
-                    contentPadding:
-                        EdgeInsets.symmetric(horizontal: 13, vertical: 10),
-                  ),
-                  validator: (v) =>
-                      (v == null || v.isEmpty) ? 'Requis' : null,
-                ),
-              ),
+              Text(title.toUpperCase(),
+                  style: GwType.mono(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 2,
+                      color: t.stoneDim)),
             ],
           ),
-          const SizedBox(height: 8),
-
-          // Date + Statut
-          Row(
-            children: [
-              Expanded(child: _dateField()),
-              const SizedBox(width: 8),
-              Expanded(
-                child: DropdownButtonFormField<String>(
-                  key: ValueKey('status_$_status'),
-                  initialValue: _status,
-                  decoration: const InputDecoration(
-                    labelText: 'Statut',
-                    prefixIcon: Icon(Icons.favorite_outline),
-                    isDense: true,
-                    contentPadding:
-                        EdgeInsets.symmetric(horizontal: 13, vertical: 10),
-                  ),
-                  items: const [
-                    DropdownMenuItem(
-                        value: 'ALIVE', child: Text('Vivant(e)')),
-                    DropdownMenuItem(
-                        value: 'DECEASED', child: Text('Décédé(e)')),
-                  ],
-                  onChanged: (v) {
-                    if (v != null) setState(() => _status = v);
-                  },
-                ),
-              ),
-            ],
-          ),
+          if (subtitle != null) ...[
+            const SizedBox(height: 6),
+            Text(subtitle,
+                style: GwType.ui(fontSize: 12, color: t.stoneDim, height: 1.4)),
+          ],
           const SizedBox(height: 12),
-
-          // ── Lieu de naissance ──
-          _sectionLabel('LIEU DE NAISSANCE'),
-          const SizedBox(height: 8),
-          TextFormField(
-            controller: _birthPlaceCtrl,
-            decoration: const InputDecoration(
-              labelText: 'Lieu de naissance',
-              prefixIcon: Icon(Icons.location_city_outlined),
-              hintText: 'Ex: Douala, Paris, Yaoundé...',
-              isDense: true,
-              contentPadding:
-                  EdgeInsets.symmetric(horizontal: 13, vertical: 10),
-            ),
-          ),
-          const SizedBox(height: 12),
-
-          // ── Origine ──
-          _sectionLabel('PAYS & VILLAGE D\'APPARTENANCE'),
-          const SizedBox(height: 8),
-          CountryVillageSelector(
-            selectedCountry: _selectedCountry,
-            selectedVillages: _selectedVillages,
-            multiSelect: true,
-            onCountryChanged: (c) => setState(() {
-              _selectedCountry = c;
-              _selectedVillages = [];
-            }),
-            onVillagesChanged: (v) => setState(() => _selectedVillages = v),
-          ),
-          const SizedBox(height: 12),
-
-          // ── Origine référentielle (ancre de la lignée — atteint Bandenkop) ──
-          _sectionLabel('ORIGINE — ANCRE DE LA LIGNÉE'),
-          const SizedBox(height: 8),
-          OriginCascadeSelector(
-            initial: _origin,
-            onChanged: (sel) => _origin = sel,
-          ),
-          const SizedBox(height: 8),
-          CountrySelector(
-            label: 'Pays d\'origine',
-            value: _originCountry,
-            onChanged: (c) => setState(() => _originCountry = c),
-          ),
-          const SizedBox(height: 12),
-
-          // ── Résidence & Profession ──
-          _sectionLabel('RÉSIDENCE & PROFESSION'),
-          const SizedBox(height: 8),
-          TextFormField(
-            controller: _residenceCtrl,
-            decoration: const InputDecoration(
-              labelText: 'Lieu de résidence actuel',
-              prefixIcon: Icon(Icons.home_outlined),
-              hintText: 'Ex: Paris, Douala, Bruxelles...',
-              isDense: true,
-              contentPadding:
-                  EdgeInsets.symmetric(horizontal: 13, vertical: 10),
-            ),
-          ),
-          const SizedBox(height: 8),
-          TextFormField(
-            controller: _professionCtrl,
-            decoration: const InputDecoration(
-              labelText: 'Profession',
-              prefixIcon: Icon(Icons.work_outline),
-              isDense: true,
-              contentPadding:
-                  EdgeInsets.symmetric(horizontal: 13, vertical: 10),
-            ),
-          ),
-          const SizedBox(height: 12),
-
-          // ── Biographie ──
-          _sectionLabel('BIOGRAPHIE'),
-          const SizedBox(height: 8),
-          TextFormField(
-            controller: _bioCtrl,
-            maxLines: 4,
-            decoration: const InputDecoration(
-              labelText: 'Biographie',
-              alignLabelWithHint: true,
-              isDense: true,
-              contentPadding:
-                  EdgeInsets.symmetric(horizontal: 13, vertical: 10),
-            ),
-          ),
-          const SizedBox(height: 12),
-
-          // ── Vie privée ──
-          _sectionLabel('VIE PRIVÉE'),
-          const SizedBox(height: 8),
-          DropdownButtonFormField<String>(
-            key: ValueKey('privacy_$_privacy'),
-            initialValue: _privacy,
-            decoration: const InputDecoration(
-              labelText: 'Visibilité',
-              prefixIcon: Icon(Icons.visibility_outlined),
-              isDense: true,
-              contentPadding:
-                  EdgeInsets.symmetric(horizontal: 13, vertical: 10),
-            ),
-            items: _privacyOptions.entries
-                .map((e) => DropdownMenuItem(
-                      value: e.key,
-                      child: Text(e.value),
-                    ))
-                .toList(),
-            onChanged: (v) {
-              if (v != null) setState(() => _privacy = v);
-            },
-          ),
+          ...children,
         ],
       ),
     );
   }
 
-  Widget _sectionLabel(String text) {
-    return Text(
-      text,
-      style: TextStyle(
-        color: Colors.grey[600],
-        fontSize: 10,
-        fontWeight: FontWeight.w700,
-        letterSpacing: 1.2,
-      ),
+  Widget _pillLabel(BuildContext context, IconData icon, String text) {
+    final t = GwTokens.of(context);
+    return Row(
+      children: [
+        Icon(icon, size: 15, color: t.stoneDim),
+        const SizedBox(width: 7),
+        Text(text.toUpperCase(),
+            style: GwType.mono(
+                fontSize: 10, letterSpacing: 1.5, color: t.stoneDim)),
+      ],
     );
   }
 
-  Widget _dateField() {
+  // ── Champ de saisie Tissage ──
+  Widget _field(TextEditingController ctrl, String label,
+      {IconData? icon,
+      String? hint,
+      String? Function(String?)? validator,
+      int maxLines = 1,
+      bool alignTop = false}) {
+    final t = GwTokens.of(context);
+    return TextFormField(
+      controller: ctrl,
+      maxLines: maxLines,
+      style: GwType.ui(fontSize: 14, color: t.stone),
+      decoration: gwInputDecoration(
+        context,
+        label: label,
+        hint: hint,
+        prefixIcon: icon,
+        dense: true,
+        alignLabelWithHint: alignTop,
+      ),
+      validator: validator,
+    );
+  }
+
+  // ── Champ date (tap → sélecteur) ──
+  Widget _dateField(BuildContext context) {
+    final t = GwTokens.of(context);
     return GestureDetector(
       onTap: _pickDate,
       child: AbsorbPointer(
         child: TextFormField(
           controller: _dateCtrl,
-          decoration: const InputDecoration(
-            labelText: 'Date de naissance',
-            prefixIcon: Icon(Icons.calendar_today_outlined),
-            hintText: 'JJ/MM/AAAA',
-            isDense: true,
-            contentPadding:
-                EdgeInsets.symmetric(horizontal: 13, vertical: 10),
+          style: GwType.ui(fontSize: 14, color: t.stone),
+          decoration: gwInputDecoration(
+            context,
+            label: 'Date de naissance',
+            hint: 'JJ/MM/AAAA',
+            prefixIcon: Symbols.event,
+            dense: true,
           ),
         ),
       ),
     );
+  }
+
+  // ── Groupe de pilules (choix unique) ──
+  Widget _pillGroup(BuildContext context, Map<String, String> options,
+      String selected, ValueChanged<String> onSelect) {
+    final t = GwTokens.of(context);
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: options.entries.map((e) {
+        final active = e.key == selected;
+        return GestureDetector(
+          onTap: () => onSelect(e.key),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 160),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+            decoration: BoxDecoration(
+              color: active ? t.goldBg : t.inkLift,
+              borderRadius: BorderRadius.circular(GwTokens.rPill),
+              border: Border.all(color: active ? t.goldLine : t.line),
+            ),
+            child: Text(e.value,
+                style: GwType.ui(
+                    fontSize: 13,
+                    fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+                    color: active ? t.goldText : t.stoneMid)),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  String? _req(String? v) => (v == null || v.trim().isEmpty) ? 'Requis' : null;
+
+  String _initials(String first, String last) {
+    final f = first.trim();
+    final l = last.trim();
+    final s =
+        ((f.isNotEmpty ? f[0] : '') + (l.isNotEmpty ? l[0] : '')).toUpperCase();
+    return s.isEmpty ? '?' : s;
   }
 
   Future<void> _pickDate() async {
@@ -387,36 +423,6 @@ class _EditPersonDialogState extends ConsumerState<EditPersonDialog> {
         _dateCtrl.text = DateFormat('dd/MM/yyyy').format(picked);
       });
     }
-  }
-
-  Widget _buildActions() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          TextButton(
-            onPressed: _loading ? null : () => Navigator.of(context).pop(),
-            child: const Text('Annuler'),
-          ),
-          const SizedBox(width: 8),
-          ElevatedButton(
-            onPressed: _loading ? null : _submit,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.primary,
-              foregroundColor: Colors.black,
-            ),
-            child: _loading
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Text('Enregistrer'),
-          ),
-        ],
-      ),
-    );
   }
 
   Future<void> _submit() async {
@@ -436,6 +442,15 @@ class _EditPersonDialogState extends ConsumerState<EditPersonDialog> {
       }
       if (_birthPlaceCtrl.text.trim().isNotEmpty) {
         data['birthPlace'] = _birthPlaceCtrl.text.trim();
+      }
+      if (_residenceCtrl.text.trim().isNotEmpty) {
+        data['residenceCity'] = _residenceCtrl.text.trim();
+      }
+      if (_professionCtrl.text.trim().isNotEmpty) {
+        data['profession'] = _professionCtrl.text.trim();
+      }
+      if (_bioCtrl.text.trim().isNotEmpty) {
+        data['biography'] = _bioCtrl.text.trim();
       }
       if (_selectedVillages.isNotEmpty) {
         data['villageIds'] = _selectedVillages.map((v) => v.id).toList();
@@ -457,8 +472,19 @@ class _EditPersonDialogState extends ConsumerState<EditPersonDialog> {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Fiche mise à jour'),
-            backgroundColor: Theme.of(context).colorScheme.primary,
+            content: Row(mainAxisSize: MainAxisSize.min, children: [
+              const Icon(Symbols.check_circle, size: 18, color: Colors.white),
+              const SizedBox(width: 10),
+              Text('Fiche mise à jour',
+                  style: GwType.ui(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white)),
+            ]),
+            backgroundColor: GwTokens.sage,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(GwTokens.rPill)),
           ),
         );
       }
@@ -466,8 +492,12 @@ class _EditPersonDialogState extends ConsumerState<EditPersonDialog> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erreur: $e'),
-            backgroundColor: Colors.red,
+            content: Text('Erreur : $e',
+                style: GwType.ui(fontSize: 14, color: Colors.white)),
+            backgroundColor: GwTokens.ember,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(GwTokens.rPill)),
           ),
         );
       }
