@@ -42,6 +42,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
   final _scrollCtrl = ScrollController();
   bool _hasText = false;
   bool _translateDismissed = false;
+  RealtimeChannel? _channel;
 
   @override
   void initState() {
@@ -50,10 +51,39 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
       final has = _inputCtrl.text.trim().isNotEmpty;
       if (has != _hasText) setState(() => _hasText = has);
     });
+    _subscribeRealtime();
+  }
+
+  /// Temps réel : à chaque message inséré dans ce groupe, on recharge la liste
+  /// (enrichie du nom/avatar de l'expéditeur). RLS côté Supabase : on ne reçoit
+  /// que les messages des groupes dont on est membre.
+  void _subscribeRealtime() {
+    _channel = Supabase.instance.client
+        .channel('chat_messages:${widget.groupId}')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.insert,
+          schema: 'public',
+          table: 'chat_messages',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'group_id',
+            value: widget.groupId,
+          ),
+          callback: (_) {
+            if (mounted) {
+              ref.invalidate(chatMessagesNotifierProvider(widget.groupId));
+            }
+          },
+        )
+        .subscribe();
   }
 
   @override
   void dispose() {
+    final channel = _channel;
+    if (channel != null) {
+      Supabase.instance.client.removeChannel(channel);
+    }
     _inputCtrl.dispose();
     _scrollCtrl.dispose();
     super.dispose();
