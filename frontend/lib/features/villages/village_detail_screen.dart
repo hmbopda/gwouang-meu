@@ -402,7 +402,7 @@ class _CenterPanel extends ConsumerStatefulWidget {
 class _CenterPanelState extends ConsumerState<_CenterPanel>
     with SingleTickerProviderStateMixin {
   late final TabController _tabCtrl;
-  static const _tabs = ['Aperçu', 'Patrimoine', 'Communauté'];
+  static const _tabs = ['Aperçu', 'Patrimoine', 'Us & coutumes', 'Communauté'];
 
   VillageModel get v => widget.village;
 
@@ -443,6 +443,7 @@ class _CenterPanelState extends ConsumerState<_CenterPanel>
             tabs: [
               _tabItem(context, 'Aperçu', null),
               _tabItem(context, 'Patrimoine', null),
+              _tabItem(context, 'Us & coutumes', null),
               _tabItem(context, 'Communauté', '${v.memberCount}'),
             ],
           ),
@@ -454,6 +455,7 @@ class _CenterPanelState extends ConsumerState<_CenterPanel>
               _ApercuTab(
                   village: v, includeRightPanel: widget.includeRightPanel),
               _PatrimoineTab(village: v),
+              _CoutumesTab(village: v),
               _CommunauteTab(village: v),
             ],
           ),
@@ -902,75 +904,175 @@ class _RightPanel extends StatelessWidget {
 // ═══════════════════════════════════════════════════════════════
 
 // ═══════════════════════════════════════════════════════════════
-// ONGLET PATRIMOINE — Histoire (genèse + ligne des chefs + temps forts)
+// ONGLET PATRIMOINE — Genèse · Chefs · Temps forts (segmenté)
 // ═══════════════════════════════════════════════════════════════
 
-class _PatrimoineTab extends ConsumerWidget {
+class _PatrimoineTab extends StatelessWidget {
   const _PatrimoineTab({required this.village});
   final VillageModel village;
 
   @override
+  Widget build(BuildContext context) {
+    return _SegmentedTab(segments: [
+      _Segment(
+          label: 'Genèse',
+          builder: () => _scrollSection(_GenesisSection(village: village))),
+      _Segment(
+          label: 'Chefs',
+          builder: () => _scrollSection(_DynastySection(village: village))),
+      _Segment(
+          label: 'Temps forts',
+          builder: () => _scrollSection(_MilestonesSection(village: village))),
+    ]);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ONGLET US & COUTUMES — Traditions · Lieux sacrés · Calendrier (segmenté)
+// ═══════════════════════════════════════════════════════════════
+
+class _CoutumesTab extends StatelessWidget {
+  const _CoutumesTab({required this.village});
+  final VillageModel village;
+
+  @override
+  Widget build(BuildContext context) {
+    return _SegmentedTab(segments: [
+      _Segment(
+          label: 'Traditions',
+          builder: () => _scrollSection(
+              _HeritageEntriesSection(village: village, kind: 'TRADITION'))),
+      _Segment(
+          label: 'Lieux sacrés',
+          builder: () => _scrollSection(
+              _HeritageEntriesSection(village: village, kind: 'SACRED_PLACE'))),
+      _Segment(
+          label: 'Calendrier',
+          builder: () => _scrollSection(
+              _HeritageEntriesSection(village: village, kind: 'CALENDAR'))),
+    ]);
+  }
+}
+
+/// Section « Genèse » autonome (bouton MODIFIER si autorisé + contenu réel).
+class _GenesisSection extends ConsumerWidget {
+  const _GenesisSection({required this.village});
+  final VillageModel village;
+
+  @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final t = GwTokens.of(context);
     final canEdit = ref
             .watch(villageMyPermissionsProvider(village.id))
             .valueOrNull
             ?.has('EDIT_VILLAGE') ??
         false;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (canEdit)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 6),
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: _sectionEditBtn(
+                  context, () => _showGenesisDialog(context, ref, village)),
+            ),
+          ),
+        _GenesisContent(
+          village: village,
+          canEdit: canEdit,
+          onEdit: () => _showGenesisDialog(context, ref, village),
+        ),
+      ],
+    );
+  }
+}
 
-    return ListView(
-      padding: EdgeInsets.zero,
+/// Enrobe une section (non défilable) dans une liste défilable de segment.
+Widget _scrollSection(Widget child) => ListView(
+      padding: const EdgeInsets.fromLTRB(0, 16, 0, 44),
+      children: [child],
+    );
+
+// ── Onglet à sous-navigation segmentée (façon Communauté) ────────
+
+class _Segment {
+  const _Segment({required this.label, this.count, required this.builder});
+  final String label;
+  final String? count;
+  final Widget Function() builder;
+}
+
+class _SegmentedTab extends StatefulWidget {
+  const _SegmentedTab({required this.segments});
+  final List<_Segment> segments;
+
+  @override
+  State<_SegmentedTab> createState() => _SegmentedTabState();
+}
+
+class _SegmentedTabState extends State<_SegmentedTab> {
+  int _seg = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = GwTokens.of(context);
+    final segs = widget.segments;
+    final idx = _seg.clamp(0, segs.length - 1);
+    return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(24, 22, 24, 2),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+          child: Row(
             children: [
-              Text('Histoire',
-                  style: GwType.display(fontSize: 26, color: t.stone)),
-              const SizedBox(height: 6),
-              Text(
-                'La genèse du village, la dynastie de ses chefs et ses temps forts.',
-                style: GwType.ui(fontSize: 13, color: t.stoneDim, height: 1.6),
-              ),
+              for (int i = 0; i < segs.length; i++) ...[
+                if (i > 0) const SizedBox(width: 8),
+                _pill(t, segs[i].label, segs[i].count, i, idx),
+              ],
             ],
           ),
         ),
-        const SizedBox(height: 10),
-        _Section(
-          title: 'Genèse',
-          trailing: canEdit
-              ? _sectionEditBtn(
-                  context, () => _showGenesisDialog(context, ref, village))
-              : null,
-          child: _GenesisContent(
-            village: village,
-            canEdit: canEdit,
-            onEdit: () => _showGenesisDialog(context, ref, village),
+        Expanded(child: segs[idx].builder()),
+      ],
+    );
+  }
+
+  Widget _pill(GwTokens t, String label, String? count, int i, int idx) {
+    final sel = i == idx;
+    return Expanded(
+      child: Material(
+        color: sel ? GwTokens.gold.withValues(alpha: 0.14) : t.inkLift,
+        borderRadius: BorderRadius.circular(GwTokens.rPill),
+        child: InkWell(
+          onTap: () => setState(() => _seg = i),
+          borderRadius: BorderRadius.circular(GwTokens.rPill),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 4),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Flexible(
+                  child: Text(label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: GwType.ui(
+                          fontSize: 13,
+                          fontWeight: sel ? FontWeight.w700 : FontWeight.w500,
+                          color: sel ? t.goldText : t.stoneMid)),
+                ),
+                if (count != null) ...[
+                  const SizedBox(width: 5),
+                  Text(count,
+                      style: GwType.mono(
+                          fontSize: 10,
+                          color: sel ? t.goldText : t.stoneFaint)),
+                ],
+              ],
+            ),
           ),
         ),
-        _Section(
-          title: 'Ligne des chefs',
-          child: _DynastySection(village: village),
-        ),
-        _Section(
-          title: 'Temps forts',
-          child: _MilestonesSection(village: village),
-        ),
-        _Section(
-          title: 'Traditions',
-          child: _HeritageEntriesSection(village: village, kind: 'TRADITION'),
-        ),
-        _Section(
-          title: 'Lieux sacrés',
-          child: _HeritageEntriesSection(village: village, kind: 'SACRED_PLACE'),
-        ),
-        _Section(
-          title: 'Calendrier traditionnel',
-          child: _HeritageEntriesSection(village: village, kind: 'CALENDAR'),
-        ),
-        const SizedBox(height: 40),
-      ],
+      ),
     );
   }
 }
@@ -1372,85 +1474,25 @@ class _HeritageEntryFormState extends ConsumerState<_HeritageEntryForm> {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// ONGLET COMMUNAUTÉ — Membres · Publications · Chat
+// ONGLET COMMUNAUTÉ — Membres · Publications · Chat (segmenté)
 // ═══════════════════════════════════════════════════════════════
 
-class _CommunauteTab extends StatefulWidget {
+class _CommunauteTab extends StatelessWidget {
   const _CommunauteTab({required this.village});
   final VillageModel village;
 
   @override
-  State<_CommunauteTab> createState() => _CommunauteTabState();
-}
-
-class _CommunauteTabState extends State<_CommunauteTab> {
-  int _seg = 0;
-
-  @override
   Widget build(BuildContext context) {
-    final t = GwTokens.of(context);
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-          child: Row(
-            children: [
-              _segPill(t, 'Membres', '${widget.village.memberCount}', 0),
-              const SizedBox(width: 8),
-              _segPill(t, 'Publications', null, 1),
-              const SizedBox(width: 8),
-              _segPill(t, 'Chat', null, 2),
-            ],
-          ),
-        ),
-        Expanded(child: _current()),
-      ],
-    );
-  }
-
-  Widget _current() {
-    switch (_seg) {
-      case 1:
-        return _PublicationsTab(village: widget.village);
-      case 2:
-        return _ChatTab(village: widget.village);
-      default:
-        return _MembresTab(village: widget.village);
-    }
-  }
-
-  Widget _segPill(GwTokens t, String label, String? count, int idx) {
-    final sel = _seg == idx;
-    return Expanded(
-      child: Material(
-        color: sel ? GwTokens.gold.withValues(alpha: 0.14) : t.inkLift,
-        borderRadius: BorderRadius.circular(GwTokens.rPill),
-        child: InkWell(
-          onTap: () => setState(() => _seg = idx),
-          borderRadius: BorderRadius.circular(GwTokens.rPill),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 9),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(label,
-                    style: GwType.ui(
-                        fontSize: 13,
-                        fontWeight: sel ? FontWeight.w700 : FontWeight.w500,
-                        color: sel ? t.goldText : t.stoneMid)),
-                if (count != null) ...[
-                  const SizedBox(width: 5),
-                  Text(count,
-                      style: GwType.mono(
-                          fontSize: 10,
-                          color: sel ? t.goldText : t.stoneFaint)),
-                ],
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
+    return _SegmentedTab(segments: [
+      _Segment(
+          label: 'Membres',
+          count: '${village.memberCount}',
+          builder: () => _MembresTab(village: village)),
+      _Segment(
+          label: 'Publications',
+          builder: () => _PublicationsTab(village: village)),
+      _Segment(label: 'Chat', builder: () => _ChatTab(village: village)),
+    ]);
   }
 }
 
@@ -3561,13 +3603,9 @@ class _StatsRow extends ConsumerWidget {
 
 class _Section extends StatelessWidget {
   const _Section(
-      {required this.title,
-      required this.child,
-      this.trailing,
-      this.isMonoTitle = false});
+      {required this.title, required this.child, this.isMonoTitle = false});
   final String title;
   final Widget child;
-  final Widget? trailing;
   final bool isMonoTitle;
 
   @override
@@ -3595,7 +3633,6 @@ class _Section extends StatelessWidget {
                               GwType.display(fontSize: 20, color: t.stone),
                           overflow: TextOverflow.ellipsis),
                 ),
-                if (trailing != null) trailing!,
               ],
             ),
           ),
