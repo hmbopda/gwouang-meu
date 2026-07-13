@@ -10,6 +10,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:gwangmeu/core/theme/gw_tokens.dart';
 import 'package:gwangmeu/features/chat/chat_notifier.dart';
+import 'package:gwangmeu/features/profile/profile_notifier.dart';
 import 'package:gwangmeu/shared/models/chat_group_model.dart';
 import 'package:gwangmeu/shared/models/chat_message_model.dart';
 
@@ -125,7 +126,9 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     final t = GwTokens.of(context);
     final messagesAsync =
         ref.watch(chatMessagesNotifierProvider(widget.groupId));
-    final myId = Supabase.instance.client.auth.currentUser?.id;
+    // « Mes » messages = envoyés par mon utilisateur BACKEND. senderId est l'id
+    // backend (users.id), pas l'id Supabase auth — d'où le profil, pas currentUser.
+    final myId = ref.watch(profileNotifierProvider).valueOrNull?.id;
 
     final body = Column(
       children: [
@@ -271,9 +274,10 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
           );
         }
 
-        // Messages : liste inversée → le plus récent en premier
-        final ordered = messages.reversed.toList();
-        final m = ordered[index - 1];
+        // Ordre chrono : anciens en haut, récents en bas. La liste est en
+        // `reverse` (index 0 = bas) et le backend renvoie DESC (récent d'abord),
+        // donc messages[index-1] place le plus récent en bas — sans re-inverser.
+        final m = messages[index - 1];
         final isMine = myId != null && m.senderId == myId;
         return Padding(
           padding: const EdgeInsets.symmetric(vertical: 6),
