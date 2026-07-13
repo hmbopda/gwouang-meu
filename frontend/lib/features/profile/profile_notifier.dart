@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:gwangmeu/core/network/api_client.dart';
 import 'package:gwangmeu/core/network/supabase_service.dart';
+import 'package:gwangmeu/core/storage/media_storage.dart';
 import 'package:gwangmeu/shared/models/user_model.dart';
 
 part 'profile_notifier.g.dart';
@@ -61,16 +62,12 @@ class ProfileNotifier extends _$ProfileNotifier {
     required String folder,
     required String profileField,
   }) async {
-    final client = ref.read(apiClientProvider);
-    // 1) Upload vers R2
-    final uploadJson = await client.uploadFile(
-      '/api/v1/media/upload',
+    // 1) Upload vers Supabase Storage (bucket public 'media' → URL CDN durable)
+    final url = await MediaStorage.upload(
       bytes: bytes,
+      folder: folder,
       filename: filename,
-      field: 'file',
-      fields: {'folder': folder},
     );
-    final url = (uploadJson['data'] as Map<String, dynamic>)['url'] as String;
     // 2) Met a jour le profil avec l'URL
     await updateProfile({profileField: url});
   }
