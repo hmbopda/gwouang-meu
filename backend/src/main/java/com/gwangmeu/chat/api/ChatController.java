@@ -66,6 +66,49 @@ public class ChatController {
                 .body(ApiResponse.created(toGroupDto(group)));
     }
 
+    @PostMapping("/direct")
+    @Operation(summary = "Ouvrir une conversation directe avec un utilisateur (sans village)")
+    public ResponseEntity<ApiResponse<ChatGroupDto>> openDirect(
+            @RequestBody Map<String, String> body,
+            @CurrentUser Jwt jwt) {
+        UUID userId = resolveUserId(jwt);
+        String raw = body.get("targetUserId");
+        if (raw == null || raw.isBlank()) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    HttpStatus.BAD_REQUEST, "targetUserId requis");
+        }
+        UUID targetUserId = UUID.fromString(raw);
+        User target = userRepository.findById(targetUserId)
+                .orElseThrow(() -> new EntityNotFoundException("Utilisateur introuvable"));
+        ChatGroup group = chatService.createOrGetDirectByUsers(
+                userId, targetUserId, target.getDisplayName());
+        return ResponseEntity.ok(ApiResponse.ok(toGroupDto(group), "Conversation ouverte"));
+    }
+
+    @GetMapping("/contacts")
+    @Operation(summary = "Contacts avec qui je peux discuter (famille, mariage, clan, village)")
+    public ResponseEntity<ApiResponse<List<ChatMemberDto>>> contacts(
+            @RequestParam(defaultValue = "") String q,
+            @CurrentUser Jwt jwt) {
+        UUID userId = resolveUserId(jwt);
+        List<ChatMemberDto> dtos = userRepository
+                .findLinkedContacts(userId, q == null ? "" : q.trim())
+                .stream()
+                .map(u -> new ChatMemberDto(
+                        u.getId(), u.getDisplayName(), u.getAvatarUrl(), null, null))
+                .toList();
+        return ResponseEntity.ok(ApiResponse.ok(dtos));
+    }
+
+    @GetMapping("/my-groups")
+    @Operation(summary = "Toutes mes conversations (village, famille, directes)")
+    public ResponseEntity<ApiResponse<List<ChatGroupDto>>> myGroups(@CurrentUser Jwt jwt) {
+        UUID userId = resolveUserId(jwt);
+        List<ChatGroupDto> dtos = chatService.getGroupsForUser(userId)
+                .stream().map(this::toGroupDto).toList();
+        return ResponseEntity.ok(ApiResponse.ok(dtos));
+    }
+
     @GetMapping("/groups/village/{villageId}")
     @Operation(summary = "Groupes d'un village")
     public ResponseEntity<ApiResponse<List<ChatGroupDto>>> getGroupsByVillage(

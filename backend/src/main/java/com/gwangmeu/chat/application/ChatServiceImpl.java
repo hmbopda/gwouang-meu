@@ -110,6 +110,36 @@ class ChatServiceImpl implements ChatService {
     }
 
     @Override
+    public ChatGroup createOrGetDirectByUsers(UUID creatorId, UUID targetUserId, String targetName) {
+        List<ChatGroup> existing = groupRepository.findDirectGroupsByMembers(creatorId, targetUserId);
+        if (!existing.isEmpty()) {
+            return existing.get(0);
+        }
+        ChatGroup group = ChatGroup.builder()
+                .villageId(null)
+                .name(targetName != null && !targetName.isBlank() ? targetName : "Conversation")
+                .type(ChatGroup.GroupType.DIRECT)
+                .createdBy(creatorId)
+                .build();
+        ChatGroup saved = groupRepository.save(group);
+        addMemberIfAbsent(saved.getId(), creatorId);
+        addMemberIfAbsent(saved.getId(), targetUserId);
+        log.info("Direct chat (global) created between {} and {}", creatorId, targetUserId);
+        return saved;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ChatGroup> getGroupsForUser(UUID userId) {
+        List<UUID> groupIds = memberRepository.findByUserId(userId)
+                .stream().map(ChatGroupMember::getGroupId).toList();
+        if (groupIds.isEmpty()) {
+            return List.of();
+        }
+        return groupRepository.findAllById(groupIds);
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public List<ChatGroup> getGroupsByVillage(UUID villageId) {
         return groupRepository.findByVillageIdOrderByCreatedAtAsc(villageId);

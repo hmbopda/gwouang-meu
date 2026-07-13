@@ -47,4 +47,17 @@ public interface ChatGroupRepository extends JpaRepository<ChatGroup, UUID> {
     List<ChatGroup> findByVillageIdAndTypeAndCreatedBy(
             UUID villageId, ChatGroup.GroupType type, UUID createdBy
     );
+
+    /**
+     * Groupe(s) DIRECT entre deux utilisateurs, indépendamment du village
+     * (les deux sont membres). Pour ouvrir un DM depuis une recherche globale.
+     */
+    @Query("""
+            SELECT g FROM ChatGroup g
+            WHERE g.type = com.gwangmeu.chat.domain.ChatGroup.GroupType.DIRECT
+              AND EXISTS (SELECT m FROM ChatGroupMember m WHERE m.groupId = g.id AND m.userId = :u1)
+              AND EXISTS (SELECT m FROM ChatGroupMember m WHERE m.groupId = g.id AND m.userId = :u2)
+            """)
+    List<ChatGroup> findDirectGroupsByMembers(
+            @Param("u1") UUID u1, @Param("u2") UUID u2);
 }

@@ -16,6 +16,12 @@ public interface ChatService {
     /** Crée ou retourne un groupe DIRECT existant entre deux utilisateurs. */
     ChatGroup createOrGetDirectGroup(UUID villageId, String name, UUID creatorId, UUID targetUserId);
 
+    /** Crée ou retourne un DM entre deux utilisateurs, sans contexte village. */
+    ChatGroup createOrGetDirectByUsers(UUID creatorId, UUID targetUserId, String targetName);
+
+    /** Toutes les conversations dont l'utilisateur est membre (village, famille, DM). */
+    List<ChatGroup> getGroupsForUser(UUID userId);
+
     List<ChatGroup> getGroupsByVillage(UUID villageId);
 
     /**

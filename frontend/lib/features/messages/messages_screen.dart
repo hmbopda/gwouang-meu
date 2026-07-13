@@ -6,9 +6,11 @@ import 'package:material_symbols_icons/symbols.dart';
 
 import 'package:gwangmeu/core/router/route_names.dart';
 import 'package:gwangmeu/core/theme/gw_tokens.dart';
+import 'package:gwangmeu/features/chat/direct_chat.dart';
 import 'package:gwangmeu/features/home/home_screen.dart';
 import 'package:gwangmeu/features/messages/conversation_screen.dart';
 import 'package:gwangmeu/features/messages/messages_providers.dart';
+import 'package:gwangmeu/shared/widgets/gw_dialog.dart';
 
 /// Messages — refonte « messagerie ». Mobile : liste → navigation vers le fil.
 /// Desktop/web : split 3 colonnes (liste · fil embarqué · panneau contact).
@@ -94,7 +96,7 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
               color: t.goldBg,
               borderRadius: BorderRadius.circular(GwTokens.rBtn),
               child: InkWell(
-                onTap: () => _showNewMessageHint(context),
+                onTap: () => _openNewMessage(context),
                 borderRadius: BorderRadius.circular(GwTokens.rBtn),
                 child: SizedBox(
                   width: GwTokens.tapTarget,
@@ -196,12 +198,152 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
     );
   }
 
-  void _showNewMessageHint(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Ouvrez un village ou votre lignée pour démarrer une conversation',
-          style: GwType.ui(fontSize: 14, color: GwTokens.of(context).stone),
+  void _openNewMessage(BuildContext context) {
+    showGwDialog(context, builder: (_) => const _NewMessageSheet());
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+//  Nouveau message — recherche d'un contact LIÉ puis ouverture d'un DM
+// ─────────────────────────────────────────────────────────────
+
+class _NewMessageSheet extends ConsumerStatefulWidget {
+  const _NewMessageSheet();
+
+  @override
+  ConsumerState<_NewMessageSheet> createState() => _NewMessageSheetState();
+}
+
+class _NewMessageSheetState extends ConsumerState<_NewMessageSheet> {
+  String _query = '';
+  bool _opening = false;
+
+  Future<void> _open(ChatContact c) async {
+    if (_opening) return;
+    setState(() => _opening = true);
+    try {
+      final group = await ref.read(directChatOpenerProvider).openWith(c.userId);
+      if (!mounted) return;
+      // Rafraîchir la liste pour que le nouveau DM y apparaisse.
+      ref.invalidate(myDirectConversationsProvider);
+      Navigator.of(context).maybePop();
+      context.push(
+        Routes.conversation(group.id),
+        extra: <String, Object>{'group': group, 'villageName': c.displayName},
+      );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _opening = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: GwTokens.ember,
+          content: Text("Impossible d'ouvrir la conversation",
+              style: GwType.ui(fontSize: 14, color: GwTokens.inkOnGold)),
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = GwTokens.of(context);
+    final contactsAsync = ref.watch(chatContactsProvider(_query));
+    return GwDialog(
+      title: 'Nouveau message',
+      subtitle: 'Écrivez à une personne liée (famille, mariage, clan, village)',
+      icon: Symbols.edit_square,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          TextField(
+            autofocus: true,
+            onChanged: (v) => setState(() => _query = v.trim()),
+            style: GwType.ui(fontSize: 14, color: t.stone),
+            decoration: gwInputDecoration(context,
+                hint: 'Rechercher une personne…',
+                prefixIcon: Symbols.search),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 320,
+            child: contactsAsync.when(
+              loading: () =>
+                  Center(child: CircularProgressIndicator(color: t.goldText)),
+              error: (_, __) => Center(
+                child: Text('Erreur de chargement',
+                    style: GwType.ui(fontSize: 13, color: t.stoneDim)),
+              ),
+              data: (contacts) {
+                if (contacts.isEmpty) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Text(
+                        _query.isEmpty
+                            ? 'Aucun contact lié pour l’instant.\n'
+                                'Rejoignez un village ou complétez votre lignée.'
+                            : 'Aucun résultat pour « $_query ».',
+                        textAlign: TextAlign.center,
+                        style: GwType.ui(
+                            fontSize: 13, color: t.stoneMid, height: 1.5),
+                      ),
+                    ),
+                  );
+                }
+                return ListView.separated(
+                  padding: EdgeInsets.zero,
+                  itemCount: contacts.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 2),
+                  itemBuilder: (_, i) => _contactRow(t, contacts[i]),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _contactRow(GwTokens t, ChatContact c) {
+    final name = c.displayName.trim();
+    final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
+    final hasAvatar = c.avatarUrl != null && c.avatarUrl!.isNotEmpty;
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(GwTokens.rBtn),
+      child: InkWell(
+        onTap: _opening ? null : () => _open(c),
+        borderRadius: BorderRadius.circular(GwTokens.rBtn),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 20,
+                backgroundColor: t.goldBg,
+                backgroundImage: hasAvatar ? NetworkImage(c.avatarUrl!) : null,
+                child: hasAvatar
+                    ? null
+                    : Text(initial,
+                        style:
+                            GwType.display(fontSize: 15, color: t.goldText)),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  name.isEmpty ? 'Membre' : name,
+                  style: GwType.ui(
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w600,
+                      color: t.stone),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              Icon(Symbols.chevron_right, size: 18, color: t.stoneFaint),
+            ],
+          ),
         ),
       ),
     );
@@ -228,7 +370,8 @@ class _ConvList extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final t = GwTokens.of(context);
-    final convAsync = ref.watch(myConversationsProvider); // villages + directs
+    final convAsync = ref.watch(myConversationsProvider); // villages + directs village
+    final directAsync = ref.watch(myDirectConversationsProvider); // DM globaux
     final needFamily =
         filter == _MsgFilter.tous || filter == _MsgFilter.clans;
     final famAsync = needFamily
@@ -242,7 +385,12 @@ class _ConvList extends ConsumerWidget {
       return _emptyState(t, Symbols.forum,
           'Impossible de charger vos conversations.\nTirez pour réessayer.');
     }
-    final conv = convAsync.valueOrNull ?? const <Conversation>[];
+    // Les DM globaux (/my-groups) sont fusionnés au mieux : s'ils sont en
+    // erreur ou en cours (backend pas encore déployé), la liste ne bloque pas.
+    final conv = <Conversation>[
+      ...(convAsync.valueOrNull ?? const <Conversation>[]),
+      ...(directAsync.valueOrNull ?? const <Conversation>[]),
+    ];
     final fam = famAsync.valueOrNull ?? const <Conversation>[];
 
     List<Conversation> list;
@@ -277,6 +425,7 @@ class _ConvList extends ConsumerWidget {
       color: t.goldText,
       onRefresh: () async {
         ref.invalidate(myConversationsProvider);
+        ref.invalidate(myDirectConversationsProvider);
         ref.invalidate(myFamilyConversationsProvider);
       },
       child: list.isEmpty

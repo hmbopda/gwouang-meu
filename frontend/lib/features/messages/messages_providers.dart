@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:gwangmeu/features/chat/chat_notifier.dart';
+import 'package:gwangmeu/features/chat/direct_chat.dart';
 import 'package:gwangmeu/features/genealogy/genealogy_notifier.dart';
 import 'package:gwangmeu/features/villages/villages_notifier.dart';
 import 'package:gwangmeu/shared/models/chat_group_model.dart';
@@ -68,6 +69,26 @@ final myConversationsProvider =
 
   conversations.sort(_byRecent);
   return conversations;
+});
+
+/// Messages directs GLOBAUX (sans village) de l'utilisateur, via /chat/my-groups.
+/// Les DM rattachés à un village arrivent déjà via [myConversationsProvider] ;
+/// on ne garde ici que ceux sans village pour éviter les doublons.
+final myDirectConversationsProvider =
+    FutureProvider.autoDispose<List<Conversation>>((ref) async {
+  final groups = await ref.watch(myChatGroupsProvider.future);
+  return groups
+      .where((g) {
+        final k = g.type.toUpperCase();
+        return (k == 'DIRECT' || k == 'DM') && g.villageId == null;
+      })
+      .map((g) => Conversation(
+            group: g,
+            scopeLabel: 'Message direct',
+            kind: ConversationKind.direct,
+          ))
+      .toList()
+    ..sort(_byRecent);
 });
 
 /// Discussions de FAMILLE de l'utilisateur, dérivées de son clan (généalogie).
