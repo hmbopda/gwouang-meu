@@ -88,6 +88,23 @@ public class UserController {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(dto, "Inscription reussie"));
     }
 
+    @PatchMapping("/me/fcm-token")
+    @Operation(summary = "Enregistrer le token FCM",
+               description = "Enregistre ou met a jour le token FCM de l'appareil pour les notifications push.")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "204", description = "Token FCM enregistre"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Non authentifie")
+    })
+    public ResponseEntity<Void> updateFcmToken(
+            @CurrentUser Jwt jwt,
+            @RequestBody java.util.Map<String, String> body) {
+        String fcmToken = body.get("fcmToken");
+        if (fcmToken != null && !fcmToken.isBlank()) {
+            userService.updateFcmToken(jwt.getSubject(), fcmToken);
+        }
+        return ResponseEntity.noContent().build();
+    }
+
     @DeleteMapping("/me")
     @Operation(
             summary = "Supprimer mon compte (RGPD)",
