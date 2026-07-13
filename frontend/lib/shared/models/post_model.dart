@@ -10,7 +10,8 @@ class PostModel with _$PostModel {
   const factory PostModel({
     required String id,
     required String authorId,
-    required String villageId,
+    // null pour une publication personnelle (hors village).
+    String? villageId,
     required String content,
     String? mediaUrl,
     String? mediaType,
@@ -20,6 +21,8 @@ class PostModel with _$PostModel {
     @Default(0) int commentCount,
     @Default(0) int shareCount,
     @Default(0) int flagCount,
+    // L'utilisateur courant a-t-il aimé ce post (renvoyé par /feed/home).
+    @Default(false) bool likedByMe,
     @Default([]) List<String> reactions,
     @Default([]) List<String> tags,
     @Default(false) bool isLive,

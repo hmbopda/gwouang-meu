@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_symbols_icons/symbols.dart';
@@ -8,38 +9,29 @@ import 'package:gwangmeu/core/router/route_names.dart';
 import 'package:gwangmeu/core/theme/gw_tokens.dart';
 import 'package:gwangmeu/core/theme/theme_notifier.dart';
 import 'package:gwangmeu/features/feed/feed_notifier.dart';
+import 'package:gwangmeu/features/feed/widgets/comment_sheet.dart';
+import 'package:gwangmeu/features/feed/widgets/compose_sheet.dart';
+import 'package:gwangmeu/features/feed/widgets/feed_post_card.dart';
 import 'package:gwangmeu/features/home/home_screen.dart';
+import 'package:gwangmeu/features/notifications/models/notification_model.dart';
 import 'package:gwangmeu/features/notifications/notifications_notifier.dart';
 import 'package:gwangmeu/features/notifications/widgets/notification_panel.dart';
 import 'package:gwangmeu/features/profile/profile_notifier.dart';
 import 'package:gwangmeu/features/villages/villages_notifier.dart';
 import 'package:gwangmeu/shared/models/post_model.dart';
-import 'package:gwangmeu/shared/widgets/compose_box.dart';
 import 'package:gwangmeu/shared/widgets/loading_overlay.dart';
-import 'package:gwangmeu/shared/widgets/post_card.dart';
-import 'package:gwangmeu/shared/widgets/stories_row.dart';
 
-/// Feed « Tissage » (#1a) — header Fraunces + MBƐ́Ɛ mono, stories 72 px,
-/// compose une ligne, gabarits de posts différenciés, bande tissée signature.
+/// Fil « Tissage » dynamique — agrège en temps réel les publications ET les
+/// notifications de tous les villages, clans, familles et groupes auxquels
+/// l'utilisateur appartient, avec J'aime, commentaires et partage (façon
+/// Facebook/Instagram, habillage maison).
 class FeedScreen extends ConsumerWidget {
   const FeedScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final feedState = ref.watch(feedNotifierProvider);
     final desktop = isDesktopLayout(context);
 
-    final feed = feedState.when(
-      loading: () => const ShimmerList(count: 5, cardHeight: 220),
-      error: (e, _) => _FeedError(
-        onRetry: () => ref.read(feedNotifierProvider.notifier).refresh(),
-      ),
-      // Liste vide : jeu d'exemples pour illustrer le fil (aucune donnée réelle
-      // à afficher tant que la communauté ne publie pas).
-      data: (posts) => _FeedList(posts: posts.isEmpty ? _demoPosts : posts),
-    );
-
-    // Desktop (#2d) : deux colonnes — fil + rail contextuel IA/village.
     if (desktop) {
       return Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -48,7 +40,7 @@ class FeedScreen extends ConsumerWidget {
             flex: 16,
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 720),
-              child: feed,
+              child: const _FeedBody(),
             ),
           ),
           const Expanded(flex: 10, child: _DesktopContextRail()),
@@ -56,13 +48,13 @@ class FeedScreen extends ConsumerWidget {
       );
     }
 
-    return Scaffold(
+    return const Scaffold(
       body: SafeArea(
         child: Column(
           children: [
-            const GwWeaveBand(),
-            const _FeedHeader(),
-            Expanded(child: feed),
+            GwWeaveBand(),
+            _FeedHeader(),
+            Expanded(child: _FeedBody()),
           ],
         ),
       ),
@@ -71,7 +63,339 @@ class FeedScreen extends ConsumerWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────
-//  Rail contextuel desktop — encart IA + Mon village (#2d)
+//  Corps du fil — liste fusionnée (publications + notifications)
+// ─────────────────────────────────────────────────────────────────
+
+/// Élément du fil : soit une publication, soit une notification.
+class _FeedItem {
+  _FeedItem.post(PostModel this.post)
+      : notif = null,
+        when = post.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+  _FeedItem.notif(NotificationModel this.notif)
+      : post = null,
+        when = notif.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+
+  final PostModel? post;
+  final NotificationModel? notif;
+  final DateTime when;
+}
+
+class _FeedBody extends ConsumerStatefulWidget {
+  const _FeedBody();
+
+  @override
+  ConsumerState<_FeedBody> createState() => _FeedBodyState();
+}
+
+class _FeedBodyState extends ConsumerState<_FeedBody> {
+  final _scrollCtrl = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollCtrl.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollCtrl.removeListener(_onScroll);
+    _scrollCtrl.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollCtrl.position.pixels >=
+        _scrollCtrl.position.maxScrollExtent - 400) {
+      ref.read(feedNotifierProvider.notifier).loadMore();
+    }
+  }
+
+  Future<void> _refresh() async {
+    await ref.read(feedNotifierProvider.notifier).refresh();
+    await ref.read(notificationsNotifierProvider.notifier).refresh();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = GwTokens.of(context);
+    final feedState = ref.watch(feedNotifierProvider);
+
+    return feedState.when(
+      loading: () => const ShimmerList(count: 5, cardHeight: 200),
+      error: (e, _) => _FeedError(
+        onRetry: () => ref.read(feedNotifierProvider.notifier).refresh(),
+      ),
+      data: (posts) {
+        // Notifications au mieux : si en erreur/chargement, le fil n'est pas bloqué.
+        final notifs =
+            ref.watch(notificationsNotifierProvider).valueOrNull ?? const [];
+
+        final items = <_FeedItem>[
+          ...posts.map(_FeedItem.post),
+          ...notifs.map(_FeedItem.notif),
+        ]..sort((a, b) => b.when.compareTo(a.when));
+
+        return RefreshIndicator(
+          color: t.goldText,
+          onRefresh: _refresh,
+          child: ListView.builder(
+            controller: _scrollCtrl,
+            padding: const EdgeInsets.only(top: 8, bottom: 20),
+            itemCount: items.length + 2, // compose + items + éventuel vide
+            itemBuilder: (context, index) {
+              if (index == 0) return const _ComposeTrigger();
+              if (index == 1 && items.isEmpty) return const _FeedEmpty();
+              final itemIndex = index - 1;
+              if (itemIndex >= items.length) return const SizedBox.shrink();
+              final item = items[itemIndex];
+              if (item.post != null) {
+                return _buildPost(item.post!);
+              }
+              return _NotificationCard(notif: item.notif!);
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildPost(PostModel post) {
+    return FeedPostCard(
+      post: post,
+      onLike: () => ref.read(feedNotifierProvider.notifier).toggleLike(post.id),
+      onComment: () => showCommentSheet(
+        context,
+        postId: post.id,
+        onAdded: () =>
+            ref.read(feedNotifierProvider.notifier).bumpCommentCount(post.id),
+      ),
+      onShare: () => _share(post),
+    );
+  }
+
+  void _share(PostModel post) {
+    Clipboard.setData(ClipboardData(text: post.content));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Publication copiée — collez-la où vous voulez',
+            style: GwType.ui(fontSize: 14, color: GwTokens.of(context).stone)),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────
+//  Déclencheur de composition
+// ─────────────────────────────────────────────────────────────────
+
+class _ComposeTrigger extends ConsumerWidget {
+  const _ComposeTrigger();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = GwTokens.of(context);
+    final user = ref.watch(profileNotifierProvider).valueOrNull;
+    final name = (user?.displayName ?? '').trim();
+    final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
+    final avatarUrl = user?.avatarUrl;
+    final hasAvatar = avatarUrl != null && avatarUrl.isNotEmpty;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+      child: Material(
+        color: t.inkCard,
+        borderRadius: BorderRadius.circular(GwTokens.rCardLg),
+        child: InkWell(
+          onTap: () => showComposeSheet(context),
+          borderRadius: BorderRadius.circular(GwTokens.rCardLg),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(GwTokens.rCardLg),
+              border: Border.all(color: t.line),
+            ),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 19,
+                  backgroundColor: t.goldBg,
+                  backgroundImage:
+                      hasAvatar ? NetworkImage(avatarUrl) : null,
+                  child: hasAvatar
+                      ? null
+                      : Text(initial,
+                          style: GwType.display(
+                              fontSize: 15, color: t.goldText)),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Partagez quelque chose avec votre communauté…',
+                    style: GwType.ui(fontSize: 14, color: t.stoneDim),
+                  ),
+                ),
+                Icon(Symbols.edit_square, size: 20, color: t.goldText),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────
+//  Carte notification (compacte, secondaire)
+// ─────────────────────────────────────────────────────────────────
+
+class _NotificationCard extends ConsumerWidget {
+  const _NotificationCard({required this.notif});
+
+  final NotificationModel notif;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = GwTokens.of(context);
+    final unread = !notif.read;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+      child: Material(
+        color: unread
+            ? GwTokens.azure.withValues(alpha: 0.07)
+            : t.inkCard.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(GwTokens.rCard),
+        child: InkWell(
+          onTap: () => ref
+              .read(notificationsNotifierProvider.notifier)
+              .markAsRead(notif.id),
+          borderRadius: BorderRadius.circular(GwTokens.rCard),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(GwTokens.rCard),
+              border: Border.all(
+                color: unread
+                    ? GwTokens.azure.withValues(alpha: 0.28)
+                    : t.line,
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(
+                    color: GwTokens.azure.withValues(alpha: 0.14),
+                    shape: BoxShape.circle,
+                  ),
+                  alignment: Alignment.center,
+                  child: Icon(_icon(notif.type),
+                      size: 17, color: t.azureText),
+                ),
+                const SizedBox(width: 11),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        notif.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GwType.ui(
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w600,
+                            color: t.stone),
+                      ),
+                      if (notif.body.isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          notif.body,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: GwType.ui(
+                              fontSize: 12.5,
+                              color: t.stoneMid,
+                              height: 1.4),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  _timeAgo(notif.createdAt),
+                  style: GwType.mono(fontSize: 10, color: t.stoneFaint),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  IconData _icon(String type) {
+    switch (type) {
+      case 'UNION_REQUEST':
+        return Symbols.favorite;
+      case 'PARENT_LINK':
+      case 'CHILD_LINK':
+        return Symbols.family_history;
+      case 'INVITATION_ACCEPTED':
+        return Symbols.celebration;
+      default:
+        return Symbols.notifications;
+    }
+  }
+
+  static String _timeAgo(DateTime? dt) {
+    if (dt == null) return '';
+    final d = DateTime.now().difference(dt);
+    if (d.inMinutes < 60) return '${d.inMinutes} min';
+    if (d.inHours < 24) return '${d.inHours} h';
+    if (d.inDays < 7) return '${d.inDays} j';
+    return '${(d.inDays / 7).floor()} sem';
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────
+//  État vide — honnête
+// ─────────────────────────────────────────────────────────────────
+
+class _FeedEmpty extends StatelessWidget {
+  const _FeedEmpty();
+
+  @override
+  Widget build(BuildContext context) {
+    final t = GwTokens.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(28, 48, 28, 28),
+      child: Column(
+        children: [
+          Icon(Symbols.forum, size: 46, color: t.stoneFaint),
+          const SizedBox(height: 14),
+          Text(
+            'Votre fil est encore calme',
+            textAlign: TextAlign.center,
+            style: GwType.display(
+                fontSize: 17, fontWeight: FontWeight.w600, color: t.stone),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Les publications de vos villages, clans, familles et groupes '
+            'apparaîtront ici. Rejoignez une communauté ou publiez le premier '
+            'message.',
+            textAlign: TextAlign.center,
+            style: GwType.ui(fontSize: 13.5, color: t.stoneMid, height: 1.55),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────
+//  Rail contextuel desktop — Mémoire familiale + Mon village
 // ─────────────────────────────────────────────────────────────────
 
 class _DesktopContextRail extends ConsumerWidget {
@@ -86,7 +410,6 @@ class _DesktopContextRail extends ConsumerWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(4, 20, 24, 20),
       children: [
-        // ── Raccourci Lignées ──
         Container(
           padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
           decoration: BoxDecoration(
@@ -97,16 +420,13 @@ class _DesktopContextRail extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'MÉMOIRE FAMILIALE',
-                style: GwType.mono(
-                    fontSize: 10, letterSpacing: 1.5, color: t.sageText),
-              ),
+              Text('MÉMOIRE FAMILIALE',
+                  style: GwType.mono(
+                      fontSize: 10, letterSpacing: 1.5, color: t.sageText)),
               const SizedBox(height: 10),
               Text(
                 'Explorez votre lignée et enregistrez les récits de vos aînés.',
-                style:
-                    GwType.ui(fontSize: 13.5, color: t.stone, height: 1.6),
+                style: GwType.ui(fontSize: 13.5, color: t.stone, height: 1.6),
               ),
               const SizedBox(height: 10),
               SizedBox(
@@ -124,19 +444,15 @@ class _DesktopContextRail extends ConsumerWidget {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: Text(
-                    'Ouvrir ma rivière',
-                    style:
-                        GwType.ui(fontSize: 13, fontWeight: FontWeight.w600),
-                  ),
+                  child: Text('Ouvrir ma rivière',
+                      style: GwType.ui(
+                          fontSize: 13, fontWeight: FontWeight.w600)),
                 ),
               ),
             ],
           ),
         ),
         const SizedBox(height: 14),
-
-        // ── Mon village ──
         if (village != null)
           Container(
             padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
@@ -147,11 +463,11 @@ class _DesktopContextRail extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'MON VILLAGE',
-                  style: GwType.mono(
-                      fontSize: 10, letterSpacing: 1.5, color: t.stoneFaint),
-                ),
+                Text('MON VILLAGE',
+                    style: GwType.mono(
+                        fontSize: 10,
+                        letterSpacing: 1.5,
+                        color: t.stoneFaint)),
                 const SizedBox(height: 10),
                 InkWell(
                   onTap: () {
@@ -184,22 +500,18 @@ class _DesktopContextRail extends ConsumerWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              village.name,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: GwType.ui(
-                                  fontSize: 13.5,
-                                  fontWeight: FontWeight.w600,
-                                  color: t.stone),
-                            ),
-                            Text(
-                              '${village.memberCount} MEMBRES',
-                              style: GwType.mono(
-                                  fontSize: 11.5,
-                                  color: t.emberText,
-                                  letterSpacing: 0.5),
-                            ),
+                            Text(village.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: GwType.ui(
+                                    fontSize: 13.5,
+                                    fontWeight: FontWeight.w600,
+                                    color: t.stone)),
+                            Text('${village.memberCount} MEMBRES',
+                                style: GwType.mono(
+                                    fontSize: 11.5,
+                                    color: t.emberText,
+                                    letterSpacing: 0.5)),
                           ],
                         ),
                       ),
@@ -215,7 +527,7 @@ class _DesktopContextRail extends ConsumerWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────
-//  Header — Fraunces + « MBƐ́Ɛ — BIENVENUE » mono, cibles 44 px
+//  Header mobile
 // ─────────────────────────────────────────────────────────────────
 
 class _FeedHeader extends ConsumerWidget {
@@ -232,16 +544,12 @@ class _FeedHeader extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Gwang Meu',
-                  style: GwType.display(
-                      fontSize: 21, color: t.stone, letterSpacing: 0.5),
-                ),
-                Text(
-                  'MBƐ́Ɛ — BIENVENUE',
-                  style: GwType.mono(
-                      fontSize: 10, color: t.stoneFaint, letterSpacing: 2),
-                ),
+                Text('Gwang Meu',
+                    style: GwType.display(
+                        fontSize: 21, color: t.stone, letterSpacing: 0.5)),
+                Text('MBƐ́Ɛ — BIENVENUE',
+                    style: GwType.mono(
+                        fontSize: 10, color: t.stoneFaint, letterSpacing: 2)),
               ],
             ),
           ),
@@ -333,154 +641,7 @@ class _HeaderAction extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────
-//  Liste du fil
-// ─────────────────────────────────────────────────────────────────
-
-class _FeedList extends ConsumerWidget {
-  const _FeedList({required this.posts});
-
-  final List<PostModel> posts;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final user = ref.watch(profileNotifierProvider).valueOrNull;
-
-    return RefreshIndicator(
-      color: GwTokens.of(context).goldText,
-      onRefresh: () => ref.read(feedNotifierProvider.notifier).refresh(),
-      child: ListView.builder(
-        padding: const EdgeInsets.only(top: 4, bottom: 16),
-        itemCount: posts.length + 2,
-        itemBuilder: (context, index) {
-          if (index == 0) {
-            return Padding(
-              padding: const EdgeInsets.only(top: 6, bottom: 4),
-              child: StoriesRow(
-                stories: _demoStories,
-                onStoryTap: (_) {},
-                onAddStory: () {},
-              ),
-            );
-          }
-          if (index == 1) {
-            return Padding(
-              padding: const EdgeInsets.only(top: 8, bottom: 10),
-              child: ComposeBox(
-                displayName: user?.displayName,
-                avatarUrl: user?.avatarUrl,
-                onTap: () {},
-              ),
-            );
-          }
-          final post = posts[index - 2];
-          final suggestionId = post.aiSuggestionId;
-          return PostCard(
-            post: post,
-            // « Explorer le lien » → écran de vérification (fade + translateY
-            // 300 ms). Actif seulement si le post porte une vraie suggestion IA.
-            onAiExplore: suggestionId == null
-                ? null
-                : () => context.push(Routes.verify(suggestionId)),
-            onAiDismiss: () {},
-          );
-        },
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────
-//  Données démo
-// ─────────────────────────────────────────────────────────────────
-
-final _demoStories = [
-  const StoryData(
-    id: '1',
-    name: 'Amara K.',
-    villageName: 'Bassa-Likoko',
-    backgroundGradientStart: Color(0xFF1A3300),
-    backgroundGradientEnd: Color(0xFF4A8800),
-  ),
-  const StoryData(
-    id: '2',
-    name: 'Fanta K.',
-    villageName: 'Foumbot',
-    backgroundGradientStart: Color(0xFF3A1A00),
-    backgroundGradientEnd: Color(0xFF8A5200),
-  ),
-  const StoryData(
-    id: '3',
-    name: 'Cours Bassa',
-    villageName: 'Live replay',
-    backgroundGradientStart: Color(0xFF1A0A3A),
-    backgroundGradientEnd: Color(0xFF4A2080),
-    isLiveReplay: true,
-  ),
-  const StoryData(
-    id: '4',
-    name: 'Kofi A.',
-    villageName: 'Diaspora Paris',
-    backgroundGradientStart: Color(0xFF0A1A3A),
-    backgroundGradientEnd: Color(0xFF1A5080),
-  ),
-  const StoryData(
-    id: '5',
-    name: 'Nadia M.',
-    villageName: 'Ngaoundere',
-    backgroundGradientStart: Color(0xFF1A1A0A),
-    backgroundGradientEnd: Color(0xFF4A3A00),
-  ),
-];
-
-final _demoPosts = [
-  PostModel(
-    id: 'demo-p1',
-    authorId: 'u1',
-    villageId: 'v1',
-    content:
-        'Les langues africaines sont les gardiens invisibles de notre âme collective. Chaque mot en Bassa porte des siècles de sagesse.',
-    isLargeText: true,
-    tags: const ['Bassa', 'LanguesAfricaines', 'Heritage'],
-    reactionCount: 247,
-    commentCount: 38,
-    shareCount: 12,
-    reactions: const ['heart', 'fire', 'clap'],
-    authorDisplayName: 'Amara Kouassi',
-    villageName: 'Bassa-Likoko',
-    createdAt: DateTime.now().subtract(const Duration(hours: 2)),
-  ),
-  PostModel(
-    id: 'demo-p2',
-    authorId: 'u2',
-    villageId: 'v2',
-    content:
-        'La fête du Ngondo cette année était magnifique ! Des centaines de familles réunies sur les rives du Wouri.',
-    mediaUrl: 'https://picsum.photos/seed/ngondo/800/450',
-    mediaType: 'IMAGE',
-    tags: const ['Ngondo2026', 'Bassa'],
-    reactionCount: 512,
-    commentCount: 94,
-    reactions: const ['fire', 'heart', 'love'],
-    authorDisplayName: 'Fanta Koné',
-    villageName: 'Foumbot Royal',
-    createdAt: DateTime.now().subtract(const Duration(hours: 4)),
-  ),
-  PostModel(
-    id: 'demo-p3',
-    authorId: 'u3',
-    villageId: 'v3',
-    content: 'Cours de prononciation Bassa — Niveau 2. Rejoignez-nous !',
-    isLive: true,
-    liveViewerCount: 143,
-    authorDisplayName: 'Prof. Jean-Baptiste Nkomo',
-    authorRole: 'AMBASSADEUR',
-    villageName: 'Yaoundé - Centre',
-    createdAt: DateTime.now(),
-  ),
-];
-
-// ─────────────────────────────────────────────────────────────────
-//  État d'erreur — honnête (plus de fallback silencieux vers la démo)
+//  État d'erreur
 // ─────────────────────────────────────────────────────────────────
 
 class _FeedError extends StatelessWidget {
@@ -499,17 +660,15 @@ class _FeedError extends StatelessWidget {
           children: [
             Icon(Symbols.cloud_off, size: 48, color: t.stoneFaint),
             const SizedBox(height: 14),
-            Text(
-              'Le fil n\'a pas pu se charger',
-              style: GwType.display(
-                  fontSize: 17, fontWeight: FontWeight.w600, color: t.stone),
-            ),
+            Text('Le fil n\'a pas pu se charger',
+                style: GwType.display(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w600,
+                    color: t.stone)),
             const SizedBox(height: 6),
-            Text(
-              'Vérifiez votre connexion, puis réessayez.',
-              textAlign: TextAlign.center,
-              style: GwType.ui(fontSize: 14, color: t.stoneMid),
-            ),
+            Text('Vérifiez votre connexion, puis réessayez.',
+                textAlign: TextAlign.center,
+                style: GwType.ui(fontSize: 14, color: t.stoneMid)),
             const SizedBox(height: 18),
             SizedBox(
               height: GwTokens.tapTarget,
@@ -523,10 +682,9 @@ class _FeedError extends StatelessWidget {
                   ),
                 ),
                 icon: const Icon(Symbols.refresh, size: 18),
-                label: Text(
-                  'Réessayer',
-                  style: GwType.ui(fontSize: 14, fontWeight: FontWeight.w600),
-                ),
+                label: Text('Réessayer',
+                    style: GwType.ui(
+                        fontSize: 14, fontWeight: FontWeight.w600)),
               ),
             ),
           ],

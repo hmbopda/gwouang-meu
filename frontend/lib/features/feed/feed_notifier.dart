@@ -10,6 +10,7 @@ class FeedNotifier extends _$FeedNotifier {
   static const _pageSize = 20;
   int _page = 0;
   bool _hasMore = true;
+  bool _loadingMore = false;
 
   @override
   Future<List<PostModel>> build() async {
@@ -20,8 +21,10 @@ class FeedNotifier extends _$FeedNotifier {
 
   Future<List<PostModel>> _fetchPage(int page) async {
     final client = ref.read(apiClientProvider);
+    // /feed/home : fil agrégé par appartenance (mes villages, clans, familles,
+    // groupes) + enrichi (auteur, village, aimé par moi).
     final json = await client.get(
-      '/api/v1/feed',
+      '/api/v1/feed/home',
       queryParameters: {'page': page, 'size': _pageSize},
     );
     final rawData = json['data'];
@@ -50,12 +53,72 @@ class FeedNotifier extends _$FeedNotifier {
     await future;
   }
 
-  /// Pagination infinie
+  /// Pagination infinie (protégée contre les appels concurrents du scroll).
   Future<void> loadMore() async {
-    if (!_hasMore) return;
-    final current = state.valueOrNull ?? [];
-    _page++;
-    final more = await _fetchPage(_page);
-    state = AsyncData([...current, ...more]);
+    if (!_hasMore || _loadingMore) return;
+    _loadingMore = true;
+    try {
+      final current = state.valueOrNull ?? [];
+      _page++;
+      final more = await _fetchPage(_page);
+      state = AsyncData([...current, ...more]);
+    } finally {
+      _loadingMore = false;
+    }
+  }
+
+  /// J'aime / je n'aime plus — mise à jour optimiste puis appel réseau.
+  Future<void> toggleLike(String postId) async {
+    final list = state.valueOrNull;
+    if (list == null) return;
+    final idx = list.indexWhere((p) => p.id == postId);
+    if (idx < 0) return;
+    final original = list[idx];
+    final liked = original.likedByMe;
+
+    // Optimiste
+    final optimistic = original.copyWith(
+      likedByMe: !liked,
+      reactionCount:
+          (original.reactionCount + (liked ? -1 : 1)).clamp(0, 1 << 31),
+    );
+    state = AsyncData([...list]..[idx] = optimistic);
+
+    final client = ref.read(apiClientProvider);
+    try {
+      if (liked) {
+        await client.delete('/api/v1/feed/$postId/react');
+      } else {
+        await client.post('/api/v1/feed/$postId/react');
+      }
+    } catch (_) {
+      // Revert en cas d'échec
+      final now = state.valueOrNull;
+      if (now == null) return;
+      final j = now.indexWhere((p) => p.id == postId);
+      if (j >= 0) state = AsyncData([...now]..[j] = original);
+    }
+  }
+
+  /// Publier un post (personnel si [villageId] est null, sinon dans un village).
+  /// Recharge le fil pour faire apparaître la publication auto-approuvée.
+  Future<void> createPost({required String content, String? villageId}) async {
+    final client = ref.read(apiClientProvider);
+    await client.post('/api/v1/feed', data: {
+      'content': content,
+      if (villageId != null) 'villageId': villageId,
+    });
+    await refresh();
+  }
+
+  /// Incrémente localement le compteur de commentaires d'un post (après ajout).
+  void bumpCommentCount(String postId) {
+    final list = state.valueOrNull;
+    if (list == null) return;
+    final idx = list.indexWhere((p) => p.id == postId);
+    if (idx < 0) return;
+    final p = list[idx];
+    state = AsyncData(
+        [...list]..[idx] = p.copyWith(commentCount: p.commentCount + 1));
   }
 }
