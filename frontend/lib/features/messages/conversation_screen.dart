@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -43,6 +44,8 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
   bool _hasText = false;
   bool _translateDismissed = false;
   RealtimeChannel? _channel;
+  Timer? _pollTimer;
+  bool _realtimeLive = false;
 
   @override
   void initState() {
@@ -52,13 +55,21 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
       if (has != _hasText) setState(() => _hasText = has);
     });
     _subscribeRealtime();
+    _startPolling();
   }
 
   /// Temps réel : à chaque message inséré dans ce groupe, on recharge la liste
   /// (enrichie du nom/avatar de l'expéditeur). RLS côté Supabase : on ne reçoit
-  /// que les messages des groupes dont on est membre.
+  /// que les messages des groupes dont on est membre — le socket Realtime doit
+  /// donc porter le JWT de l'utilisateur, sinon `auth.uid()` est nul et la
+  /// diffusion est bloquée. On force donc l'auth avant de s'abonner.
   void _subscribeRealtime() {
-    _channel = Supabase.instance.client
+    final client = Supabase.instance.client;
+    final token = client.auth.currentSession?.accessToken;
+    if (token != null) {
+      client.realtime.setAuth(token);
+    }
+    _channel = client
         .channel('chat_messages:${widget.groupId}')
         .onPostgresChanges(
           event: PostgresChangeEvent.insert,
@@ -69,17 +80,37 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
             column: 'group_id',
             value: widget.groupId,
           ),
-          callback: (_) {
-            if (mounted) {
-              ref.invalidate(chatMessagesNotifierProvider(widget.groupId));
-            }
-          },
+          callback: (_) => _refreshMessages(),
         )
-        .subscribe();
+        .subscribe((status, error) {
+          _realtimeLive = status == RealtimeSubscribeStatus.subscribed;
+          // Realtime confirmé → filet de sécurité lent. Sinon (erreur / socket
+          // bloqué) → sondage rapide pour que les messages arrivent quand même
+          // sans rafraîchir manuellement.
+          _startPolling();
+        });
+  }
+
+  /// Filet de sécurité : recharge périodiquement, pour qu'un message ne reste
+  /// jamais invisible faute de rafraîchissement, même si le WebSocket Realtime
+  /// est bloqué (réseau d'entreprise, proxy…). Instantané via Realtime quand il
+  /// fonctionne ; ce sondage n'est qu'un secours.
+  void _startPolling() {
+    _pollTimer?.cancel();
+    final interval = _realtimeLive
+        ? const Duration(seconds: 20)
+        : const Duration(seconds: 3);
+    _pollTimer = Timer.periodic(interval, (_) => _refreshMessages());
+  }
+
+  void _refreshMessages() {
+    if (!mounted) return;
+    ref.invalidate(chatMessagesNotifierProvider(widget.groupId));
   }
 
   @override
   void dispose() {
+    _pollTimer?.cancel();
     final channel = _channel;
     if (channel != null) {
       Supabase.instance.client.removeChannel(channel);
