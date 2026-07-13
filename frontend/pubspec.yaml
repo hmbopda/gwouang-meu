@@ -34,6 +34,9 @@ dependencies:
   cached_network_image: ^3.3.0
   image_picker: ^1.1.0
 
+  # Partage natif (Web Share API / intent mobile)
+  share_plus: ^10.1.4
+
   # Loading UI
   shimmer: ^3.0.0
 

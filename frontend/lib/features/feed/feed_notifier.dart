@@ -100,13 +100,19 @@ class FeedNotifier extends _$FeedNotifier {
     }
   }
 
-  /// Publier un post (personnel si [villageId] est null, sinon dans un village).
+  /// Publier un post (personnel si [villageId] est null, sinon dans un village),
+  /// avec une image optionnelle ([mediaUrl] déjà uploadée).
   /// Recharge le fil pour faire apparaître la publication auto-approuvée.
-  Future<void> createPost({required String content, String? villageId}) async {
+  Future<void> createPost({
+    required String content,
+    String? villageId,
+    String? mediaUrl,
+  }) async {
     final client = ref.read(apiClientProvider);
     await client.post('/api/v1/feed', data: {
       'content': content,
       if (villageId != null) 'villageId': villageId,
+      if (mediaUrl != null && mediaUrl.isNotEmpty) 'mediaUrl': mediaUrl,
     });
     await refresh();
   }

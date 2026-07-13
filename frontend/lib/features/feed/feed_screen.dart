@@ -3,36 +3,35 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_symbols_icons/symbols.dart';
+import 'package:share_plus/share_plus.dart';
 
 import 'package:gwangmeu/core/router/breadcrumb_provider.dart';
 import 'package:gwangmeu/core/router/route_names.dart';
 import 'package:gwangmeu/core/theme/gw_tokens.dart';
 import 'package:gwangmeu/core/theme/theme_notifier.dart';
+import 'package:gwangmeu/features/chat/direct_chat.dart';
 import 'package:gwangmeu/features/feed/feed_notifier.dart';
 import 'package:gwangmeu/features/feed/widgets/comment_sheet.dart';
 import 'package:gwangmeu/features/feed/widgets/compose_sheet.dart';
+import 'package:gwangmeu/features/feed/widgets/family_rail.dart';
+import 'package:gwangmeu/features/feed/widgets/family_stories_row.dart';
 import 'package:gwangmeu/features/feed/widgets/feed_post_card.dart';
 import 'package:gwangmeu/features/home/home_screen.dart';
-import 'package:gwangmeu/features/notifications/models/notification_model.dart';
 import 'package:gwangmeu/features/notifications/notifications_notifier.dart';
 import 'package:gwangmeu/features/notifications/widgets/notification_panel.dart';
 import 'package:gwangmeu/features/profile/profile_notifier.dart';
-import 'package:gwangmeu/features/villages/villages_notifier.dart';
 import 'package:gwangmeu/shared/models/post_model.dart';
 import 'package:gwangmeu/shared/widgets/loading_overlay.dart';
 
-/// Fil « Tissage » dynamique — agrège en temps réel les publications ET les
-/// notifications de tous les villages, clans, familles et groupes auxquels
-/// l'utilisateur appartient, avec J'aime, commentaires et partage (façon
-/// Facebook/Instagram, habillage maison).
+/// Fil de famille — le réseau social au centre, l'arbre en compagnon.
+/// Souvenirs (stories), composer, publications & événements d'arbre (vraies
+/// données), rail droit « Votre arbre / À relier / Cette semaine ».
 class FeedScreen extends ConsumerWidget {
   const FeedScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final desktop = isDesktopLayout(context);
-
-    if (desktop) {
+    if (isDesktopLayout(context)) {
       return Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -43,11 +42,10 @@ class FeedScreen extends ConsumerWidget {
               child: const _FeedBody(),
             ),
           ),
-          const Expanded(flex: 10, child: _DesktopContextRail()),
+          const Expanded(flex: 10, child: FamilyRail()),
         ],
       );
     }
-
     return const Scaffold(
       body: SafeArea(
         child: Column(
@@ -63,22 +61,8 @@ class FeedScreen extends ConsumerWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────
-//  Corps du fil — liste fusionnée (publications + notifications)
+//  Corps du fil (souvenirs + composer + publications)
 // ─────────────────────────────────────────────────────────────────
-
-/// Élément du fil : soit une publication, soit une notification.
-class _FeedItem {
-  _FeedItem.post(PostModel this.post)
-      : notif = null,
-        when = post.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
-  _FeedItem.notif(NotificationModel this.notif)
-      : post = null,
-        when = notif.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
-
-  final PostModel? post;
-  final NotificationModel? notif;
-  final DateTime when;
-}
 
 class _FeedBody extends ConsumerStatefulWidget {
   const _FeedBody();
@@ -110,9 +94,42 @@ class _FeedBodyState extends ConsumerState<_FeedBody> {
     }
   }
 
-  Future<void> _refresh() async {
-    await ref.read(feedNotifierProvider.notifier).refresh();
-    await ref.read(notificationsNotifierProvider.notifier).refresh();
+  Future<void> _refresh() =>
+      ref.read(feedNotifierProvider.notifier).refresh();
+
+  Future<void> _openContact(ChatContact c) async {
+    try {
+      final group = await ref.read(directChatOpenerProvider).openWith(c.userId);
+      if (!mounted) return;
+      context.push(
+        Routes.conversation(group.id),
+        extra: <String, Object>{'group': group, 'villageName': c.displayName},
+      );
+    } catch (_) {/* ignore */}
+  }
+
+  void _openTree() {
+    ref.read(breadcrumbProvider.notifier).clear();
+    context.go(Routes.genealogy);
+  }
+
+  Future<void> _share(PostModel post) async {
+    final author = post.authorDisplayName ?? 'Un membre';
+    final text = '$author sur Gwouang Meu :\n\n${post.content}';
+    try {
+      await Share.share(text);
+    } catch (_) {
+      await Clipboard.setData(ClipboardData(text: text));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Copié — collez-le où vous voulez',
+                style:
+                    GwType.ui(fontSize: 14, color: GwTokens.of(context).stone)),
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -121,71 +138,55 @@ class _FeedBodyState extends ConsumerState<_FeedBody> {
     final feedState = ref.watch(feedNotifierProvider);
 
     return feedState.when(
-      loading: () => const ShimmerList(count: 5, cardHeight: 200),
+      loading: () => const ShimmerList(count: 4, cardHeight: 190),
       error: (e, _) => _FeedError(
         onRetry: () => ref.read(feedNotifierProvider.notifier).refresh(),
       ),
       data: (posts) {
-        // Notifications au mieux : si en erreur/chargement, le fil n'est pas bloqué.
-        final notifs =
-            ref.watch(notificationsNotifierProvider).valueOrNull ?? const [];
-
-        final items = <_FeedItem>[
-          ...posts.map(_FeedItem.post),
-          ...notifs.map(_FeedItem.notif),
-        ]..sort((a, b) => b.when.compareTo(a.when));
-
         return RefreshIndicator(
           color: t.goldText,
           onRefresh: _refresh,
           child: ListView.builder(
             controller: _scrollCtrl,
-            padding: const EdgeInsets.only(top: 8, bottom: 20),
-            itemCount: items.length + 2, // compose + items + éventuel vide
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 24),
+            itemCount: 2 + (posts.isEmpty ? 1 : posts.length),
             itemBuilder: (context, index) {
-              if (index == 0) return const _ComposeTrigger();
-              if (index == 1 && items.isEmpty) return const _FeedEmpty();
-              final itemIndex = index - 1;
-              if (itemIndex >= items.length) return const SizedBox.shrink();
-              final item = items[itemIndex];
-              if (item.post != null) {
-                return _buildPost(item.post!);
+              if (index == 0) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: FamilyStoriesRow(
+                    onAdd: () => showComposeSheet(context),
+                    onTapContact: _openContact,
+                  ),
+                );
               }
-              return _NotificationCard(notif: item.notif!);
+              if (index == 1) return const _ComposeTrigger();
+              if (posts.isEmpty) return const _FeedEmpty();
+              final post = posts[index - 2];
+              return FeedPostCard(
+                post: post,
+                onLike: () =>
+                    ref.read(feedNotifierProvider.notifier).toggleLike(post.id),
+                onComment: () => showCommentSheet(
+                  context,
+                  postId: post.id,
+                  onAdded: () => ref
+                      .read(feedNotifierProvider.notifier)
+                      .bumpCommentCount(post.id),
+                ),
+                onShare: () => _share(post),
+                onOpenTree: _openTree,
+              );
             },
           ),
         );
       },
     );
   }
-
-  Widget _buildPost(PostModel post) {
-    return FeedPostCard(
-      post: post,
-      onLike: () => ref.read(feedNotifierProvider.notifier).toggleLike(post.id),
-      onComment: () => showCommentSheet(
-        context,
-        postId: post.id,
-        onAdded: () =>
-            ref.read(feedNotifierProvider.notifier).bumpCommentCount(post.id),
-      ),
-      onShare: () => _share(post),
-    );
-  }
-
-  void _share(PostModel post) {
-    Clipboard.setData(ClipboardData(text: post.content));
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Publication copiée — collez-la où vous voulez',
-            style: GwType.ui(fontSize: 14, color: GwTokens.of(context).stone)),
-      ),
-    );
-  }
 }
 
 // ─────────────────────────────────────────────────────────────────
-//  Déclencheur de composition
+//  Composer — souvenir / photo / récit
 // ─────────────────────────────────────────────────────────────────
 
 class _ComposeTrigger extends ConsumerWidget {
@@ -200,161 +201,103 @@ class _ComposeTrigger extends ConsumerWidget {
     final avatarUrl = user?.avatarUrl;
     final hasAvatar = avatarUrl != null && avatarUrl.isNotEmpty;
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-      child: Material(
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      decoration: BoxDecoration(
         color: t.inkCard,
         borderRadius: BorderRadius.circular(GwTokens.rCardLg),
-        child: InkWell(
-          onTap: () => showComposeSheet(context),
-          borderRadius: BorderRadius.circular(GwTokens.rCardLg),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(GwTokens.rCardLg),
-              border: Border.all(color: t.line),
-            ),
-            child: Row(
-              children: [
-                CircleAvatar(
-                  radius: 19,
-                  backgroundColor: t.goldBg,
-                  backgroundImage:
-                      hasAvatar ? NetworkImage(avatarUrl) : null,
-                  child: hasAvatar
-                      ? null
-                      : Text(initial,
-                          style: GwType.display(
-                              fontSize: 15, color: t.goldText)),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    'Partagez quelque chose avec votre communauté…',
-                    style: GwType.ui(fontSize: 14, color: t.stoneDim),
-                  ),
-                ),
-                Icon(Symbols.edit_square, size: 20, color: t.goldText),
-              ],
-            ),
-          ),
-        ),
+        border: Border.all(color: t.line),
       ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────
-//  Carte notification (compacte, secondaire)
-// ─────────────────────────────────────────────────────────────────
-
-class _NotificationCard extends ConsumerWidget {
-  const _NotificationCard({required this.notif});
-
-  final NotificationModel notif;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final t = GwTokens.of(context);
-    final unread = !notif.read;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-      child: Material(
-        color: unread
-            ? GwTokens.azure.withValues(alpha: 0.07)
-            : t.inkCard.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(GwTokens.rCard),
-        child: InkWell(
-          onTap: () => ref
-              .read(notificationsNotifierProvider.notifier)
-              .markAsRead(notif.id),
-          borderRadius: BorderRadius.circular(GwTokens.rCard),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(GwTokens.rCard),
-              border: Border.all(
-                color: unread
-                    ? GwTokens.azure.withValues(alpha: 0.28)
-                    : t.line,
+      child: Column(
+        children: [
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 19,
+                backgroundColor: t.goldBg,
+                backgroundImage: hasAvatar ? NetworkImage(avatarUrl) : null,
+                child: hasAvatar
+                    ? null
+                    : Text(initial,
+                        style:
+                            GwType.display(fontSize: 15, color: t.goldText)),
               ),
-            ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: InkWell(
+                  onTap: () => showComposeSheet(context),
+                  borderRadius: BorderRadius.circular(GwTokens.rPill),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 11),
+                    decoration: BoxDecoration(
+                      color: t.inkLift,
+                      borderRadius: BorderRadius.circular(GwTokens.rPill),
+                    ),
+                    child: Text(
+                      'Partagez un souvenir, une photo, une histoire…',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GwType.ui(fontSize: 13.5, color: t.stoneDim),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              _composeAction(t,
+                  icon: Symbols.photo_camera,
+                  label: 'Photo',
+                  color: t.sageText,
+                  onTap: () =>
+                      showComposeSheet(context, startWithPhoto: true)),
+              const SizedBox(width: 8),
+              _composeAction(t,
+                  icon: Symbols.history_edu,
+                  label: 'Récit',
+                  color: t.goldText,
+                  onTap: () => showComposeSheet(context)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _composeAction(GwTokens t,
+      {required IconData icon,
+      required String label,
+      required Color color,
+      required VoidCallback onTap}) {
+    return Expanded(
+      child: Material(
+        color: t.inkLift,
+        borderRadius: BorderRadius.circular(GwTokens.rBtn),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(GwTokens.rBtn),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10),
             child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Container(
-                  width: 34,
-                  height: 34,
-                  decoration: BoxDecoration(
-                    color: GwTokens.azure.withValues(alpha: 0.14),
-                    shape: BoxShape.circle,
-                  ),
-                  alignment: Alignment.center,
-                  child: Icon(_icon(notif.type),
-                      size: 17, color: t.azureText),
-                ),
-                const SizedBox(width: 11),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        notif.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: GwType.ui(
-                            fontSize: 13.5,
-                            fontWeight: FontWeight.w600,
-                            color: t.stone),
-                      ),
-                      if (notif.body.isNotEmpty) ...[
-                        const SizedBox(height: 2),
-                        Text(
-                          notif.body,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: GwType.ui(
-                              fontSize: 12.5,
-                              color: t.stoneMid,
-                              height: 1.4),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  _timeAgo(notif.createdAt),
-                  style: GwType.mono(fontSize: 10, color: t.stoneFaint),
-                ),
+                Icon(icon, size: 18, color: color),
+                const SizedBox(width: 7),
+                Text(label,
+                    style: GwType.ui(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: t.stone)),
               ],
             ),
           ),
         ),
       ),
     );
-  }
-
-  IconData _icon(String type) {
-    switch (type) {
-      case 'UNION_REQUEST':
-        return Symbols.favorite;
-      case 'PARENT_LINK':
-      case 'CHILD_LINK':
-        return Symbols.family_history;
-      case 'INVITATION_ACCEPTED':
-        return Symbols.celebration;
-      default:
-        return Symbols.notifications;
-    }
-  }
-
-  static String _timeAgo(DateTime? dt) {
-    if (dt == null) return '';
-    final d = DateTime.now().difference(dt);
-    if (d.inMinutes < 60) return '${d.inMinutes} min';
-    if (d.inHours < 24) return '${d.inHours} h';
-    if (d.inDays < 7) return '${d.inDays} j';
-    return '${(d.inDays / 7).floor()} sem';
   }
 }
 
@@ -369,159 +312,25 @@ class _FeedEmpty extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = GwTokens.of(context);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(28, 48, 28, 28),
+      padding: const EdgeInsets.fromLTRB(24, 40, 24, 24),
       child: Column(
         children: [
-          Icon(Symbols.forum, size: 46, color: t.stoneFaint),
+          Icon(Symbols.family_history, size: 46, color: t.stoneFaint),
           const SizedBox(height: 14),
-          Text(
-            'Votre fil est encore calme',
-            textAlign: TextAlign.center,
-            style: GwType.display(
-                fontSize: 17, fontWeight: FontWeight.w600, color: t.stone),
-          ),
+          Text('Votre fil de famille commence ici',
+              textAlign: TextAlign.center,
+              style: GwType.display(
+                  fontSize: 17, fontWeight: FontWeight.w600, color: t.stone)),
           const SizedBox(height: 8),
           Text(
-            'Les publications de vos villages, clans, familles et groupes '
-            'apparaîtront ici. Rejoignez une communauté ou publiez le premier '
-            'message.',
+            'Les souvenirs partagés et les événements de l’arbre (naissances, '
+            'unions, nouveaux liens) de vos villages, clans et familles '
+            'apparaîtront ici. Partagez le premier souvenir.',
             textAlign: TextAlign.center,
             style: GwType.ui(fontSize: 13.5, color: t.stoneMid, height: 1.55),
           ),
         ],
       ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────
-//  Rail contextuel desktop — Mémoire familiale + Mon village
-// ─────────────────────────────────────────────────────────────────
-
-class _DesktopContextRail extends ConsumerWidget {
-  const _DesktopContextRail();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final t = GwTokens.of(context);
-    final myVillages = ref.watch(myVillagesNotifierProvider).valueOrNull;
-    final village = (myVillages?.isNotEmpty ?? false) ? myVillages!.first : null;
-
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(4, 20, 24, 20),
-      children: [
-        Container(
-          padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
-          decoration: BoxDecoration(
-            color: GwTokens.sage.withValues(alpha: 0.08),
-            border: Border.all(color: GwTokens.sage.withValues(alpha: 0.3)),
-            borderRadius: BorderRadius.circular(GwTokens.rCard),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('MÉMOIRE FAMILIALE',
-                  style: GwType.mono(
-                      fontSize: 10, letterSpacing: 1.5, color: t.sageText)),
-              const SizedBox(height: 10),
-              Text(
-                'Explorez votre lignée et enregistrez les récits de vos aînés.',
-                style: GwType.ui(fontSize: 13.5, color: t.stone, height: 1.6),
-              ),
-              const SizedBox(height: 10),
-              SizedBox(
-                height: 42,
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: () {
-                    ref.read(breadcrumbProvider.notifier).clear();
-                    context.go(Routes.genealogy);
-                  },
-                  style: FilledButton.styleFrom(
-                    backgroundColor: GwTokens.sage,
-                    foregroundColor: const Color(0xFFF0EBE1),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: Text('Ouvrir ma rivière',
-                      style: GwType.ui(
-                          fontSize: 13, fontWeight: FontWeight.w600)),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 14),
-        if (village != null)
-          Container(
-            padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
-            decoration: BoxDecoration(
-              color: t.inkCard,
-              borderRadius: BorderRadius.circular(GwTokens.rCard),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('MON VILLAGE',
-                    style: GwType.mono(
-                        fontSize: 10,
-                        letterSpacing: 1.5,
-                        color: t.stoneFaint)),
-                const SizedBox(height: 10),
-                InkWell(
-                  onTap: () {
-                    ref.read(breadcrumbProvider.notifier).clear();
-                    context.push(Routes.villageDetail(village.id));
-                  },
-                  borderRadius: BorderRadius.circular(12),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: GwTokens.gold,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        alignment: Alignment.center,
-                        child: Text(
-                          village.name.isNotEmpty
-                              ? village.name[0].toUpperCase()
-                              : '?',
-                          style: GwType.display(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                              color: const Color(0xFF0C0B0F)),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(village.name,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: GwType.ui(
-                                    fontSize: 13.5,
-                                    fontWeight: FontWeight.w600,
-                                    color: t.stone)),
-                            Text('${village.memberCount} MEMBRES',
-                                style: GwType.mono(
-                                    fontSize: 11.5,
-                                    color: t.emberText,
-                                    letterSpacing: 0.5)),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-      ],
     );
   }
 }
@@ -544,10 +353,10 @@ class _FeedHeader extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Gwang Meu',
+                Text('Gwouang Meu',
                     style: GwType.display(
                         fontSize: 21, color: t.stone, letterSpacing: 0.5)),
-                Text('MBƐ́Ɛ — BIENVENUE',
+                Text('FIL DE FAMILLE',
                     style: GwType.mono(
                         fontSize: 10, color: t.stoneFaint, letterSpacing: 2)),
               ],
@@ -641,7 +450,7 @@ class _HeaderAction extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────
-//  État d'erreur
+//  Erreur
 // ─────────────────────────────────────────────────────────────────
 
 class _FeedError extends StatelessWidget {

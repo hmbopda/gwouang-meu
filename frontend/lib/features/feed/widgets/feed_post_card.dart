@@ -4,10 +4,10 @@ import 'package:material_symbols_icons/symbols.dart';
 import 'package:gwangmeu/core/theme/gw_tokens.dart';
 import 'package:gwangmeu/shared/models/post_model.dart';
 
-/// Carte de publication du fil « Tissage » — inspirée Facebook/Instagram mais
-/// dans l'identité maison : bande tissée d'accent selon la portée (village = or,
-/// personnel = azur), en-tête auteur, contenu, média, compteurs et barre
-/// d'actions (J'aime / Commenter / Partager).
+/// Carte du Fil de famille — chaleureuse (thème crème), inspirée de la maquette
+/// « Fil de famille ». Deux visages : publication normale (souvenir, photo) et
+/// événement d'arbre (naissance/union, contenu préfixé 🌳/💍) avec « Voir dans
+/// l'arbre ». Actions : bénédictions · messages · partager.
 class FeedPostCard extends StatelessWidget {
   const FeedPostCard({
     super.key,
@@ -15,81 +15,75 @@ class FeedPostCard extends StatelessWidget {
     required this.onLike,
     required this.onComment,
     required this.onShare,
+    required this.onOpenTree,
   });
 
   final PostModel post;
   final VoidCallback onLike;
   final VoidCallback onComment;
   final VoidCallback onShare;
+  final VoidCallback onOpenTree;
 
-  bool get _isVillage => post.villageId != null && post.villageId!.isNotEmpty;
-
-  Color _accent() => _isVillage ? GwTokens.gold : GwTokens.azure;
-
-  String _scopeLabel() {
-    if (_isVillage) {
-      final n = post.villageName;
-      return (n != null && n.isNotEmpty) ? n : 'Village';
-    }
-    return 'Publication';
+  bool get _isTreeEvent {
+    final c = post.content.trimLeft();
+    return c.startsWith('🌳') || c.startsWith('💍');
   }
+
+  bool get _isUnion => post.content.trimLeft().startsWith('💍');
+  bool get _isVillage =>
+      post.villageId != null && post.villageId!.isNotEmpty;
 
   @override
   Widget build(BuildContext context) {
     final t = GwTokens.of(context);
-    final accent = _accent();
     final name = (post.authorDisplayName ?? '').trim();
-    final displayName = name.isEmpty ? 'Membre' : name;
+    final displayName = name.isEmpty ? 'Un membre' : name;
     final hasMedia = post.mediaUrl != null && post.mediaUrl!.isNotEmpty;
 
     return Container(
-      margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+      margin: const EdgeInsets.fromLTRB(0, 0, 0, 14),
       decoration: BoxDecoration(
         color: t.inkCard,
         borderRadius: BorderRadius.circular(GwTokens.rCardLg),
         border: Border.all(color: t.line),
       ),
       clipBehavior: Clip.antiAlias,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Bande d'accent verticale = portée de la publication
-          Container(width: 4, color: accent.withValues(alpha: 0.85)),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(14, 14, 12, 8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _header(t, accent, displayName),
-                  const SizedBox(height: 10),
-                  if (post.content.trim().isNotEmpty)
-                    Text(
-                      post.content,
-                      style: GwType.ui(
-                          fontSize: 15, color: t.stone, height: 1.55),
-                    ),
-                  if (hasMedia) ...[
-                    const SizedBox(height: 12),
-                    _media(t),
-                  ],
-                  const SizedBox(height: 12),
-                  _counts(t, accent),
-                  Divider(height: 18, color: t.line),
-                  _actions(t, accent),
-                ],
-              ),
-            ),
-          ),
-        ],
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _header(t, displayName),
+            const SizedBox(height: 12),
+            if (_isTreeEvent)
+              _eventBody(t)
+            else ...[
+              if (post.content.trim().isNotEmpty)
+                Text(post.content,
+                    style: GwType.ui(
+                        fontSize: 15, color: t.stone, height: 1.55)),
+              if (hasMedia) ...[
+                const SizedBox(height: 12),
+                _media(t),
+              ],
+            ],
+            const SizedBox(height: 12),
+            _footer(t),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _header(GwTokens t, Color accent, String displayName) {
+  Widget _header(GwTokens t, String displayName) {
     final avatarUrl = post.authorAvatarUrl;
     final hasAvatar = avatarUrl != null && avatarUrl.isNotEmpty;
-    final initial = displayName[0].toUpperCase();
+    final accent = _isTreeEvent ? GwTokens.sage : GwTokens.gold;
+    final scope = _isTreeEvent
+        ? (_isUnion ? 'ÉVÉNEMENT · UNION' : 'ÉVÉNEMENT · LIGNÉE')
+        : (_isVillage
+            ? (post.villageName ?? 'VILLAGE').toUpperCase()
+            : 'PUBLICATION');
     return Row(
       children: [
         CircleAvatar(
@@ -98,51 +92,32 @@ class FeedPostCard extends StatelessWidget {
           backgroundImage: hasAvatar ? NetworkImage(avatarUrl) : null,
           child: hasAvatar
               ? null
-              : Text(initial,
+              : Text(displayName[0].toUpperCase(),
                   style: GwType.display(
-                      fontSize: 16, fontWeight: FontWeight.w700, color: accent)),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: _isTreeEvent ? t.sageText : t.goldText)),
         ),
         const SizedBox(width: 11),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Flexible(
-                    child: Text(
-                      displayName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: GwType.ui(
-                          fontSize: 14.5,
-                          fontWeight: FontWeight.w700,
-                          color: t.stone),
-                    ),
-                  ),
-                  if (_roleLabel() != null) ...[
-                    const SizedBox(width: 6),
-                    _roleChip(t, accent),
-                  ],
-                ],
-              ),
+              Text(displayName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GwType.ui(
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w700,
+                      color: t.stone)),
               const SizedBox(height: 2),
-              Row(
-                children: [
-                  Icon(_isVillage ? Symbols.holiday_village : Symbols.public,
-                      size: 12, color: accent),
-                  const SizedBox(width: 4),
-                  Flexible(
-                    child: Text(
-                      '${_scopeLabel()} · ${_timeAgo(post.createdAt)}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: GwType.mono(
-                          fontSize: 11, color: t.stoneFaint, letterSpacing: 0.3),
-                    ),
-                  ),
-                ],
-              ),
+              Text('$scope · ${_timeAgo(post.createdAt)}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GwType.mono(
+                      fontSize: 10.5,
+                      color: _isTreeEvent ? t.sageText : t.stoneFaint,
+                      letterSpacing: 0.5)),
             ],
           ),
         ),
@@ -150,30 +125,75 @@ class FeedPostCard extends StatelessWidget {
     );
   }
 
-  String? _roleLabel() {
-    switch (post.authorRole) {
-      case 'SUPER_ADMIN':
-        return 'ADMIN';
-      case 'MODERATEUR':
-        return 'MODÉRATEUR';
-      case 'AMBASSADEUR':
-        return 'AMBASSADEUR';
-      default:
-        return null;
-    }
-  }
-
-  Widget _roleChip(GwTokens t, Color accent) {
+  /// Corps d'un événement d'arbre : encart teinté + « Voir dans l'arbre ».
+  Widget _eventBody(GwTokens t) {
+    final content = post.content.trimLeft();
+    // Retire l'émoji de tête pour l'afficher comme icône dédiée.
+    final text = content.replaceFirst(RegExp(r'^(🌳|💍)\s*'), '');
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: accent.withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(GwTokens.rPill),
+        color: GwTokens.sage.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(GwTokens.rCard),
+        border: Border.all(color: GwTokens.sage.withValues(alpha: 0.28)),
       ),
-      child: Text(
-        _roleLabel()!,
-        style: GwType.mono(
-            fontSize: 8.5, letterSpacing: 0.8, color: accent),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: GwTokens.sage.withValues(alpha: 0.16),
+                  shape: BoxShape.circle,
+                ),
+                alignment: Alignment.center,
+                child: Icon(
+                    _isUnion ? Symbols.favorite : Symbols.psychiatry,
+                    size: 19,
+                    color: t.sageText),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(text,
+                    style: GwType.ui(
+                        fontSize: 14.5, color: t.stone, height: 1.5)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Material(
+              color: GwTokens.sage,
+              borderRadius: BorderRadius.circular(GwTokens.rBtn),
+              child: InkWell(
+                onTap: onOpenTree,
+                borderRadius: BorderRadius.circular(GwTokens.rBtn),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 14, vertical: 9),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Symbols.account_tree,
+                          size: 16, color: Color(0xFFF0EBE1)),
+                      const SizedBox(width: 7),
+                      Text('Voir dans l’arbre',
+                          style: GwType.ui(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: const Color(0xFFF0EBE1))),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -192,63 +212,58 @@ class FeedPostCard extends StatelessWidget {
                   color: t.inkLift,
                   alignment: Alignment.center,
                   child: CircularProgressIndicator(
-                      strokeWidth: 2, color: t.goldText),
-                ),
+                      strokeWidth: 2, color: t.goldText)),
           errorBuilder: (ctx, _, __) => Container(
             color: t.inkLift,
             alignment: Alignment.center,
-            child: Icon(Symbols.broken_image, size: 32, color: t.stoneFaint),
+            child:
+                Icon(Symbols.broken_image, size: 32, color: t.stoneFaint),
           ),
         ),
       ),
     );
   }
 
-  Widget _counts(GwTokens t, Color accent) {
-    if (post.reactionCount == 0 && post.commentCount == 0) {
-      return const SizedBox.shrink();
-    }
-    return Row(
+  Widget _footer(GwTokens t) {
+    return Column(
       children: [
-        if (post.reactionCount > 0) ...[
-          Icon(Symbols.favorite, size: 13, color: accent, fill: 1),
-          const SizedBox(width: 4),
-          Text('${post.reactionCount}',
-              style: GwType.mono(fontSize: 12, color: t.stoneMid)),
-        ],
-        if (post.reactionCount > 0 && post.commentCount > 0)
-          const SizedBox(width: 14),
-        if (post.commentCount > 0)
-          Text(
-            '${post.commentCount} commentaire${post.commentCount > 1 ? 's' : ''}',
-            style: GwType.mono(fontSize: 12, color: t.stoneMid),
+        if (post.reactionCount > 0 || post.commentCount > 0) ...[
+          Row(
+            children: [
+              if (post.reactionCount > 0) ...[
+                Icon(Symbols.favorite, size: 13, color: t.emberText, fill: 1),
+                const SizedBox(width: 4),
+                Text(
+                    '${post.reactionCount} bénédiction${post.reactionCount > 1 ? 's' : ''}',
+                    style: GwType.mono(fontSize: 11.5, color: t.stoneMid)),
+              ],
+              if (post.reactionCount > 0 && post.commentCount > 0)
+                const SizedBox(width: 14),
+              if (post.commentCount > 0)
+                Text(
+                    '${post.commentCount} message${post.commentCount > 1 ? 's' : ''}',
+                    style: GwType.mono(fontSize: 11.5, color: t.stoneMid)),
+            ],
           ),
-      ],
-    );
-  }
-
-  Widget _actions(GwTokens t, Color accent) {
-    return Row(
-      children: [
-        _actionBtn(
-          t,
-          icon: post.likedByMe ? Symbols.favorite : Symbols.favorite_border,
-          label: 'J’aime',
-          active: post.likedByMe,
-          activeColor: GwTokens.ember,
-          onTap: onLike,
-        ),
-        _actionBtn(
-          t,
-          icon: Symbols.mode_comment,
-          label: 'Commenter',
-          onTap: onComment,
-        ),
-        _actionBtn(
-          t,
-          icon: Symbols.ios_share,
-          label: 'Partager',
-          onTap: onShare,
+          Divider(height: 16, color: t.line),
+        ],
+        Row(
+          children: [
+            _actionBtn(t,
+                icon: post.likedByMe
+                    ? Symbols.favorite
+                    : Symbols.favorite_border,
+                label: 'Bénir',
+                active: post.likedByMe,
+                activeColor: t.emberText,
+                onTap: onLike),
+            _actionBtn(t,
+                icon: Symbols.mode_comment,
+                label: 'Message',
+                onTap: onComment),
+            _actionBtn(t,
+                icon: Symbols.ios_share, label: 'Partager', onTap: onShare),
+          ],
         ),
       ],
     );
@@ -275,15 +290,14 @@ class FeedPostCard extends StatelessWidget {
               Icon(icon, size: 19, color: color, fill: active ? 1 : 0),
               const SizedBox(width: 6),
               Flexible(
-                child: Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: GwType.ui(
-                      fontSize: 13,
-                      fontWeight: active ? FontWeight.w700 : FontWeight.w500,
-                      color: color),
-                ),
+                child: Text(label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GwType.ui(
+                        fontSize: 13,
+                        fontWeight:
+                            active ? FontWeight.w700 : FontWeight.w500,
+                        color: color)),
               ),
             ],
           ),
@@ -294,8 +308,7 @@ class FeedPostCard extends StatelessWidget {
 
   static String _timeAgo(DateTime? dt) {
     if (dt == null) return '';
-    final now = DateTime.now();
-    final d = now.difference(dt);
+    final d = DateTime.now().difference(dt);
     if (d.inSeconds < 60) return "à l'instant";
     if (d.inMinutes < 60) return 'il y a ${d.inMinutes} min';
     if (d.inHours < 24) return 'il y a ${d.inHours} h';
