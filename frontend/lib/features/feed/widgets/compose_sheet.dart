@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:material_symbols_icons/symbols.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-import 'package:gwangmeu/core/network/api_client.dart';
 import 'package:gwangmeu/core/theme/gw_tokens.dart';
 import 'package:gwangmeu/features/feed/feed_notifier.dart';
 import 'package:gwangmeu/features/villages/villages_notifier.dart';
@@ -75,14 +75,18 @@ class _ComposeSheetState extends ConsumerState<_ComposeSheet> {
     try {
       String? mediaUrl;
       if (_imageBytes != null) {
-        final up = await ref.read(apiClientProvider).uploadFile(
-          '/api/v1/media/upload',
-          bytes: _imageBytes!,
-          filename: _imageName ?? 'souvenir.jpg',
-          field: 'file',
-          fields: {'folder': 'posts'},
+        // Upload direct vers Supabase Storage (bucket public 'media' → URL CDN
+        // publique, durable — contrairement au fallback local du backend).
+        final storage = Supabase.instance.client.storage.from('media');
+        final uid = Supabase.instance.client.auth.currentUser?.id ?? 'anon';
+        final ext = _extension(_imageName);
+        final path = 'posts/$uid/${DateTime.now().millisecondsSinceEpoch}$ext';
+        await storage.uploadBinary(
+          path,
+          _imageBytes!,
+          fileOptions: FileOptions(contentType: _contentType(ext), upsert: true),
         );
-        mediaUrl = (up['data'] as Map<String, dynamic>)['url'] as String?;
+        mediaUrl = storage.getPublicUrl(path);
       }
       await ref.read(feedNotifierProvider.notifier).createPost(
             content: text,
@@ -101,6 +105,26 @@ class _ComposeSheetState extends ConsumerState<_ComposeSheet> {
           ),
         );
       }
+    }
+  }
+
+  String _extension(String? name) {
+    if (name != null && name.contains('.')) {
+      return name.substring(name.lastIndexOf('.')).toLowerCase();
+    }
+    return '.jpg';
+  }
+
+  String _contentType(String ext) {
+    switch (ext) {
+      case '.png':
+        return 'image/png';
+      case '.webp':
+        return 'image/webp';
+      case '.gif':
+        return 'image/gif';
+      default:
+        return 'image/jpeg';
     }
   }
 

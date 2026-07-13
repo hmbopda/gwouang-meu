@@ -11,7 +11,6 @@ import 'package:gwangmeu/core/theme/gw_tokens.dart';
 import 'package:gwangmeu/core/theme/theme_notifier.dart';
 import 'package:gwangmeu/features/chat/direct_chat.dart';
 import 'package:gwangmeu/features/feed/feed_notifier.dart';
-import 'package:gwangmeu/features/feed/widgets/comment_sheet.dart';
 import 'package:gwangmeu/features/feed/widgets/compose_sheet.dart';
 import 'package:gwangmeu/features/feed/widgets/family_rail.dart';
 import 'package:gwangmeu/features/feed/widgets/family_stories_row.dart';
@@ -167,15 +166,11 @@ class _FeedBodyState extends ConsumerState<_FeedBody> {
                 post: post,
                 onLike: () =>
                     ref.read(feedNotifierProvider.notifier).toggleLike(post.id),
-                onComment: () => showCommentSheet(
-                  context,
-                  postId: post.id,
-                  onAdded: () => ref
-                      .read(feedNotifierProvider.notifier)
-                      .bumpCommentCount(post.id),
-                ),
                 onShare: () => _share(post),
                 onOpenTree: _openTree,
+                onCommentAdded: () => ref
+                    .read(feedNotifierProvider.notifier)
+                    .bumpCommentCount(post.id),
               );
             },
           ),

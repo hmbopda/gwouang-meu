@@ -1,28 +1,39 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
 import 'package:gwangmeu/core/theme/gw_tokens.dart';
+import 'package:gwangmeu/features/feed/widgets/comment_section.dart';
 import 'package:gwangmeu/shared/models/post_model.dart';
 
-/// Carte du Fil de famille — chaleureuse (thème crème), inspirée de la maquette
-/// « Fil de famille ». Deux visages : publication normale (souvenir, photo) et
-/// événement d'arbre (naissance/union, contenu préfixé 🌳/💍) avec « Voir dans
-/// l'arbre ». Actions : bénédictions · messages · partager.
-class FeedPostCard extends StatelessWidget {
+/// Carte du Fil de famille — chaleureuse (thème crème). Publication normale ou
+/// événement d'arbre (contenu préfixé 🌳/💍) avec « Voir dans l'arbre ».
+/// Actions : bénir · message (déplie les commentaires EN LIGNE, façon Facebook)
+/// · partager.
+class FeedPostCard extends StatefulWidget {
   const FeedPostCard({
     super.key,
     required this.post,
     required this.onLike,
-    required this.onComment,
     required this.onShare,
     required this.onOpenTree,
+    this.onCommentAdded,
   });
 
   final PostModel post;
   final VoidCallback onLike;
-  final VoidCallback onComment;
   final VoidCallback onShare;
   final VoidCallback onOpenTree;
+  final VoidCallback? onCommentAdded;
+
+  @override
+  State<FeedPostCard> createState() => _FeedPostCardState();
+}
+
+class _FeedPostCardState extends State<FeedPostCard> {
+  bool _showComments = false;
+
+  PostModel get post => widget.post;
 
   bool get _isTreeEvent {
     final c = post.content.trimLeft();
@@ -69,6 +80,11 @@ class FeedPostCard extends StatelessWidget {
             ],
             const SizedBox(height: 12),
             _footer(t),
+            if (_showComments)
+              CommentSection(
+                postId: post.id,
+                onCommentAdded: widget.onCommentAdded,
+              ),
           ],
         ),
       ),
@@ -128,7 +144,6 @@ class FeedPostCard extends StatelessWidget {
   /// Corps d'un événement d'arbre : encart teinté + « Voir dans l'arbre ».
   Widget _eventBody(GwTokens t) {
     final content = post.content.trimLeft();
-    // Retire l'émoji de tête pour l'afficher comme icône dédiée.
     final text = content.replaceFirst(RegExp(r'^(🌳|💍)\s*'), '');
     return Container(
       padding: const EdgeInsets.all(14),
@@ -171,7 +186,7 @@ class FeedPostCard extends StatelessWidget {
               color: GwTokens.sage,
               borderRadius: BorderRadius.circular(GwTokens.rBtn),
               child: InkWell(
-                onTap: onOpenTree,
+                onTap: widget.onOpenTree,
                 borderRadius: BorderRadius.circular(GwTokens.rBtn),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
@@ -203,21 +218,19 @@ class FeedPostCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(GwTokens.rBtn),
       child: AspectRatio(
         aspectRatio: 16 / 10,
-        child: Image.network(
-          post.mediaUrl!,
+        child: CachedNetworkImage(
+          imageUrl: post.mediaUrl!,
           fit: BoxFit.cover,
-          loadingBuilder: (ctx, child, progress) => progress == null
-              ? child
-              : Container(
-                  color: t.inkLift,
-                  alignment: Alignment.center,
-                  child: CircularProgressIndicator(
-                      strokeWidth: 2, color: t.goldText)),
-          errorBuilder: (ctx, _, __) => Container(
+          placeholder: (ctx, _) => Container(
             color: t.inkLift,
             alignment: Alignment.center,
             child:
-                Icon(Symbols.broken_image, size: 32, color: t.stoneFaint),
+                CircularProgressIndicator(strokeWidth: 2, color: t.goldText),
+          ),
+          errorWidget: (ctx, _, __) => Container(
+            color: t.inkLift,
+            alignment: Alignment.center,
+            child: Icon(Symbols.broken_image, size: 32, color: t.stoneFaint),
           ),
         ),
       ),
@@ -256,13 +269,18 @@ class FeedPostCard extends StatelessWidget {
                 label: 'Bénir',
                 active: post.likedByMe,
                 activeColor: t.emberText,
-                onTap: onLike),
+                onTap: widget.onLike),
             _actionBtn(t,
                 icon: Symbols.mode_comment,
                 label: 'Message',
-                onTap: onComment),
+                active: _showComments,
+                activeColor: t.goldText,
+                onTap: () =>
+                    setState(() => _showComments = !_showComments)),
             _actionBtn(t,
-                icon: Symbols.ios_share, label: 'Partager', onTap: onShare),
+                icon: Symbols.ios_share,
+                label: 'Partager',
+                onTap: widget.onShare),
           ],
         ),
       ],
