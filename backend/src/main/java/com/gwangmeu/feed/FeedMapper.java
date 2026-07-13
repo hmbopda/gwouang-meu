@@ -21,5 +21,7 @@ public interface FeedMapper {
 
     @Mapping(target = "authorDisplayName", ignore = true)
     @Mapping(target = "authorAvatarUrl", ignore = true)
+    @Mapping(target = "reactionCount", ignore = true)
+    @Mapping(target = "likedByMe", ignore = true)
     CommentDto toDto(Comment comment);
 }

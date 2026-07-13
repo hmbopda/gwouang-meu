@@ -7,6 +7,8 @@ import com.gwangmeu.feed.domain.PostReaction;
 import com.gwangmeu.feed.events.PostCreatedEvent;
 import com.gwangmeu.feed.events.PostModeratedEvent;
 import com.gwangmeu.feed.events.PostSubmittedEvent;
+import com.gwangmeu.feed.domain.CommentReaction;
+import com.gwangmeu.feed.infrastructure.CommentReactionRepository;
 import com.gwangmeu.feed.infrastructure.CommentRepository;
 import com.gwangmeu.feed.infrastructure.PostReactionRepository;
 import com.gwangmeu.feed.infrastructure.PostRepository;
@@ -31,6 +33,7 @@ class FeedServiceImpl implements FeedService {
     private final PostRepository postRepository;
     private final CommentRepository commentRepository;
     private final PostReactionRepository reactionRepository;
+    private final CommentReactionRepository commentReactionRepository;
     private final ApplicationEventPublisher eventPublisher;
 
     @Override
@@ -157,6 +160,21 @@ class FeedServiceImpl implements FeedService {
             post.setReactionCount(reactionRepository.countByPostId(postId));
             postRepository.save(post);
         });
+    }
+
+    @Override
+    public void reactComment(UUID commentId, UUID userId) {
+        if (commentReactionRepository.findByCommentIdAndUserId(commentId, userId).isEmpty()) {
+            commentReactionRepository.save(CommentReaction.builder()
+                    .commentId(commentId)
+                    .userId(userId)
+                    .build());
+        }
+    }
+
+    @Override
+    public void unreactComment(UUID commentId, UUID userId) {
+        commentReactionRepository.deleteByCommentIdAndUserId(commentId, userId);
     }
 
     @Override

@@ -5,6 +5,7 @@ import com.gwangmeu.feed.application.CreatePostCommand;
 import com.gwangmeu.feed.application.FeedService;
 import com.gwangmeu.feed.application.ModerationService;
 import com.gwangmeu.feed.domain.Comment;
+import com.gwangmeu.feed.domain.CommentReaction;
 import com.gwangmeu.feed.domain.ModerationStatus;
 import com.gwangmeu.feed.domain.Post;
 import com.gwangmeu.feed.domain.PostReaction;
@@ -12,6 +13,7 @@ import com.gwangmeu.feed.dto.CommentDto;
 import com.gwangmeu.feed.dto.CreatePostRequest;
 import com.gwangmeu.feed.dto.ModeratePostRequest;
 import com.gwangmeu.feed.dto.PostDto;
+import com.gwangmeu.feed.infrastructure.CommentReactionRepository;
 import com.gwangmeu.feed.infrastructure.PostReactionRepository;
 import com.gwangmeu.shared.api.ApiResponse;
 import com.gwangmeu.shared.security.CurrentUser;
@@ -49,9 +51,10 @@ public class FeedController {
     private final ModerationService      moderationService;
     private final FeedMapper             feedMapper;
     private final UserIdResolver         userIdResolver;
-    private final UserRepository         userRepository;
-    private final VillageRepository      villageRepository;
-    private final PostReactionRepository reactionRepository;
+    private final UserRepository            userRepository;
+    private final VillageRepository         villageRepository;
+    private final PostReactionRepository    reactionRepository;
+    private final CommentReactionRepository commentReactionRepository;
 
     @GetMapping
     @Operation(summary = "Feed global", description = "Retourne tous les posts approuves, du plus recent au plus ancien.")
@@ -193,8 +196,10 @@ public class FeedController {
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Commentaires retournes")
     })
-    public ResponseEntity<ApiResponse<List<CommentDto>>> getComments(@PathVariable UUID postId) {
-        List<CommentDto> dtos = enrichComments(feedService.getComments(postId));
+    public ResponseEntity<ApiResponse<List<CommentDto>>> getComments(
+            @PathVariable UUID postId, @CurrentUser Jwt jwt) {
+        UUID userId = jwt != null ? userIdResolver.resolve(jwt) : null;
+        List<CommentDto> dtos = enrichComments(feedService.getComments(postId), userId);
         return ResponseEntity.ok(ApiResponse.ok(dtos));
     }
 
@@ -224,6 +229,22 @@ public class FeedController {
             @CurrentUser Jwt jwt) {
         UUID userId = userIdResolver.resolve(jwt);
         feedService.removeReaction(postId, userId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/comments/{commentId}/react")
+    @Operation(summary = "Bénir un commentaire")
+    public ResponseEntity<ApiResponse<Void>> reactComment(
+            @PathVariable UUID commentId, @CurrentUser Jwt jwt) {
+        feedService.reactComment(commentId, userIdResolver.resolve(jwt));
+        return ResponseEntity.ok(ApiResponse.ok(null, "Bénédiction enregistrée"));
+    }
+
+    @DeleteMapping("/comments/{commentId}/react")
+    @Operation(summary = "Retirer ma bénédiction d'un commentaire")
+    public ResponseEntity<Void> unreactComment(
+            @PathVariable UUID commentId, @CurrentUser Jwt jwt) {
+        feedService.unreactComment(commentId, userIdResolver.resolve(jwt));
         return ResponseEntity.noContent().build();
     }
 
@@ -278,21 +299,34 @@ public class FeedController {
         }).toList();
     }
 
-    /** Batch-charge les auteurs pour habiller les commentaires. */
-    private List<CommentDto> enrichComments(List<Comment> comments) {
+    /** Batch-charge auteurs + bénédictions (compteur, aimé par moi) des commentaires. */
+    private List<CommentDto> enrichComments(List<Comment> comments, UUID meId) {
         if (comments.isEmpty()) {
             return List.of();
         }
         List<UUID> authorIds = comments.stream().map(Comment::getAuthorId).distinct().toList();
+        List<UUID> commentIds = comments.stream().map(Comment::getId).toList();
+
         Map<UUID, User> authors = userRepository.findAllById(authorIds).stream()
                 .collect(Collectors.toMap(User::getId, u -> u));
+
+        Map<UUID, Integer> counts = new java.util.HashMap<>();
+        for (Object[] row : commentReactionRepository.countByCommentIds(commentIds)) {
+            counts.put((UUID) row[0], ((Long) row[1]).intValue());
+        }
+        Set<UUID> likedIds = meId == null ? Set.of()
+                : commentReactionRepository.findByUserIdAndCommentIdIn(meId, commentIds).stream()
+                        .map(CommentReaction::getCommentId).collect(Collectors.toSet());
+
         return comments.stream().map(c -> {
             User a = authors.get(c.getAuthorId());
             return new CommentDto(
                     c.getId(), c.getPostId(), c.getAuthorId(), c.getContent(), c.getParentCommentId(),
                     c.getCreatedAt(),
                     a != null ? a.getDisplayName() : null,
-                    a != null ? a.getAvatarUrl() : null
+                    a != null ? a.getAvatarUrl() : null,
+                    counts.getOrDefault(c.getId(), 0),
+                    likedIds.contains(c.getId())
             );
         }).toList();
     }

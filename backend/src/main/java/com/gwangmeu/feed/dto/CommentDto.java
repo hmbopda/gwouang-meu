@@ -15,5 +15,7 @@ public record CommentDto(
         @Schema(description = "Date de creation") Instant createdAt,
         // ── Enrichissement ──
         @Schema(description = "Nom affiche de l'auteur") String authorDisplayName,
-        @Schema(description = "Avatar de l'auteur") String authorAvatarUrl
+        @Schema(description = "Avatar de l'auteur") String authorAvatarUrl,
+        @Schema(description = "Nombre de benedictions") int reactionCount,
+        @Schema(description = "Beni par l'utilisateur courant ?") boolean likedByMe
 ) {}

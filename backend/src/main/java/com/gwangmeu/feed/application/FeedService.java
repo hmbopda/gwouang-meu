@@ -35,5 +35,10 @@ public interface FeedService {
 
     void removeReaction(UUID postId, UUID userId);
 
+    /** Bénir / retirer sa bénédiction sur un commentaire (idempotent). */
+    void reactComment(UUID commentId, UUID userId);
+
+    void unreactComment(UUID commentId, UUID userId);
+
     void deletePost(UUID postId, UUID requesterId);
 }
