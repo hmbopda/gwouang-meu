@@ -402,14 +402,7 @@ class _CenterPanel extends ConsumerStatefulWidget {
 class _CenterPanelState extends ConsumerState<_CenterPanel>
     with SingleTickerProviderStateMixin {
   late final TabController _tabCtrl;
-  static const _tabs = [
-    'Aperçu',
-    'Ligne des chefs',
-    'Temps forts',
-    'Membres',
-    'Publications',
-    'Chat'
-  ];
+  static const _tabs = ['Aperçu', 'Patrimoine', 'Communauté'];
 
   VillageModel get v => widget.village;
 
@@ -449,11 +442,8 @@ class _CenterPanelState extends ConsumerState<_CenterPanel>
             labelPadding: const EdgeInsets.symmetric(horizontal: 16),
             tabs: [
               _tabItem(context, 'Aperçu', null),
-              _tabItem(context, 'Ligne des chefs', null),
-              _tabItem(context, 'Temps forts', null),
-              _tabItem(context, 'Membres', '${v.memberCount}'),
-              _tabItem(context, 'Publications', null),
-              _tabItem(context, 'Chat', null),
+              _tabItem(context, 'Patrimoine', null),
+              _tabItem(context, 'Communauté', '${v.memberCount}'),
             ],
           ),
         ),
@@ -463,11 +453,8 @@ class _CenterPanelState extends ConsumerState<_CenterPanel>
             children: [
               _ApercuTab(
                   village: v, includeRightPanel: widget.includeRightPanel),
-              _ChefsTab(village: v),
-              _TempsFortsTab(village: v),
-              _MembresTab(village: v),
-              _PublicationsTab(village: v),
-              _ChatTab(village: v),
+              _PatrimoineTab(village: v),
+              _CommunauteTab(village: v),
             ],
           ),
         ),
@@ -914,15 +901,17 @@ class _RightPanel extends StatelessWidget {
 // ONGLET 1 — APERÇU
 // ═══════════════════════════════════════════════════════════════
 
-class _ApercuTab extends ConsumerWidget {
-  const _ApercuTab({required this.village, this.includeRightPanel = false});
+// ═══════════════════════════════════════════════════════════════
+// ONGLET PATRIMOINE — Histoire (genèse + ligne des chefs + temps forts)
+// ═══════════════════════════════════════════════════════════════
+
+class _PatrimoineTab extends ConsumerWidget {
+  const _PatrimoineTab({required this.village});
   final VillageModel village;
-  final bool includeRightPanel;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final t = GwTokens.of(context);
-    final membersAsync = ref.watch(villageMembersProvider(village.id));
     final canEdit = ref
             .watch(villageMyPermissionsProvider(village.id))
             .valueOrNull
@@ -932,7 +921,22 @@ class _ApercuTab extends ConsumerWidget {
     return ListView(
       padding: EdgeInsets.zero,
       children: [
-        _StatsRow(village: village),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(24, 22, 24, 2),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Histoire',
+                  style: GwType.display(fontSize: 26, color: t.stone)),
+              const SizedBox(height: 6),
+              Text(
+                'La genèse du village, la dynastie de ses chefs et ses temps forts.',
+                style: GwType.ui(fontSize: 13, color: t.stoneDim, height: 1.6),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 10),
         _Section(
           title: 'Genèse',
           trailing: canEdit
@@ -945,6 +949,179 @@ class _ApercuTab extends ConsumerWidget {
             onEdit: () => _showGenesisDialog(context, ref, village),
           ),
         ),
+        _Section(
+          title: 'Ligne des chefs',
+          child: _DynastySection(village: village),
+        ),
+        _Section(
+          title: 'Temps forts',
+          child: _MilestonesSection(village: village),
+        ),
+        const _PatrimoineComingSoon(),
+        const SizedBox(height: 40),
+      ],
+    );
+  }
+}
+
+// ── À venir : Traditions · Lieux sacrés · Calendrier ─────────────
+
+class _PatrimoineComingSoon extends StatelessWidget {
+  const _PatrimoineComingSoon();
+
+  @override
+  Widget build(BuildContext context) {
+    final t = GwTokens.of(context);
+    const items = [
+      ('Traditions', 'coutumes, rites, valeurs, interdits', Symbols.diversity_3),
+      ('Lieux sacrés', 'sites, fêtes et protocole', Symbols.forest),
+      ('Calendrier', 'fêtes, jours de marché, cycles', Symbols.calendar_month),
+    ];
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 10, 20, 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('BIENTÔT DANS LE PATRIMOINE',
+              style: GwType.mono(
+                  fontSize: 10, letterSpacing: 1.4, color: t.stoneFaint)),
+          const SizedBox(height: 10),
+          for (final it in items)
+            Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.all(13),
+              decoration: BoxDecoration(
+                color: t.inkCard,
+                borderRadius: BorderRadius.circular(GwTokens.rCard),
+                border: Border.all(color: t.line),
+              ),
+              child: Row(
+                children: [
+                  Icon(it.$3, size: 19, color: t.stoneDim),
+                  const SizedBox(width: 11),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(it.$1,
+                            style: GwType.ui(
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w600,
+                                color: t.stone)),
+                        Text(it.$2,
+                            style:
+                                GwType.ui(fontSize: 11.5, color: t.stoneDim)),
+                      ],
+                    ),
+                  ),
+                  Text('bientôt',
+                      style: GwType.mono(fontSize: 10, color: t.stoneFaint)),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ONGLET COMMUNAUTÉ — Membres · Publications · Chat
+// ═══════════════════════════════════════════════════════════════
+
+class _CommunauteTab extends StatefulWidget {
+  const _CommunauteTab({required this.village});
+  final VillageModel village;
+
+  @override
+  State<_CommunauteTab> createState() => _CommunauteTabState();
+}
+
+class _CommunauteTabState extends State<_CommunauteTab> {
+  int _seg = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = GwTokens.of(context);
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+          child: Row(
+            children: [
+              _segPill(t, 'Membres', '${widget.village.memberCount}', 0),
+              const SizedBox(width: 8),
+              _segPill(t, 'Publications', null, 1),
+              const SizedBox(width: 8),
+              _segPill(t, 'Chat', null, 2),
+            ],
+          ),
+        ),
+        Expanded(child: _current()),
+      ],
+    );
+  }
+
+  Widget _current() {
+    switch (_seg) {
+      case 1:
+        return _PublicationsTab(village: widget.village);
+      case 2:
+        return _ChatTab(village: widget.village);
+      default:
+        return _MembresTab(village: widget.village);
+    }
+  }
+
+  Widget _segPill(GwTokens t, String label, String? count, int idx) {
+    final sel = _seg == idx;
+    return Expanded(
+      child: Material(
+        color: sel ? GwTokens.gold.withValues(alpha: 0.14) : t.inkLift,
+        borderRadius: BorderRadius.circular(GwTokens.rPill),
+        child: InkWell(
+          onTap: () => setState(() => _seg = idx),
+          borderRadius: BorderRadius.circular(GwTokens.rPill),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 9),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(label,
+                    style: GwType.ui(
+                        fontSize: 13,
+                        fontWeight: sel ? FontWeight.w700 : FontWeight.w500,
+                        color: sel ? t.goldText : t.stoneMid)),
+                if (count != null) ...[
+                  const SizedBox(width: 5),
+                  Text(count,
+                      style: GwType.mono(
+                          fontSize: 10,
+                          color: sel ? t.goldText : t.stoneFaint)),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ApercuTab extends ConsumerWidget {
+  const _ApercuTab({required this.village, this.includeRightPanel = false});
+  final VillageModel village;
+  final bool includeRightPanel;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = GwTokens.of(context);
+    final membersAsync = ref.watch(villageMembersProvider(village.id));
+
+    return ListView(
+      padding: EdgeInsets.zero,
+      children: [
+        _StatsRow(village: village),
         _Section(
           title: 'Votre lignée dans ce village',
           child: membersAsync.when(
@@ -1072,8 +1249,8 @@ Widget _sectionEditBtn(BuildContext context, VoidCallback onTap) {
 // ONGLET 3 — LIGNE DES CHEFS
 // ═══════════════════════════════════════════════════════════════
 
-class _ChefsTab extends ConsumerWidget {
-  const _ChefsTab({required this.village});
+class _DynastySection extends ConsumerWidget {
+  const _DynastySection({required this.village});
   final VillageModel village;
 
   @override
@@ -1086,16 +1263,9 @@ class _ChefsTab extends ConsumerWidget {
             ?.has('EDIT_VILLAGE') ??
         false;
 
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(24, 24, 24, 44),
-      children: [
-        Text('Ligne des chefs',
-            style: GwType.display(fontSize: 26, color: t.stone)),
-        const SizedBox(height: 6),
-        Text('La dynastie du village : chef actuel et anciens chefs.',
-            style: GwType.ui(fontSize: 13, color: t.stoneDim, height: 1.6)),
-        const SizedBox(height: 20),
-        dynastyAsync.when(
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+      child: dynastyAsync.when(
           loading: () => const Padding(
             padding: EdgeInsets.symmetric(vertical: 36),
             child: Center(child: CircularProgressIndicator(color: GwTokens.gold)),
@@ -1148,17 +1318,16 @@ class _ChefsTab extends ConsumerWidget {
             );
           },
         ),
-      ],
     );
   }
 }
 
 // ═══════════════════════════════════════════════════════════════
-// ONGLET TEMPS FORTS — jalons historiques réels (éditables)
+// TEMPS FORTS — jalons historiques réels (réutilisé dans Patrimoine)
 // ═══════════════════════════════════════════════════════════════
 
-class _TempsFortsTab extends ConsumerWidget {
-  const _TempsFortsTab({required this.village});
+class _MilestonesSection extends ConsumerWidget {
+  const _MilestonesSection({required this.village});
   final VillageModel village;
 
   @override
@@ -1171,16 +1340,9 @@ class _TempsFortsTab extends ConsumerWidget {
             ?.has('EDIT_VILLAGE') ??
         false;
 
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(24, 24, 24, 44),
-      children: [
-        Text('Temps forts',
-            style: GwType.display(fontSize: 26, color: t.stone)),
-        const SizedBox(height: 6),
-        Text('Les jalons marquants de l\'histoire du village.',
-            style: GwType.ui(fontSize: 13, color: t.stoneDim, height: 1.6)),
-        const SizedBox(height: 20),
-        milestonesAsync.when(
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+      child: milestonesAsync.when(
           loading: () => const Padding(
             padding: EdgeInsets.symmetric(vertical: 36),
             child: Center(child: CircularProgressIndicator(color: GwTokens.gold)),
@@ -1223,7 +1385,6 @@ class _TempsFortsTab extends ConsumerWidget {
             );
           },
         ),
-      ],
     );
   }
 }
