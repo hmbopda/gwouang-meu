@@ -97,6 +97,39 @@ class VillageMilestone {
       );
 }
 
+/// Entrée générique du patrimoine : une Tradition, un Lieu sacré ou une entrée
+/// de Calendrier traditionnel (selon [kind]). [subtitle] = catégorie/type/période,
+/// [detail] = protocole (« façon de s'y tenir ») pour les lieux sacrés.
+class HeritageEntry {
+  const HeritageEntry({
+    required this.id,
+    required this.kind,
+    required this.title,
+    this.subtitle,
+    this.description,
+    this.detail,
+    this.ordinal = 0,
+  });
+
+  final String id;
+  final String kind; // TRADITION | SACRED_PLACE | CALENDAR
+  final String title;
+  final String? subtitle;
+  final String? description;
+  final String? detail;
+  final int ordinal;
+
+  factory HeritageEntry.fromJson(Map<String, dynamic> json) => HeritageEntry(
+        id: json['id']?.toString() ?? '',
+        kind: json['kind'] as String? ?? '',
+        title: json['title'] as String? ?? '',
+        subtitle: json['subtitle'] as String?,
+        description: json['description'] as String?,
+        detail: json['detail'] as String?,
+        ordinal: (json['ordinal'] as num?)?.toInt() ?? 0,
+      );
+}
+
 // ── Service ─────────────────────────────────────────────────
 
 class VillageHeritageService {
@@ -186,6 +219,43 @@ class VillageHeritageService {
   Future<void> deleteMilestone(String villageId, String milestoneId) =>
       _api.delete('${_v(villageId)}/milestones/$milestoneId');
 
+  // ── Rubriques génériques : Traditions / Lieux sacrés / Calendrier ──
+
+  Future<List<HeritageEntry>> entries(String villageId, String kind) async {
+    final r = await _api.get('${_v(villageId)}/heritage/$kind');
+    final list = r['data'] as List? ?? const [];
+    return list
+        .map((e) => HeritageEntry.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// Crée ([entryId] null) ou met à jour une entrée de patrimoine.
+  Future<HeritageEntry> saveEntry(
+    String villageId,
+    String kind, {
+    String? entryId,
+    required String title,
+    String? subtitle,
+    String? description,
+    String? detail,
+    int? ordinal,
+  }) async {
+    final body = <String, dynamic>{
+      'title': title,
+      'subtitle': subtitle,
+      'description': description,
+      'detail': detail,
+      'ordinal': ordinal,
+    };
+    final r = entryId == null
+        ? await _api.post('${_v(villageId)}/heritage/$kind', data: body)
+        : await _api.put('${_v(villageId)}/heritage/entry/$entryId', data: body);
+    return HeritageEntry.fromJson(r['data'] as Map<String, dynamic>);
+  }
+
+  Future<void> deleteEntry(String villageId, String entryId) =>
+      _api.delete('${_v(villageId)}/heritage/entry/$entryId');
+
   // ── Genèse (founded_year + historical_summary via PUT village) ─────
 
   Future<VillageModel> updateGenesis(
@@ -218,4 +288,15 @@ final villageDynastyProvider =
 final villageMilestonesProvider =
     FutureProvider.family<List<VillageMilestone>, String>((ref, villageId) {
   return ref.read(villageHeritageServiceProvider).milestones(villageId);
+});
+
+/// Argument (village, rubrique) pour [villageHeritageEntriesProvider].
+typedef HeritageArg = ({String villageId, String kind});
+
+/// Entrées d'une rubrique (Traditions / Lieux sacrés / Calendrier).
+final villageHeritageEntriesProvider =
+    FutureProvider.family<List<HeritageEntry>, HeritageArg>((ref, arg) {
+  return ref
+      .read(villageHeritageServiceProvider)
+      .entries(arg.villageId, arg.kind);
 });

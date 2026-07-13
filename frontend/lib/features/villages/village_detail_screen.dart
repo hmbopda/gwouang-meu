@@ -957,70 +957,416 @@ class _PatrimoineTab extends ConsumerWidget {
           title: 'Temps forts',
           child: _MilestonesSection(village: village),
         ),
-        const _PatrimoineComingSoon(),
+        _Section(
+          title: 'Traditions',
+          child: _HeritageEntriesSection(village: village, kind: 'TRADITION'),
+        ),
+        _Section(
+          title: 'Lieux sacrés',
+          child: _HeritageEntriesSection(village: village, kind: 'SACRED_PLACE'),
+        ),
+        _Section(
+          title: 'Calendrier traditionnel',
+          child: _HeritageEntriesSection(village: village, kind: 'CALENDAR'),
+        ),
         const SizedBox(height: 40),
       ],
     );
   }
 }
 
-// ── À venir : Traditions · Lieux sacrés · Calendrier ─────────────
+// ── Rubriques patrimoine génériques : Traditions · Lieux sacrés · Calendrier ──
 
-class _PatrimoineComingSoon extends StatelessWidget {
-  const _PatrimoineComingSoon();
+/// Libellés/icônes par rubrique de patrimoine.
+class _HeritageKindMeta {
+  const _HeritageKindMeta({
+    required this.kind,
+    required this.section,
+    required this.icon,
+    required this.titleLabel,
+    required this.subtitleLabel,
+    this.detailLabel,
+    required this.addLabel,
+    required this.emptyTitle,
+    required this.emptyMsg,
+  });
+
+  final String kind;
+  final String section;
+  final IconData icon;
+  final String titleLabel;
+  final String subtitleLabel;
+  final String? detailLabel;
+  final String addLabel;
+  final String emptyTitle;
+  final String emptyMsg;
+
+  static const tradition = _HeritageKindMeta(
+    kind: 'TRADITION',
+    section: 'Traditions',
+    icon: Symbols.diversity_3,
+    titleLabel: 'Nom de la tradition',
+    subtitleLabel: 'Catégorie (rite, valeur, interdit…)',
+    addLabel: 'Ajouter une tradition',
+    emptyTitle: 'Aucune tradition',
+    emptyMsg:
+        'Documentez les coutumes, rites de passage, valeurs et interdits du village.',
+  );
+  static const sacred = _HeritageKindMeta(
+    kind: 'SACRED_PLACE',
+    section: 'Lieux sacrés',
+    icon: Symbols.forest,
+    titleLabel: 'Nom du lieu',
+    subtitleLabel: 'Type (forêt, source, case, tombeau…)',
+    detailLabel: 'Façon de s\'y tenir (protocole)',
+    addLabel: 'Ajouter un lieu sacré',
+    emptyTitle: 'Aucun lieu sacré',
+    emptyMsg:
+        'Documentez les lieux sacrés : sites, fêtes qui s\'y tiennent et protocole d\'accès.',
+  );
+  static const calendar = _HeritageKindMeta(
+    kind: 'CALENDAR',
+    section: 'Calendrier traditionnel',
+    icon: Symbols.calendar_month,
+    titleLabel: 'Nom (fête, jour de marché…)',
+    subtitleLabel: 'Période / récurrence',
+    addLabel: 'Ajouter au calendrier',
+    emptyTitle: 'Calendrier vide',
+    emptyMsg:
+        'Documentez les fêtes, jours de marché et cycles du calendrier traditionnel.',
+  );
+
+  static _HeritageKindMeta of(String kind) => switch (kind) {
+        'SACRED_PLACE' => sacred,
+        'CALENDAR' => calendar,
+        _ => tradition,
+      };
+}
+
+/// Section d'une rubrique patrimoine (liste d'entrées réelles + ajout gated).
+class _HeritageEntriesSection extends ConsumerWidget {
+  const _HeritageEntriesSection({required this.village, required this.kind});
+  final VillageModel village;
+  final String kind;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = GwTokens.of(context);
+    final meta = _HeritageKindMeta.of(kind);
+    final entriesAsync = ref.watch(
+        villageHeritageEntriesProvider((villageId: village.id, kind: kind)));
+    final canEdit = ref
+            .watch(villageMyPermissionsProvider(village.id))
+            .valueOrNull
+            ?.has('EDIT_VILLAGE') ??
+        false;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+      child: entriesAsync.when(
+        loading: () => const Padding(
+          padding: EdgeInsets.symmetric(vertical: 24),
+          child: Center(
+              child: CircularProgressIndicator(color: GwTokens.gold)),
+        ),
+        error: (_, __) => Text('Impossible de charger',
+            style: GwType.ui(fontSize: 13, color: t.stoneDim)),
+        data: (entries) {
+          if (entries.isEmpty) {
+            return _EmptyHeritage(
+              icon: meta.icon,
+              title: meta.emptyTitle,
+              message: canEdit
+                  ? meta.emptyMsg
+                  : 'Cette rubrique n\'a pas encore été documentée.',
+              actionLabel: canEdit ? meta.addLabel : null,
+              onAction: () =>
+                  _showHeritageDialog(context, ref, village.id, kind),
+            );
+          }
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (final e in entries)
+                _HeritageEntryCard(
+                    villageId: village.id,
+                    entry: e,
+                    meta: meta,
+                    canEdit: canEdit),
+              if (canEdit) ...[
+                const SizedBox(height: 6),
+                _HeritageAddButton(
+                  label: meta.addLabel,
+                  onTap: () =>
+                      _showHeritageDialog(context, ref, village.id, kind),
+                ),
+              ],
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _HeritageEntryCard extends ConsumerWidget {
+  const _HeritageEntryCard({
+    required this.villageId,
+    required this.entry,
+    required this.meta,
+    required this.canEdit,
+  });
+  final String villageId;
+  final HeritageEntry entry;
+  final _HeritageKindMeta meta;
+  final bool canEdit;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = GwTokens.of(context);
+    final hasDetail = meta.detailLabel != null &&
+        entry.detail != null &&
+        entry.detail!.trim().isNotEmpty;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: t.inkCard,
+        borderRadius: BorderRadius.circular(GwTokens.rCard),
+        border: Border.all(color: t.line),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(meta.icon, size: 17, color: t.goldText),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(entry.title,
+                    style: GwType.ui(
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w700,
+                        color: t.stone)),
+              ),
+              if (canEdit) ...[
+                _iconBtn(t, Symbols.edit,
+                    () => _showHeritageDialog(context, ref, villageId, entry.kind, existing: entry)),
+                _iconBtn(t, Symbols.delete_outline,
+                    () => _confirmDeleteEntry(context, ref, villageId, entry)),
+              ],
+            ],
+          ),
+          if (entry.subtitle != null && entry.subtitle!.trim().isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(entry.subtitle!.toUpperCase(),
+                style: GwType.mono(
+                    fontSize: 10, letterSpacing: 0.8, color: t.sageText)),
+          ],
+          if (entry.description != null &&
+              entry.description!.trim().isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(entry.description!,
+                style:
+                    GwType.ui(fontSize: 13.5, color: t.stoneMid, height: 1.6)),
+          ],
+          if (hasDetail) ...[
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.all(11),
+              decoration: BoxDecoration(
+                color: GwTokens.sage.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(GwTokens.rBtn),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(meta.detailLabel!.toUpperCase(),
+                      style: GwType.mono(
+                          fontSize: 9,
+                          letterSpacing: 0.8,
+                          color: t.sageText)),
+                  const SizedBox(height: 4),
+                  Text(entry.detail!,
+                      style: GwType.ui(
+                          fontSize: 13, color: t.stoneMid, height: 1.5)),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _iconBtn(GwTokens t, IconData icon, VoidCallback onTap) => InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.all(6),
+          child: Icon(icon, size: 16, color: t.stoneDim),
+        ),
+      );
+}
+
+void _showHeritageDialog(
+  BuildContext context,
+  WidgetRef ref,
+  String villageId,
+  String kind, {
+  HeritageEntry? existing,
+}) {
+  showGwDialog(
+    context,
+    builder: (_) =>
+        _HeritageEntryForm(villageId: villageId, kind: kind, existing: existing),
+  );
+}
+
+void _confirmDeleteEntry(
+    BuildContext context, WidgetRef ref, String villageId, HeritageEntry entry) {
+  showGwDialog(
+    context,
+    builder: (ctx) => GwDialog(
+      title: 'Supprimer ?',
+      subtitle: entry.title,
+      icon: Symbols.delete_outline,
+      actions: [
+        GwDialogAction(
+          label: 'Supprimer',
+          primary: true,
+          onPressed: () async {
+            await ref
+                .read(villageHeritageServiceProvider)
+                .deleteEntry(villageId, entry.id);
+            ref.invalidate(villageHeritageEntriesProvider(
+                (villageId: villageId, kind: entry.kind)));
+            if (ctx.mounted) Navigator.of(ctx).maybePop();
+          },
+        ),
+      ],
+      child: Text('Cette entrée sera définitivement retirée du patrimoine.',
+          style: GwType.ui(
+              fontSize: 14, color: GwTokens.of(context).stoneMid)),
+    ),
+  );
+}
+
+class _HeritageEntryForm extends ConsumerStatefulWidget {
+  const _HeritageEntryForm({
+    required this.villageId,
+    required this.kind,
+    this.existing,
+  });
+  final String villageId;
+  final String kind;
+  final HeritageEntry? existing;
+
+  @override
+  ConsumerState<_HeritageEntryForm> createState() => _HeritageEntryFormState();
+}
+
+class _HeritageEntryFormState extends ConsumerState<_HeritageEntryForm> {
+  late final TextEditingController _title;
+  late final TextEditingController _subtitle;
+  late final TextEditingController _description;
+  late final TextEditingController _detail;
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final e = widget.existing;
+    _title = TextEditingController(text: e?.title ?? '');
+    _subtitle = TextEditingController(text: e?.subtitle ?? '');
+    _description = TextEditingController(text: e?.description ?? '');
+    _detail = TextEditingController(text: e?.detail ?? '');
+  }
+
+  @override
+  void dispose() {
+    _title.dispose();
+    _subtitle.dispose();
+    _description.dispose();
+    _detail.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    final title = _title.text.trim();
+    if (title.isEmpty || _saving) return;
+    setState(() => _saving = true);
+    String? clean(TextEditingController c) =>
+        c.text.trim().isEmpty ? null : c.text.trim();
+    try {
+      await ref.read(villageHeritageServiceProvider).saveEntry(
+            widget.villageId,
+            widget.kind,
+            entryId: widget.existing?.id,
+            title: title,
+            subtitle: clean(_subtitle),
+            description: clean(_description),
+            detail: clean(_detail),
+          );
+      ref.invalidate(villageHeritageEntriesProvider(
+          (villageId: widget.villageId, kind: widget.kind)));
+      if (mounted) Navigator.of(context).maybePop();
+    } catch (_) {
+      if (mounted) {
+        setState(() => _saving = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: GwTokens.ember,
+            content: Text('Enregistrement impossible',
+                style: GwType.ui(fontSize: 14, color: GwTokens.inkOnGold)),
+          ),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final t = GwTokens.of(context);
-    const items = [
-      ('Traditions', 'coutumes, rites, valeurs, interdits', Symbols.diversity_3),
-      ('Lieux sacrés', 'sites, fêtes et protocole', Symbols.forest),
-      ('Calendrier', 'fêtes, jours de marché, cycles', Symbols.calendar_month),
-    ];
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 10, 20, 8),
+    final meta = _HeritageKindMeta.of(widget.kind);
+    return GwDialog(
+      title: widget.existing == null ? meta.addLabel : 'Modifier',
+      subtitle: meta.section,
+      icon: meta.icon,
+      actions: [
+        GwDialogAction(
+          label: 'Enregistrer',
+          primary: true,
+          loading: _saving,
+          onPressed: _save,
+        ),
+      ],
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('BIENTÔT DANS LE PATRIMOINE',
-              style: GwType.mono(
-                  fontSize: 10, letterSpacing: 1.4, color: t.stoneFaint)),
-          const SizedBox(height: 10),
-          for (final it in items)
-            Container(
-              margin: const EdgeInsets.only(bottom: 8),
-              padding: const EdgeInsets.all(13),
-              decoration: BoxDecoration(
-                color: t.inkCard,
-                borderRadius: BorderRadius.circular(GwTokens.rCard),
-                border: Border.all(color: t.line),
-              ),
-              child: Row(
-                children: [
-                  Icon(it.$3, size: 19, color: t.stoneDim),
-                  const SizedBox(width: 11),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(it.$1,
-                            style: GwType.ui(
-                                fontSize: 13.5,
-                                fontWeight: FontWeight.w600,
-                                color: t.stone)),
-                        Text(it.$2,
-                            style:
-                                GwType.ui(fontSize: 11.5, color: t.stoneDim)),
-                      ],
-                    ),
-                  ),
-                  Text('bientôt',
-                      style: GwType.mono(fontSize: 10, color: t.stoneFaint)),
-                ],
-              ),
-            ),
+          _field(t, _title, meta.titleLabel),
+          const SizedBox(height: 12),
+          _field(t, _subtitle, meta.subtitleLabel),
+          const SizedBox(height: 12),
+          _field(t, _description, 'Description', maxLines: 4),
+          if (meta.detailLabel != null) ...[
+            const SizedBox(height: 12),
+            _field(t, _detail, meta.detailLabel!, maxLines: 3),
+          ],
         ],
       ),
+    );
+  }
+
+  Widget _field(GwTokens t, TextEditingController c, String label,
+      {int maxLines = 1}) {
+    return TextField(
+      controller: c,
+      minLines: 1,
+      maxLines: maxLines,
+      style: GwType.ui(fontSize: 14, color: t.stone),
+      decoration: gwInputDecoration(context, label: label),
     );
   }
 }
