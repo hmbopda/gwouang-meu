@@ -17,5 +17,11 @@ public record PostDto(
         @Schema(description = "Post epingle") boolean pinned,
         @Schema(description = "Nombre de reactions") int reactionCount,
         @Schema(description = "Nombre de commentaires") int commentCount,
-        @Schema(description = "Date de creation") Instant createdAt
+        @Schema(description = "Date de creation") Instant createdAt,
+        // ── Enrichissement (fil communautaire) ──
+        @Schema(description = "Nom affiche de l'auteur") String authorDisplayName,
+        @Schema(description = "Avatar de l'auteur") String authorAvatarUrl,
+        @Schema(description = "Role de l'auteur") String authorRole,
+        @Schema(description = "Nom du village (si post de village)") String villageName,
+        @Schema(description = "L'utilisateur courant a-t-il reagi ?") boolean likedByMe
 ) {}

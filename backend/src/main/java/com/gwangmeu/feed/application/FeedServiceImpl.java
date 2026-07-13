@@ -82,6 +82,14 @@ class FeedServiceImpl implements FeedService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<Post> getMembershipFeed(UUID userId, int page, int size) {
+        int safeSize = Math.min(Math.max(size, 1), 50);
+        int safePage = Math.max(page, 0);
+        return postRepository.findMembershipFeed(userId, safeSize, safePage * safeSize);
+    }
+
+    @Override
     public void moderatePost(UUID postId, String status, String reason) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new IllegalArgumentException("Post not found: " + postId));

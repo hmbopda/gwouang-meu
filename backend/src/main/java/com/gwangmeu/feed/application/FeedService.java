@@ -20,6 +20,9 @@ public interface FeedService {
 
     List<Post> getGlobalFeed(int page, int size);
 
+    /** Fil agrege par appartenance : posts de mes villages, clans, familles et groupes. */
+    List<Post> getMembershipFeed(UUID userId, int page, int size);
+
     void moderatePost(UUID postId, String status, String reason);
 
     Post pinPost(UUID postId);

@@ -12,5 +12,8 @@ public record CommentDto(
         @Schema(description = "Auteur") UUID authorId,
         @Schema(description = "Contenu") String content,
         @Schema(description = "Commentaire parent (pour les reponses)") UUID parentCommentId,
-        @Schema(description = "Date de creation") Instant createdAt
+        @Schema(description = "Date de creation") Instant createdAt,
+        // ── Enrichissement ──
+        @Schema(description = "Nom affiche de l'auteur") String authorDisplayName,
+        @Schema(description = "Avatar de l'auteur") String authorAvatarUrl
 ) {}
