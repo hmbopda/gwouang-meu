@@ -1102,9 +1102,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     return Center(
       child: Image.asset(
         'assets/images/logo.png',
-        width: 160,
-        height: 160,
+        width: 200,
+        height: 216,
         fit: BoxFit.contain,
+        filterQuality: FilterQuality.medium,
         errorBuilder: (_, __, ___) => Column(
           children: [
             Container(
@@ -1119,13 +1120,13 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
             ),
             const SizedBox(height: 14),
             Text(
-              'GWANG MEU',
+              'GWOUANG MEU',
               style: GwType.display(
                   fontSize: 24, color: t.goldText, letterSpacing: 2),
             ),
             const SizedBox(height: 6),
             Text(
-              'LANGUES · CULTURE · FUTUR',
+              'CULTURE · LANGUES · FUTUR',
               style: GwType.mono(
                   fontSize: 10, color: t.stoneDim, letterSpacing: 2),
             ),
