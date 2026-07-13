@@ -5,11 +5,15 @@ import com.gwangmeu.shared.security.CurrentUser;
 import com.gwangmeu.user.UserRepository;
 import com.gwangmeu.village.application.VillageHeritageService;
 import com.gwangmeu.village.application.VillagePermissionService;
+import com.gwangmeu.village.domain.HeritageKind;
 import com.gwangmeu.village.domain.VillageChief;
+import com.gwangmeu.village.domain.VillageHeritageEntry;
 import com.gwangmeu.village.domain.VillageMilestone;
 import com.gwangmeu.village.domain.VillagePermission;
 import com.gwangmeu.village.dto.ChiefUpsertRequest;
 import com.gwangmeu.village.dto.DynastyChiefDto;
+import com.gwangmeu.village.dto.HeritageEntryDto;
+import com.gwangmeu.village.dto.HeritageEntryUpsertRequest;
 import com.gwangmeu.village.dto.MilestoneUpsertRequest;
 import com.gwangmeu.village.dto.VillageMilestoneDto;
 import io.swagger.v3.oas.annotations.Operation;
@@ -149,6 +153,59 @@ public class VillageHeritageController {
         return ResponseEntity.ok(ApiResponse.noContent());
     }
 
+    // ── Rubriques génériques : Traditions / Lieux sacrés / Calendrier ──
+
+    @GetMapping("/heritage/{kind}")
+    @Operation(summary = "Entrées d'une rubrique patrimoine",
+            description = "Liste publique pour TRADITION, SACRED_PLACE ou CALENDAR.")
+    public ResponseEntity<ApiResponse<List<HeritageEntryDto>>> listEntries(
+            @PathVariable UUID villageId, @PathVariable String kind) {
+        List<HeritageEntryDto> dtos =
+                heritageService.listEntries(villageId, parseKind(kind)).stream()
+                        .map(VillageHeritageController::toDto).toList();
+        return ResponseEntity.ok(ApiResponse.ok(dtos));
+    }
+
+    @PostMapping("/heritage/{kind}")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Ajouter une entrée patrimoine", description = "Requiert EDIT_VILLAGE.")
+    public ResponseEntity<ApiResponse<HeritageEntryDto>> createEntry(
+            @PathVariable UUID villageId, @PathVariable String kind,
+            @Valid @RequestBody HeritageEntryUpsertRequest req, @CurrentUser Jwt jwt) {
+        VillageHeritageEntry saved =
+                heritageService.createEntry(resolveUserId(jwt), villageId, parseKind(kind), req);
+        return ResponseEntity.ok(ApiResponse.ok(toDto(saved), "Entrée ajoutée"));
+    }
+
+    @PutMapping("/heritage/entry/{entryId}")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Modifier une entrée patrimoine", description = "Requiert EDIT_VILLAGE.")
+    public ResponseEntity<ApiResponse<HeritageEntryDto>> updateEntry(
+            @PathVariable UUID villageId, @PathVariable UUID entryId,
+            @Valid @RequestBody HeritageEntryUpsertRequest req, @CurrentUser Jwt jwt) {
+        VillageHeritageEntry saved =
+                heritageService.updateEntry(resolveUserId(jwt), villageId, entryId, req);
+        return ResponseEntity.ok(ApiResponse.ok(toDto(saved), "Entrée mise à jour"));
+    }
+
+    @DeleteMapping("/heritage/entry/{entryId}")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Supprimer une entrée patrimoine", description = "Requiert EDIT_VILLAGE.")
+    public ResponseEntity<ApiResponse<Void>> deleteEntry(
+            @PathVariable UUID villageId, @PathVariable UUID entryId, @CurrentUser Jwt jwt) {
+        heritageService.deleteEntry(resolveUserId(jwt), villageId, entryId);
+        return ResponseEntity.ok(ApiResponse.noContent());
+    }
+
+    private static HeritageKind parseKind(String kind) {
+        try {
+            return HeritageKind.valueOf(kind.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.BAD_REQUEST, "Rubrique inconnue : " + kind);
+        }
+    }
+
     // ── Mapping entite → DTO ─────────────────────────────────────
 
     private static DynastyChiefDto toDto(VillageChief c) {
@@ -160,5 +217,12 @@ public class VillageHeritageController {
     private static VillageMilestoneDto toDto(VillageMilestone m) {
         return new VillageMilestoneDto(
                 m.getId(), m.getYear(), m.getDateLabel(), m.getTitle(), m.getDescription(), m.getOrdinal());
+    }
+
+    private static HeritageEntryDto toDto(VillageHeritageEntry e) {
+        return new HeritageEntryDto(
+                e.getId(), e.getVillageId(), e.getKind().name(), e.getTitle(),
+                e.getSubtitle(), e.getDescription(), e.getDetail(), e.getOrdinal(),
+                e.getCreatedAt());
     }
 }

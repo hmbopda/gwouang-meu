@@ -1,10 +1,15 @@
 package com.gwangmeu.village.application;
 
+import com.gwangmeu.village.domain.HeritageKind;
 import com.gwangmeu.village.domain.VillageChief;
+import com.gwangmeu.village.domain.VillageHeritageEntry;
 import com.gwangmeu.village.domain.VillageMilestone;
+import com.gwangmeu.village.domain.VillagePermission;
 import com.gwangmeu.village.dto.ChiefUpsertRequest;
+import com.gwangmeu.village.dto.HeritageEntryUpsertRequest;
 import com.gwangmeu.village.dto.MilestoneUpsertRequest;
 import com.gwangmeu.village.infrastructure.VillageChiefRepository;
+import com.gwangmeu.village.infrastructure.VillageHeritageEntryRepository;
 import com.gwangmeu.village.infrastructure.VillageMilestoneRepository;
 import com.gwangmeu.village.infrastructure.VillageRepository;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +29,8 @@ class VillageHeritageServiceImpl implements VillageHeritageService {
     private final VillageRepository villageRepository;
     private final VillageChiefRepository chiefRepository;
     private final VillageMilestoneRepository milestoneRepository;
+    private final VillageHeritageEntryRepository entryRepository;
+    private final VillagePermissionService villagePermissionService;
 
     private void requireVillage(UUID villageId) {
         if (!villageRepository.existsById(villageId)) {
@@ -168,5 +175,62 @@ class VillageHeritageServiceImpl implements VillageHeritageService {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Temps fort introuvable dans ce village");
         }
         return m;
+    }
+
+    // ── Entrées patrimoniales génériques (traditions, lieux sacrés, calendrier) ──
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<VillageHeritageEntry> listEntries(UUID villageId, HeritageKind kind) {
+        return entryRepository.findByVillageIdAndKindOrderByOrdinalAscCreatedAtAsc(villageId, kind);
+    }
+
+    @Override
+    public VillageHeritageEntry createEntry(UUID userId, UUID villageId, HeritageKind kind,
+                                            HeritageEntryUpsertRequest req) {
+        requireVillage(villageId);
+        villagePermissionService.requireCan(userId, villageId, VillagePermission.EDIT_VILLAGE);
+        VillageHeritageEntry e = VillageHeritageEntry.builder()
+                .villageId(villageId)
+                .kind(kind)
+                .title(req.title().trim())
+                .subtitle(req.subtitle())
+                .description(req.description())
+                .detail(req.detail())
+                .ordinal(req.ordinal() != null ? req.ordinal() : 0)
+                .build();
+        return entryRepository.save(e);
+    }
+
+    @Override
+    public VillageHeritageEntry updateEntry(UUID userId, UUID villageId, UUID entryId,
+                                            HeritageEntryUpsertRequest req) {
+        villagePermissionService.requireCan(userId, villageId, VillagePermission.EDIT_VILLAGE);
+        VillageHeritageEntry e = loadEntryOfVillage(villageId, entryId);
+        e.setTitle(req.title().trim());
+        e.setSubtitle(req.subtitle());
+        e.setDescription(req.description());
+        e.setDetail(req.detail());
+        if (req.ordinal() != null) {
+            e.setOrdinal(req.ordinal());
+        }
+        return entryRepository.save(e);
+    }
+
+    @Override
+    public void deleteEntry(UUID userId, UUID villageId, UUID entryId) {
+        villagePermissionService.requireCan(userId, villageId, VillagePermission.EDIT_VILLAGE);
+        VillageHeritageEntry e = loadEntryOfVillage(villageId, entryId);
+        entryRepository.delete(e);
+    }
+
+    private VillageHeritageEntry loadEntryOfVillage(UUID villageId, UUID entryId) {
+        VillageHeritageEntry e = entryRepository.findById(entryId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Entrée introuvable : " + entryId));
+        if (!villageId.equals(e.getVillageId())) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Entrée introuvable dans ce village");
+        }
+        return e;
     }
 }
