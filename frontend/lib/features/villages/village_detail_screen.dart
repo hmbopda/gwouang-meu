@@ -494,8 +494,9 @@ class _CenterPanelState extends ConsumerState<_CenterPanel>
   Widget _buildHero(BuildContext context) {
     final t = GwTokens.of(context);
     final permsAsync = ref.watch(villageMyPermissionsProvider(v.id));
-    final canManage = permsAsync.valueOrNull?.let((p) =>
-            p.chief || p.superAdmin || p.permissions.isNotEmpty) ??
+    // « Gérer le village » = réservé à l'admin du village (chef/créateur) et au
+    // super-admin. Les rôles délégués (modération, validations) NE l'ouvrent pas.
+    final canManage = permsAsync.valueOrNull?.let((p) => p.chief || p.superAdmin) ??
         false;
     final isNarrowScreen = MediaQuery.sizeOf(context).width < 800;
 
