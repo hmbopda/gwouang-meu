@@ -1752,6 +1752,60 @@ class _CommunauteTab extends StatelessWidget {
   }
 }
 
+// ── Fil d'actualité du village (aperçu des dernières publications) ──
+class _VillageFeedPreview extends ConsumerWidget {
+  const _VillageFeedPreview({required this.village});
+  final VillageModel village;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = GwTokens.of(context);
+    final feedAsync = ref.watch(villageFeedNotifierProvider(village.id));
+    return feedAsync.when(
+      loading: () => const Padding(
+        padding: EdgeInsets.fromLTRB(20, 4, 20, 16),
+        child: Center(
+            child: SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                    strokeWidth: 1.5, color: GwTokens.gold))),
+      ),
+      error: (_, __) => Padding(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+        child: Text('Impossible de charger le fil.',
+            style: GwType.ui(fontSize: 12, color: t.stoneDim)),
+      ),
+      data: (posts) {
+        if (posts.isEmpty) {
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+            child: Text(
+                'Aucune publication pour le moment. Rendez-vous dans Communauté → Publications pour publier.',
+                style:
+                    GwType.ui(fontSize: 12, color: t.stoneDim, height: 1.6)),
+          );
+        }
+        final preview = posts.take(3).toList();
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ...preview
+                .map((post) => _PostCard(post: post, villageId: village.id)),
+            if (posts.length > preview.length)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+                child: Text(
+                    '+ ${posts.length - preview.length} autre(s) — voir Communauté → Publications',
+                    style: GwType.mono(fontSize: 10, color: t.stoneFaint)),
+              ),
+          ],
+        );
+      },
+    );
+  }
+}
+
 class _ApercuTab extends ConsumerWidget {
   const _ApercuTab({required this.village, this.includeRightPanel = false});
   final VillageModel village;
@@ -1769,6 +1823,10 @@ class _ApercuTab extends ConsumerWidget {
         _Section(
           title: 'Langues',
           child: _VillageLanguagesSection(village: village),
+        ),
+        _Section(
+          title: 'Fil d\'actualité',
+          child: _VillageFeedPreview(village: village),
         ),
         _Section(
           title: 'Votre lignée dans ce village',
