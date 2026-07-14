@@ -30,6 +30,10 @@ abstract class Routes {
   static const myVillages = '/my-villages';
   static const invite = '/invite';
 
+  /// Panneau d'administration (super-admins, web uniquement — l'écran se garde
+  /// lui-même via `adminAccessProvider`).
+  static const admin = '/admin';
+
   /// Vérification d'une suggestion IA (parcours « Suggestion IA vers Arbre »).
   static const verifySuggestion = '/genealogy/verify/:suggestionId';
 

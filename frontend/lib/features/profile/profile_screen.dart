@@ -7,6 +7,7 @@ import 'package:material_symbols_icons/symbols.dart';
 
 import 'package:gwangmeu/core/router/route_names.dart';
 import 'package:gwangmeu/core/theme/gw_tokens.dart';
+import 'package:gwangmeu/features/admin/admin_service.dart';
 import 'package:gwangmeu/features/genealogy/genealogy_notifier.dart';
 import 'package:gwangmeu/features/genealogy/models/family_tree.dart';
 import 'package:gwangmeu/features/genealogy/services/genealogy_api_service.dart';
@@ -1337,6 +1338,10 @@ class _SettingsCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final t = GwTokens.of(context);
+    // Entrée « Administration » — visible UNIQUEMENT si super-admin ET web
+    // (adminAccessProvider renvoie false immédiatement hors web, et false pour
+    // les non super-admins). Rien ne s'affiche tant que ce n'est pas vrai.
+    final isAdmin = ref.watch(adminAccessProvider).valueOrNull ?? false;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Material(
@@ -1350,6 +1355,15 @@ class _SettingsCard extends ConsumerWidget {
           ),
           child: Column(
             children: [
+              if (isAdmin) ...[
+                _SettingsRow(
+                  icon: Symbols.admin_panel_settings,
+                  label: 'Administration',
+                  iconColor: t.goldText,
+                  onTap: () => context.push(Routes.admin),
+                ),
+                Divider(height: 1, color: t.line),
+              ],
               _SettingsRow(
                 icon: Symbols.edit,
                 label: 'Modifier le profil',
@@ -1407,10 +1421,12 @@ class _SettingsRow extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.onTap,
+    this.iconColor,
   });
   final IconData icon;
   final String label;
   final VoidCallback onTap;
+  final Color? iconColor;
 
   @override
   Widget build(BuildContext context) {
@@ -1423,7 +1439,7 @@ class _SettingsRow extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Row(
             children: [
-              Icon(icon, size: 20, color: t.stoneMid),
+              Icon(icon, size: 20, color: iconColor ?? t.stoneMid),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(

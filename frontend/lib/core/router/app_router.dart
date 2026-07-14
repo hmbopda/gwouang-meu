@@ -16,6 +16,7 @@ import 'package:gwangmeu/shared/models/village_model.dart';
 import 'package:gwangmeu/shared/widgets/deferred_widget.dart';
 
 // ── Deferred imports (chargés à la demande — réduit ~30-40% bundle web) ──
+import 'package:gwangmeu/features/admin/admin_screen.dart' deferred as admin;
 import 'package:gwangmeu/features/genealogy/genealogy_screen.dart' deferred as genealogy;
 import 'package:gwangmeu/features/genealogy/verification/verification_screen.dart'
     deferred as verification;
@@ -296,6 +297,17 @@ final routerProvider = Provider<GoRouter>((ref) {
             ),
           );
         },
+      ),
+
+      // Administration (hors shell — plein écran, deferred). L'écran se garde
+      // lui-même : super-admin + web via adminAccessProvider (sinon « accès
+      // réservé »). Le guard global impose déjà une session active.
+      GoRoute(
+        path: Routes.admin,
+        builder: (context, state) => DeferredWidget(
+          loader: admin.loadLibrary,
+          builder: () => admin.AdminScreen(),
+        ),
       ),
 
       // Invitation (hors shell, accessible sans auth, deferred)
