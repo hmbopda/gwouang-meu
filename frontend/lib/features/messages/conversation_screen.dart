@@ -11,6 +11,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:gwangmeu/core/theme/gw_tokens.dart';
 import 'package:gwangmeu/features/chat/chat_notifier.dart';
 import 'package:gwangmeu/features/profile/profile_notifier.dart';
+import 'package:gwangmeu/features/villages/services/village_language_service.dart';
 import 'package:gwangmeu/shared/models/chat_group_model.dart';
 import 'package:gwangmeu/shared/models/chat_message_model.dart';
 
@@ -129,6 +130,12 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     // « Mes » messages = envoyés par mon utilisateur BACKEND. senderId est l'id
     // backend (users.id), pas l'id Supabase auth — d'où le profil, pas currentUser.
     final myId = ref.watch(profileNotifierProvider).valueOrNull?.id;
+    // Langue native de la conversation = langue « principale » du village associé
+    // (null s'il n'y a pas de village ou pas de langue renseignée → pas de pilule).
+    final villageId = widget.group?.villageId;
+    final Language? translateLang = (villageId != null && villageId.isNotEmpty)
+        ? ref.watch(villagePrimaryLanguageProvider(villageId)).valueOrNull
+        : null;
 
     final body = Column(
       children: [
@@ -142,7 +149,8 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
               child: Text('Erreur de chargement',
                   style: GwType.ui(fontSize: 14, color: t.stoneMid)),
             ),
-            data: (messages) => _messageList(t, messages, myId),
+            data: (messages) =>
+                _messageList(t, messages, myId, translateLang),
           ),
         ),
         _inputBar(t),
@@ -240,19 +248,19 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
 
   // ── Messages ───────────────────────────────────────────────
 
-  Widget _messageList(
-      GwTokens t, List<ChatMessageModel> messages, String? myId) {
+  Widget _messageList(GwTokens t, List<ChatMessageModel> messages,
+      String? myId, Language? translateLang) {
     return ListView.builder(
       controller: _scrollCtrl,
       reverse: true,
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
       itemCount: messages.length + 2,
       itemBuilder: (context, index) {
-        // index 0 (bas de liste) : suggestion IA traduction
+        // index 0 (bas de liste) : suggestion IA traduction (langue native réelle)
         if (index == 0) {
-          return _translateDismissed
+          return (translateLang == null || _translateDismissed)
               ? const SizedBox.shrink()
-              : _translatePill(t);
+              : _translatePill(t, translateLang);
         }
         // dernier item (haut) : chip de date
         if (index == messages.length + 1) {
@@ -456,8 +464,8 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     );
   }
 
-  /// Suggestion IA — pilule pointillée sage « Traduire en Bassa ».
-  Widget _translatePill(GwTokens t) {
+  /// Suggestion IA — pilule pointillée sage « Traduire en {langue native} ».
+  Widget _translatePill(GwTokens t, Language lang) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 8),
@@ -480,7 +488,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                 const SizedBox(width: 8),
                 Flexible(
                   child: Text(
-                    'Traduire cette conversation en Bassa ?',
+                    'Traduire cette conversation en ${lang.label} ?',
                     style: GwType.ui(fontSize: 12.5, color: t.stoneMid),
                   ),
                 ),
@@ -491,7 +499,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(
-                          'Traduction en Bassa — bientôt disponible',
+                          'Traduction en ${lang.label} — bientôt (moteur IA + dictionnaire en préparation)',
                           style: GwType.ui(fontSize: 14, color: t.stone),
                         ),
                       ),

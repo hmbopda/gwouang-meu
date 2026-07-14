@@ -22,6 +22,7 @@ import 'package:gwangmeu/features/profile/profile_notifier.dart';
 import 'package:gwangmeu/features/villages/villages_notifier.dart';
 import 'package:gwangmeu/features/villages/services/village_governance_service.dart';
 import 'package:gwangmeu/features/villages/services/village_heritage_service.dart';
+import 'package:gwangmeu/features/villages/services/village_language_service.dart';
 import 'package:gwangmeu/features/villages/widgets/village_management_panel.dart';
 import 'package:gwangmeu/shared/widgets/gw_dialog.dart';
 
@@ -994,6 +995,259 @@ Widget _scrollSection(Widget child) => ListView(
       children: [child],
     );
 
+// ── Langues du village (N:N + langue principale) ─────────────────
+
+class _VillageLanguagesSection extends ConsumerWidget {
+  const _VillageLanguagesSection({required this.village});
+  final VillageModel village;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = GwTokens.of(context);
+    final langsAsync = ref.watch(villageLanguagesProvider(village.id));
+    final canEdit = ref
+            .watch(villageMyPermissionsProvider(village.id))
+            .valueOrNull
+            ?.has('EDIT_VILLAGE') ??
+        false;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+      child: langsAsync.when(
+        loading: () => const Padding(
+          padding: EdgeInsets.symmetric(vertical: 16),
+          child: Center(
+            child: SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                    strokeWidth: 1.5, color: GwTokens.gold)),
+          ),
+        ),
+        error: (_, __) => Text('Impossible de charger',
+            style: GwType.ui(fontSize: 13, color: t.stoneDim)),
+        data: (langs) {
+          if (langs.isEmpty) {
+            return _EmptyHeritage(
+              icon: Symbols.translate,
+              title: 'Langues non renseignées',
+              message: canEdit
+                  ? 'Indiquez la ou les langues parlées dans ce village, et laquelle est la principale (native).'
+                  : 'Les langues de ce village ne sont pas encore renseignées.',
+              actionLabel: canEdit ? 'Ajouter des langues' : null,
+              onAction: () => _showLanguagesDialog(context, ref, village.id),
+            );
+          }
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [for (final l in langs) _chip(t, l)],
+              ),
+              if (canEdit) ...[
+                const SizedBox(height: 12),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: _sectionEditBtn(context,
+                      () => _showLanguagesDialog(context, ref, village.id)),
+                ),
+              ],
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _chip(GwTokens t, VillageLanguage l) {
+    final p = l.isPrimary;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      decoration: BoxDecoration(
+        color: p ? GwTokens.gold.withValues(alpha: 0.14) : t.inkLift,
+        borderRadius: BorderRadius.circular(GwTokens.rPill),
+        border: Border.all(color: p ? GwTokens.gold : t.line),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (p) ...[
+            Icon(Symbols.star, size: 13, color: t.goldText, fill: 1),
+            const SizedBox(width: 5),
+          ],
+          Text(l.language.label,
+              style: GwType.ui(
+                  fontSize: 13,
+                  fontWeight: p ? FontWeight.w700 : FontWeight.w500,
+                  color: p ? t.goldText : t.stone)),
+        ],
+      ),
+    );
+  }
+}
+
+void _showLanguagesDialog(BuildContext context, WidgetRef ref, String villageId) {
+  showGwDialog(context,
+      builder: (_) => _LanguagesFormSheet(villageId: villageId));
+}
+
+class _LanguagesFormSheet extends ConsumerStatefulWidget {
+  const _LanguagesFormSheet({required this.villageId});
+  final String villageId;
+
+  @override
+  ConsumerState<_LanguagesFormSheet> createState() =>
+      _LanguagesFormSheetState();
+}
+
+class _LanguagesFormSheetState extends ConsumerState<_LanguagesFormSheet> {
+  final Set<String> _selected = {};
+  String? _primary;
+  bool _prefilled = false;
+  bool _saving = false;
+  String _query = '';
+
+  Future<void> _save() async {
+    if (_saving) return;
+    setState(() => _saving = true);
+    try {
+      await ref.read(villageLanguageServiceProvider).setVillageLanguages(
+            widget.villageId,
+            languageIds: _selected.toList(),
+            primaryId: _primary,
+          );
+      ref.invalidate(villageLanguagesProvider(widget.villageId));
+      ref.invalidate(villagePrimaryLanguageProvider(widget.villageId));
+      if (mounted) Navigator.of(context).maybePop();
+    } catch (_) {
+      if (mounted) {
+        setState(() => _saving = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          backgroundColor: GwTokens.ember,
+          content: Text('Enregistrement impossible',
+              style: GwType.ui(fontSize: 14, color: GwTokens.inkOnGold)),
+        ));
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = GwTokens.of(context);
+    final allAsync = ref.watch(languagesProvider);
+    final currentAsync = ref.watch(villageLanguagesProvider(widget.villageId));
+    if (!_prefilled && currentAsync.hasValue) {
+      final cur = currentAsync.value!;
+      _selected.addAll(cur.map((e) => e.language.id));
+      for (final e in cur) {
+        if (e.isPrimary) _primary = e.language.id;
+      }
+      _primary ??= cur.isNotEmpty ? cur.first.language.id : null;
+      _prefilled = true;
+    }
+    return GwDialog(
+      title: 'Langues du village',
+      subtitle: 'Sélectionnez les langues ; l\'étoile marque la principale',
+      icon: Symbols.translate,
+      actions: [
+        GwDialogAction(
+            label: 'Enregistrer',
+            primary: true,
+            loading: _saving,
+            onPressed: _save),
+      ],
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          TextField(
+            onChanged: (v) => setState(() => _query = v.trim().toLowerCase()),
+            style: GwType.ui(fontSize: 14, color: t.stone),
+            decoration: gwInputDecoration(context,
+                hint: 'Rechercher une langue…', prefixIcon: Symbols.search),
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            height: 320,
+            child: allAsync.when(
+              loading: () =>
+                  Center(child: CircularProgressIndicator(color: t.goldText)),
+              error: (_, __) => Center(
+                  child: Text('Erreur de chargement',
+                      style: GwType.ui(fontSize: 13, color: t.stoneDim))),
+              data: (all) {
+                final list = _query.isEmpty
+                    ? all
+                    : all
+                        .where((l) =>
+                            l.label.toLowerCase().contains(_query) ||
+                            l.name.toLowerCase().contains(_query))
+                        .toList();
+                return ListView.builder(
+                  padding: EdgeInsets.zero,
+                  itemCount: list.length,
+                  itemBuilder: (_, i) => _row(t, list[i]),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _row(GwTokens t, Language l) {
+    final sel = _selected.contains(l.id);
+    final isPrimary = _primary == l.id;
+    return InkWell(
+      onTap: () => setState(() {
+        if (sel) {
+          _selected.remove(l.id);
+          if (_primary == l.id) {
+            _primary = _selected.isNotEmpty ? _selected.first : null;
+          }
+        } else {
+          _selected.add(l.id);
+          _primary ??= l.id;
+        }
+      }),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 9),
+        child: Row(
+          children: [
+            Icon(sel ? Symbols.check_box : Symbols.check_box_outline_blank,
+                size: 20, color: sel ? t.goldText : t.stoneDim),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(l.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GwType.ui(
+                      fontSize: 14,
+                      fontWeight: sel ? FontWeight.w600 : FontWeight.w400,
+                      color: t.stone)),
+            ),
+            if (sel)
+              InkWell(
+                onTap: () => setState(() => _primary = l.id),
+                borderRadius: BorderRadius.circular(20),
+                child: Padding(
+                  padding: const EdgeInsets.all(4),
+                  child: Icon(
+                      isPrimary ? Symbols.star : Symbols.star_outline,
+                      size: 20,
+                      color: isPrimary ? t.goldText : t.stoneFaint,
+                      fill: isPrimary ? 1 : 0),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 // ── Onglet à sous-navigation segmentée (façon Communauté) ────────
 
 class _Segment {
@@ -1510,6 +1764,10 @@ class _ApercuTab extends ConsumerWidget {
       padding: EdgeInsets.zero,
       children: [
         _StatsRow(village: village),
+        _Section(
+          title: 'Langues',
+          child: _VillageLanguagesSection(village: village),
+        ),
         _Section(
           title: 'Votre lignée dans ce village',
           child: membersAsync.when(
