@@ -3,6 +3,7 @@
   "language": {
     "code": "moye-bandenkop",
     "name": "Mə̀yú' Bandenkop",
+    "nameAglc": "Mə̀yú' Də̀ŋkhwɔ̀p",
     "frenchName": "Bandenkop",
     "group": "Bamiléké (Hauts-Plateaux)",
     "region": "Ouest Cameroun — Département des Hauts-Plateaux, Arrondissement de Bangou",
@@ -18,11 +19,38 @@
     ]
   },
   "meta": {
-    "source": "Recueil de leçons Mə̀yú' Bandenkop (leçons 2 à 11) — transcription depuis photos fournies par le fondateur",
+    "source": "Manuel de formation en langue et culture Bandenkop, Niveau zéro (leçons 1 à 11 sur 25 transcrites ; sommaire complet indexé dans meta.lecons) — transcription depuis photos fournies par le fondateur",
     "direction": "bidirectionnel français ⇄ Mə̀yú' Bandenkop",
     "champs": "fr = français ; mo = Mə̀yú' Bandenkop (orthographe du recueil, telle quelle, variantes séparées par « / »)",
     "avertissement": "Transcription fidèle des tableaux imprimés ; l'orthographe et les tons suivent la source. Certaines graphies (schwa ə, tons, occlusive glottale ') peuvent différer de conventions académiques. Les gloses marquées « (?) » sont des inférences à confirmer.",
-    "note": "Premier dictionnaire du projet. Destiné à être injecté en contexte au LLM (traduction augmentée par lexique) et à la génération de prononciation."
+    "note": "Premier dictionnaire du projet. Destiné à être injecté en contexte au LLM (traduction augmentée par lexique) et à la génération de prononciation.",
+    "lecons": [
+      { "n": 1, "fr": "Les salutations", "mo": "Tcha'zè", "page": 5, "couvert": true },
+      { "n": 2, "fr": "Les moments de la journée", "mo": "Tié'noh dze", "page": 9, "couvert": true },
+      { "n": 3, "fr": "Les pronoms personnels", "mo": "", "page": 9, "couvert": true },
+      { "n": 4, "fr": "Les adjectifs possessifs", "mo": "", "page": 9, "couvert": true },
+      { "n": 5, "fr": "Les pronoms possessifs", "mo": "", "page": 10, "couvert": true },
+      { "n": 6, "fr": "Les huit jours de la semaine, interdits et indications", "mo": "Liédze noo gapdze, ptcheu poua gne ghè", "page": 10, "couvert": true },
+      { "n": 7, "fr": "La localisation du groupement Bandenkop", "mo": "", "page": 12, "couvert": true },
+      { "n": 8, "fr": "Les types de mets et de boissons", "mo": "Zzèze poua plou'", "page": 12, "couvert": true },
+      { "n": 9, "fr": "Les parties du corps", "mo": "Pzuh noh meu theu", "page": 15, "couvert": true },
+      { "n": 10, "fr": "Conjugaison du verbe être", "mo": "ne (gne) pe", "page": 16, "couvert": true },
+      { "n": 11, "fr": "Les équipements de maison", "mo": "", "page": 17, "couvert": true },
+      { "n": 12, "fr": "Les matériaux de construction", "mo": "Zè lok kouo pa'", "page": 18, "couvert": false },
+      { "n": 13, "fr": "Les oiseaux", "mo": "Pôpseng", "page": 19, "couvert": false },
+      { "n": 14, "fr": "Les animaux", "mo": "Nom", "page": 19, "couvert": false },
+      { "n": 15, "fr": "Les nombres de 0 à 100", "mo": "ne (nye) sang wè teu noh né kem kxè", "page": 20, "couvert": false },
+      { "n": 16, "fr": "Chefferie et les notables", "mo": "Tsouo poua P Kem", "page": 23, "couvert": false },
+      { "n": 17, "fr": "Les ustensiles de cuisine", "mo": "zè khisim", "page": 24, "couvert": false },
+      { "n": 18, "fr": "Les interdits", "mo": "ptcheu", "page": 25, "couvert": false },
+      { "n": 19, "fr": "Les attitudes en public", "mo": "Ne (gne) tchwè tchechia pôh", "page": 26, "couvert": false },
+      { "n": 20, "fr": "Les arbres fruitiers", "mo": "Ptsè mi pe dze thom map a", "page": 27, "couvert": false },
+      { "n": 21, "fr": "Les remerciements", "mo": "Ne (gne) ping", "page": 28, "couvert": false },
+      { "n": 22, "fr": "Chants", "mo": "Youop chè", "page": 28, "couvert": false },
+      { "n": 23, "fr": "Les tons", "mo": "Jɛ", "page": 29, "couvert": false },
+      { "n": 24, "fr": "Les voyelles", "mo": "", "page": 29, "couvert": false },
+      { "n": 25, "fr": "Les consonnes", "mo": "", "page": 30, "couvert": false }
+    ]
   },
   "categories": {
     "corps": {
@@ -231,6 +259,60 @@
         { "fr": "jour 7 — interdit de faire du bruit", "mo": "Dzèsoe" },
         { "fr": "jour 8 — interdit de cultiver", "mo": "Djedjeu" }
       ]
+    },
+    "personnes": {
+      "titre": "Personnes et parenté (extraites des salutations, leçon 1)",
+      "entrees": [
+        { "fr": "papa", "mo": "papa" },
+        { "fr": "maman", "mo": "mama" },
+        { "fr": "grand-père", "mo": "bô'o" },
+        { "fr": "grand-mère", "mo": "moo" },
+        { "fr": "mon ami", "mo": "sou a" },
+        { "fr": "mes amis", "mo": "sou pè" },
+        { "fr": "le maître / la maîtresse", "mo": "tchitcha" },
+        { "fr": "les maîtres / les maîtresses", "mo": "pè tchitcha" }
+      ]
+    },
+    "salutations": {
+      "titre": "Les salutations (Tcha'zè) — leçon 1",
+      "note": "« Ou … » s'adresse à une personne, « Peu … » à plusieurs. Schéma : Ou/Peu + lhie (matin) / youok (soir) + leu + interlocuteur ; « pepong » ≈ « avez-vous bien dormi ».",
+      "sous": {
+        "matin": {
+          "titre": "Salutations du matin (Tcha'zè fokdze)",
+          "entrees": [
+            { "fr": "bonjour papa", "mo": "Ou lhie (lhë) leu papa ?" },
+            { "fr": "bonjour maman", "mo": "Ou lhie (lhë) leu mama ?" },
+            { "fr": "bonjour grand-père", "mo": "Ou lhie (lhë) you leu bô'o ?" },
+            { "fr": "bonjour grand-mère", "mo": "Ou lhie (lhë) you leu moo ?" },
+            { "fr": "bonjour mon ami", "mo": "Ou lhie (lhë) you leu sou a ?" },
+            { "fr": "bonjour le maître / la maîtresse", "mo": "Ou lhie (lhë) you leu tchitcha ?" },
+            { "fr": "bonjour papa et maman (à plusieurs)", "mo": "Peu lhie (lhë) yé leu papa peu mama ?" },
+            { "fr": "bonjour les maîtres / maîtresses (à plusieurs)", "mo": "Peu lhie (lhë) yé leu pè tchitcha ?" },
+            { "fr": "tu as bien dormi papa ?", "mo": "Ou lhie (lhë) pepong leu papa ?" },
+            { "fr": "tu as bien dormi maman ?", "mo": "Ou lhie (lhë) pepong leu mama ?" },
+            { "fr": "tu as bien dormi grand-père ?", "mo": "Ou lhie (lhë) pepong leu bô'o ?" },
+            { "fr": "tu as bien dormi mon ami ?", "mo": "Ou lhie (lhë) pepong leu sou a ?" },
+            { "fr": "vous avez bien dormi grand-mère et grand-père ?", "mo": "Peu lhie (lhë) pepong leu bô'o peu moo ?" },
+            { "fr": "vous avez bien dormi maman et papa ?", "mo": "Peu lhie (lhë) pepong leu mama peu papa ?" },
+            { "fr": "vous avez bien dormi mes amis ?", "mo": "Peu lhie (lhë) pepong leu sou pè ?" }
+          ]
+        },
+        "soir": {
+          "titre": "Salutations du soir (Tcha'zè bouedze)",
+          "entrees": [
+            { "fr": "bonsoir papa", "mo": "Ou youok you leu papa ?" },
+            { "fr": "bonsoir maman", "mo": "Ou youok you leu mama ?" },
+            { "fr": "bonsoir grand-père", "mo": "Ou youok you leu bô'o ?" },
+            { "fr": "bonsoir grand-mère", "mo": "Ou youok you leu moo ?" },
+            { "fr": "bonsoir mon ami", "mo": "Ou youok you leu sou a ?" },
+            { "fr": "bonsoir le maître / la maîtresse", "mo": "Ou youk you leu tchitcha ?" },
+            { "fr": "bonsoir papa et maman (à plusieurs)", "mo": "Peu youok yé leu papa peu mam ?" },
+            { "fr": "bonsoir les maîtres / maîtresses (à plusieurs)", "mo": "Peu youok yé leu pè tchitcha ?" },
+            { "fr": "bonsoir mes amis", "mo": "Peu youok yé leu sou pè ?" },
+            { "fr": "vous avez passé une bonne journée maman (et d'autres) ?", "mo": "Peu youok be theu leu mama ?" }
+          ]
+        }
+      }
     }
   },
   "grammaire": {
@@ -352,7 +434,10 @@
       { "fr": "marmite", "mo": "bang" },
       { "fr": "légume", "mo": "djàp" },
       { "fr": "argent", "mo": "khap" },
-      { "fr": "ami", "mo": "sou" }
+      { "fr": "ami", "mo": "sou" },
+      { "fr": "animaux", "mo": "Nom" },
+      { "fr": "oiseaux", "mo": "Pôpseng" },
+      { "fr": "interdit(s)", "mo": "ptcheu" }
     ]
   },
   "phrases": [
@@ -375,6 +460,11 @@
       "fr": "mon argent, ton argent",
       "mo": "khap à, khap ou",
       "note": "Leçon 6."
+    },
+    {
+      "fr": "Manuel de formation en langue et culture Bandenkop — Niveau zéro (sous-titre de couverture)",
+      "mo": "Ŋwà'nyə lòk dănyə əp kè pǒ ghòm Mə̀yú' Də̀ŋkhwɔ̀p — Dyé nyə̀'kəké",
+      "note": "Sous-titre de couverture en AGLC (aussi écrit en « français-sons » : Nwa'gne lok dagne pké peu ghom a denkwop / Dié gne keké). Traduction mot-à-mot à confirmer."
     }
   ]
 }
