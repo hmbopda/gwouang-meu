@@ -867,7 +867,8 @@ class _TranslatorSheetState extends ConsumerState<_TranslatorSheet> {
               ),
               if (r.translation.isNotEmpty)
                 InkWell(
-                  onTap: () => _speak(r.translation),
+                  // Lit la phonétique (à sons français) si dispo, sinon le mot.
+                  onTap: () => _speak(r.pronunciation ?? r.translation),
                   borderRadius: BorderRadius.circular(GwTokens.rPill),
                   child: Container(
                     padding: const EdgeInsets.all(7),
