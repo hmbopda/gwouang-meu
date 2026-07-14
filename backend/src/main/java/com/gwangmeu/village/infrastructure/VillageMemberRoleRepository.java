@@ -13,5 +13,8 @@ public interface VillageMemberRoleRepository extends JpaRepository<VillageMember
 
     Optional<VillageMemberRole> findByVillageIdAndUserId(UUID villageId, UUID userId);
 
+    /** true si l'utilisateur détient un rôle délégué sur au moins un village. */
+    boolean existsByUserId(UUID userId);
+
     void deleteByVillageIdAndUserId(UUID villageId, UUID userId);
 }

@@ -772,6 +772,9 @@ class _TranslatorSheetState extends ConsumerState<_TranslatorSheet> {
       if (!mounted) return;
       setState(() => _error =
           "Le moteur de traduction s'active (quelques instants). Réessaie dans un moment.");
+    } on TranslationLimitException catch (e) {
+      if (!mounted) return;
+      setState(() => _error = e.message);
     } catch (_) {
       if (!mounted) return;
       setState(() =>

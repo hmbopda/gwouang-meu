@@ -17,6 +17,9 @@ public interface VillageRepository extends JpaRepository<Village, UUID> {
     /** Communauté déjà matérialisée pour une chefferie du référentiel (dédoublonnage). */
     Optional<Village> findByChefferieId(UUID chefferieId);
 
+    /** true si l'utilisateur est le créateur (chef/admin) d'au moins un village. */
+    boolean existsByCreatorId(UUID creatorId);
+
     List<Village> findByCountryIgnoreCase(String country);
 
     List<Village> findByContinentCode(String continentCode);

@@ -26,6 +26,13 @@ class TranslationUnavailableException implements Exception {
   const TranslationUnavailableException();
 }
 
+/// Quota quotidien de traductions atteint (HTTP 429). [message] = texte serveur
+/// à présenter tel quel (ex. « Limite de 5 traductions par jour atteinte… »).
+class TranslationLimitException implements Exception {
+  const TranslationLimitException(this.message);
+  final String message;
+}
+
 /// Résultat d'une traduction (désenveloppé depuis `data`).
 class TranslationResult {
   const TranslationResult({
@@ -91,9 +98,18 @@ class TranslationService {
       if (data == null) throw const TranslationUnavailableException();
       return TranslationResult.fromJson(data);
     } on DioException catch (e) {
+      final code = e.response?.statusCode;
       // 503 = moteur momentanément indisponible → message doux côté UI.
-      if (e.response?.statusCode == 503) {
+      if (code == 503) {
         throw const TranslationUnavailableException();
+      }
+      // 429 = quota quotidien atteint (hors admin/super-admin).
+      if (code == 429) {
+        final data = e.response?.data;
+        final msg = (data is Map && data['message'] is String)
+            ? data['message'] as String
+            : 'Limite de 5 traductions par jour atteinte.';
+        throw TranslationLimitException(msg);
       }
       rethrow;
     }
