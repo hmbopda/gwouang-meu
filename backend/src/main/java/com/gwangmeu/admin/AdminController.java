@@ -2,6 +2,7 @@ package com.gwangmeu.admin;
 
 import com.gwangmeu.shared.api.ApiResponse;
 import com.gwangmeu.shared.security.CurrentUser;
+import com.gwangmeu.user.User;
 import com.gwangmeu.user.UserRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -39,6 +40,21 @@ public class AdminController {
         return userRepository.findBySupabaseId(jwt.getSubject())
                 .orElseThrow(() -> new EntityNotFoundException("Utilisateur introuvable"))
                 .getId();
+    }
+
+    /**
+     * Renvoie le profil admin du super-admin courant. Comme toute la classe est
+     * gated SUPER_ADMIN, le front s'en sert pour savoir s'il a l'accès admin :
+     * 200 = super-admin, 403 = non.
+     */
+    @GetMapping("/me")
+    @Operation(summary = "Test d'accès admin (200 si super-admin, 403 sinon)")
+    public ResponseEntity<ApiResponse<AdminUserDto>> me(@CurrentUser Jwt jwt) {
+        User u = userRepository.findBySupabaseId(jwt.getSubject())
+                .orElseThrow(() -> new EntityNotFoundException("Utilisateur introuvable"));
+        return ResponseEntity.ok(ApiResponse.ok(new AdminUserDto(
+                u.getId(), u.getEmail(), u.getDisplayName(),
+                u.getRole() != null ? u.getRole().name() : "MEMBRE", u.isActive())));
     }
 
     @GetMapping("/users")
