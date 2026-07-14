@@ -104,8 +104,7 @@ public class ChatController {
     @Operation(summary = "Toutes mes conversations (village, famille, directes)")
     public ResponseEntity<ApiResponse<List<ChatGroupDto>>> myGroups(@CurrentUser Jwt jwt) {
         UUID userId = resolveUserId(jwt);
-        List<ChatGroupDto> dtos = chatService.getGroupsForUser(userId)
-                .stream().map(this::toGroupDto).toList();
+        List<ChatGroupDto> dtos = toGroupDtos(chatService.getGroupsForUser(userId));
         return ResponseEntity.ok(ApiResponse.ok(dtos));
     }
 
@@ -113,8 +112,7 @@ public class ChatController {
     @Operation(summary = "Groupes d'un village")
     public ResponseEntity<ApiResponse<List<ChatGroupDto>>> getGroupsByVillage(
             @PathVariable UUID villageId) {
-        List<ChatGroupDto> dtos = chatService.getGroupsByVillage(villageId)
-                .stream().map(this::toGroupDto).toList();
+        List<ChatGroupDto> dtos = toGroupDtos(chatService.getGroupsByVillage(villageId));
         return ResponseEntity.ok(ApiResponse.ok(dtos));
     }
 
@@ -124,8 +122,7 @@ public class ChatController {
             @PathVariable String clan,
             @CurrentUser Jwt jwt) {
         UUID userId = resolveUserId(jwt);
-        List<ChatGroupDto> dtos = chatService.getOrCreateFamilyGroups(clan, userId)
-                .stream().map(this::toGroupDto).toList();
+        List<ChatGroupDto> dtos = toGroupDtos(chatService.getOrCreateFamilyGroups(clan, userId));
         return ResponseEntity.ok(ApiResponse.ok(dtos));
     }
 
@@ -206,12 +203,54 @@ public class ChatController {
 
     // ── Mapping helpers ──
 
+    /** Longueur max de l'aperçu du dernier message (troncature douce). */
+    private static final int PREVIEW_MAX_LENGTH = 80;
+
+    /** Mappe une liste de groupes en récupérant le dernier message de TOUS en UNE requête (anti N+1). */
+    private List<ChatGroupDto> toGroupDtos(List<ChatGroup> groups) {
+        if (groups.isEmpty()) {
+            return List.of();
+        }
+        List<UUID> groupIds = groups.stream().map(ChatGroup::getId).toList();
+        Map<UUID, ChatMessage> lastByGroup = chatService.getLatestMessagesPerGroup(groupIds);
+        return groups.stream()
+                .map(g -> toGroupDto(g, lastByGroup.get(g.getId())))
+                .toList();
+    }
+
     private ChatGroupDto toGroupDto(ChatGroup g) {
+        ChatMessage last = chatService.getLatestMessagesPerGroup(List.of(g.getId())).get(g.getId());
+        return toGroupDto(g, last);
+    }
+
+    private ChatGroupDto toGroupDto(ChatGroup g, ChatMessage last) {
         int memberCount = chatService.getGroupMembers(g.getId()).size();
         return new ChatGroupDto(
                 g.getId(), g.getVillageId(), g.getFamilyClan(), g.getName(),
                 g.getDescription(), g.getType(), memberCount, g.getCreatedBy(),
-                g.getCreatedAt());
+                g.getCreatedAt(),
+                last != null ? buildPreview(last) : null,
+                last != null ? last.getCreatedAt() : null);
+    }
+
+    /**
+     * Aperçu court du dernier message : « 📷 Photo » pour une image, «  » pour
+     * un contenu vide, sinon le texte normalisé (espaces compactés) tronqué à
+     * {@link #PREVIEW_MAX_LENGTH} caractères avec une ellipse.
+     */
+    private String buildPreview(ChatMessage m) {
+        if (m.getType() == ChatMessage.MessageType.IMAGE) {
+            return "📷 Photo";
+        }
+        String content = m.getContent();
+        if (content == null || content.isBlank()) {
+            return "";
+        }
+        String normalized = content.strip().replaceAll("\\s+", " ");
+        if (normalized.length() <= PREVIEW_MAX_LENGTH) {
+            return normalized;
+        }
+        return normalized.substring(0, PREVIEW_MAX_LENGTH).stripTrailing() + "…";
     }
 
     private List<ChatMessageDto> enrichMessages(List<ChatMessage> messages) {

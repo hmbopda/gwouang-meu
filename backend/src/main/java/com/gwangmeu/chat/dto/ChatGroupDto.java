@@ -14,5 +14,9 @@ public record ChatGroupDto(
         ChatGroup.GroupType type,
         int memberCount,
         UUID createdBy,
-        Instant createdAt
+        Instant createdAt,
+        /** Extrait tronqué du dernier message de la conversation (null si aucun message). */
+        String lastMessagePreview,
+        /** Date du dernier message, pour trier par activité récente (null si aucun message). */
+        Instant lastMessageAt
 ) {}

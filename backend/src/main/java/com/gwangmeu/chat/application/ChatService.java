@@ -5,7 +5,9 @@ import com.gwangmeu.chat.domain.ChatGroupMember;
 import com.gwangmeu.chat.domain.ChatMessage;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public interface ChatService {
@@ -41,4 +43,10 @@ public interface ChatService {
     List<ChatMessage> getMessages(UUID groupId, int limit);
 
     List<ChatMessage> getMessagesSince(UUID groupId, Instant since);
+
+    /**
+     * Dernier message de chaque groupe donné, indexé par {@code groupId}, en UNE
+     * seule requête (pas de N+1). Les groupes sans message sont absents de la map.
+     */
+    Map<UUID, ChatMessage> getLatestMessagesPerGroup(Collection<UUID> groupIds);
 }

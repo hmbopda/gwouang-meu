@@ -14,7 +14,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -238,5 +241,20 @@ class ChatServiceImpl implements ChatService {
     @Transactional(readOnly = true)
     public List<ChatMessage> getMessagesSince(UUID groupId, Instant since) {
         return messageRepository.findByGroupIdAndCreatedAtAfterOrderByCreatedAtAsc(groupId, since);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<UUID, ChatMessage> getLatestMessagesPerGroup(Collection<UUID> groupIds) {
+        if (groupIds == null || groupIds.isEmpty()) {
+            return Map.of();
+        }
+        Map<UUID, ChatMessage> latestByGroup = new LinkedHashMap<>();
+        for (ChatMessage m : messageRepository.findLatestPerGroup(groupIds)) {
+            // Déduplication défensive : en cas d'égalité de created_at dans un même
+            // groupe, on conserve le premier rencontré.
+            latestByGroup.putIfAbsent(m.getGroupId(), m);
+        }
+        return latestByGroup;
     }
 }

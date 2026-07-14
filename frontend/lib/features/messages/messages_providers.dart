@@ -35,6 +35,17 @@ class Conversation {
 
   bool get isDirect => kind == ConversationKind.direct;
   bool get isFamily => kind == ConversationKind.family;
+
+  /// Aperçu du dernier message de la conversation (exposé par le backend via
+  /// `ChatGroupDto.lastMessagePreview`). Null tant qu'aucun message n'existe.
+  String? get lastMessagePreview => group.lastMessagePreview;
+
+  /// Date du dernier message (`ChatGroupDto.lastMessageAt`) : sert de clé de tri
+  /// par activité récente. Repli sur [ChatGroupModel.createdAt] quand null.
+  DateTime? get lastMessageAt => group.lastMessageAt;
+
+  /// Horodatage d'activité pour le tri : dernier message sinon création.
+  DateTime? get lastActivityAt => group.lastMessageAt ?? group.createdAt;
 }
 
 ConversationKind _kindOfGroup(ChatGroupModel g) {
@@ -50,8 +61,9 @@ ConversationKind _kindOfGroup(ChatGroupModel g) {
 }
 
 int _byRecent(Conversation a, Conversation b) {
-  final da = a.group.createdAt ?? DateTime(2000);
-  final db = b.group.createdAt ?? DateTime(2000);
+  // Tri par activité récente : dernier message, sinon date de création.
+  final da = a.lastActivityAt ?? DateTime(2000);
+  final db = b.lastActivityAt ?? DateTime(2000);
   return db.compareTo(da);
 }
 

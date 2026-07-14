@@ -15,6 +15,8 @@ class ChatGroupModel with _$ChatGroupModel {
     @Default(0) int memberCount,
     required String createdBy,
     DateTime? createdAt,
+    String? lastMessagePreview, // aperçu tronqué du dernier message (null si aucun)
+    DateTime? lastMessageAt, // date du dernier message, pour trier par activité
   }) = _ChatGroupModel;
 
   factory ChatGroupModel.fromJson(Map<String, dynamic> json) =>

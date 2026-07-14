@@ -363,8 +363,8 @@ class _ConvList extends ConsumerWidget {
       byId.putIfAbsent(c.group.id, () => c);
     }
     var list = byId.values.toList()
-      ..sort((a, b) => (b.group.createdAt ?? _epoch)
-          .compareTo(a.group.createdAt ?? _epoch));
+      ..sort((a, b) => (b.lastActivityAt ?? _epoch)
+          .compareTo(a.lastActivityAt ?? _epoch));
     list = _filterByQuery(list, query);
 
     return RefreshIndicator(
@@ -475,12 +475,14 @@ class _ConversationRow extends ConsumerWidget {
     final g = conversation.group;
     final tint =
         conversation.isFamily ? GwTokens.gold : _tints[index % _tints.length];
-    // Aperçu du dernier message : indisponible côté backend (ChatGroupDto ne
-    // porte pas de dernier message) → repli sur la description ou le nombre de
-    // membres.
-    final preview = (g.description?.isNotEmpty == true)
-        ? g.description!
-        : '${g.memberCount} membre${g.memberCount > 1 ? 's' : ''}';
+    // Aperçu du dernier message (backend : ChatGroupDto.lastMessagePreview).
+    // Repli sur la description puis le nombre de membres quand aucun message.
+    final lastPreview = conversation.lastMessagePreview;
+    final preview = (lastPreview != null && lastPreview.isNotEmpty)
+        ? lastPreview
+        : (g.description?.isNotEmpty == true)
+            ? g.description!
+            : '${g.memberCount} membre${g.memberCount > 1 ? 's' : ''}';
     final unread = conversation.unreadCount;
 
     // Présence : pastille verte pour un DM 1:1 dont l'autre membre est en ligne.
@@ -528,7 +530,7 @@ class _ConversationRow extends ConsumerWidget {
                                   color: t.stone)),
                         ),
                         const SizedBox(width: 8),
-                        Text(_time(g.createdAt),
+                        Text(_time(conversation.lastActivityAt),
                             style: GwType.mono(
                                 fontSize: 10,
                                 color: t.stoneFaint,
