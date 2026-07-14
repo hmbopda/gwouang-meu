@@ -1,0 +1,848 @@
+{
+  "schemaVersion": 1,
+  "language": {
+    "code": "moye-bandenkop",
+    "name": "Mə̀yú' Bandenkop",
+    "nameAglc": "Mə̀yú' Də̀ŋkhwɔ̀p",
+    "frenchName": "Bandenkop",
+    "group": "Bamiléké (Hauts-Plateaux)",
+    "region": "Ouest Cameroun — Département des Hauts-Plateaux, Arrondissement de Bangou",
+    "endonymeLieu": "Denkwop",
+    "quartiers": [
+      "Hialah",
+      "Tsèla kah",
+      "Tsèlah touh",
+      "Packem",
+      "Denkeng",
+      "Tsèmeuhia",
+      "Dengou"
+    ]
+  },
+  "meta": {
+    "source": "Manuel de formation en langue et culture Bandenkop, Niveau zéro — INTÉGRALITÉ des 25 leçons transcrite (sommaire indexé dans meta.lecons) — transcription depuis photos fournies par le fondateur",
+    "direction": "bidirectionnel français ⇄ Mə̀yú' Bandenkop",
+    "champs": "fr = français ; mo = Mə̀yú' Bandenkop (orthographe du recueil, telle quelle, variantes séparées par « / »)",
+    "avertissement": "Transcription fidèle des tableaux imprimés ; l'orthographe et les tons suivent la source. Certaines graphies (schwa ə, tons, occlusive glottale ') peuvent différer de conventions académiques. Les gloses marquées « (?) » sont des inférences à confirmer.",
+    "note": "Premier dictionnaire du projet. Destiné à être injecté en contexte au LLM (traduction augmentée par lexique) et à la génération de prononciation.",
+    "lecons": [
+      { "n": 1, "fr": "Les salutations", "mo": "Tcha'zè", "page": 5, "couvert": true },
+      { "n": 2, "fr": "Les moments de la journée", "mo": "Tié'noh dze", "page": 9, "couvert": true },
+      { "n": 3, "fr": "Les pronoms personnels", "mo": "", "page": 9, "couvert": true },
+      { "n": 4, "fr": "Les adjectifs possessifs", "mo": "", "page": 9, "couvert": true },
+      { "n": 5, "fr": "Les pronoms possessifs", "mo": "", "page": 10, "couvert": true },
+      { "n": 6, "fr": "Les huit jours de la semaine, interdits et indications", "mo": "Liédze noo gapdze, ptcheu poua gne ghè", "page": 10, "couvert": true },
+      { "n": 7, "fr": "La localisation du groupement Bandenkop", "mo": "", "page": 12, "couvert": true },
+      { "n": 8, "fr": "Les types de mets et de boissons", "mo": "Zzèze poua plou'", "page": 12, "couvert": true },
+      { "n": 9, "fr": "Les parties du corps", "mo": "Pzuh noh meu theu", "page": 15, "couvert": true },
+      { "n": 10, "fr": "Conjugaison du verbe être", "mo": "ne (gne) pe", "page": 16, "couvert": true },
+      { "n": 11, "fr": "Les équipements de maison", "mo": "", "page": 17, "couvert": true },
+      { "n": 12, "fr": "Les matériaux de construction", "mo": "Zè lok kouo pa'", "page": 18, "couvert": true },
+      { "n": 13, "fr": "Les oiseaux", "mo": "Pôpseng", "page": 19, "couvert": true },
+      { "n": 14, "fr": "Les animaux", "mo": "Nom", "page": 19, "couvert": true },
+      { "n": 15, "fr": "Les nombres de 0 à 100", "mo": "ne (nye) sang wè teu noh né kem kxè", "page": 20, "couvert": true },
+      { "n": 16, "fr": "Chefferie et les notables", "mo": "Tsouo poua P Kem", "page": 23, "couvert": true },
+      { "n": 17, "fr": "Les ustensiles de cuisine", "mo": "zè khisim", "page": 24, "couvert": true },
+      { "n": 18, "fr": "Les interdits", "mo": "ptcheu", "page": 25, "couvert": true },
+      { "n": 19, "fr": "Les attitudes en public", "mo": "Ne (gne) tchwè tchechia pôh", "page": 26, "couvert": true },
+      { "n": 20, "fr": "Les arbres fruitiers", "mo": "Ptsè mi pe dze thom map a", "page": 27, "couvert": true },
+      { "n": 21, "fr": "Les remerciements", "mo": "Ne (gne) ping", "page": 28, "couvert": true },
+      { "n": 22, "fr": "Chants", "mo": "Youop chè", "page": 28, "couvert": true },
+      { "n": 23, "fr": "Les tons", "mo": "Jɛ", "page": 29, "couvert": true },
+      { "n": 24, "fr": "Les voyelles", "mo": "", "page": 29, "couvert": true },
+      { "n": 25, "fr": "Les consonnes", "mo": "dzè manywòk' nwa'nya", "page": 30, "couvert": true }
+    ]
+  },
+  "categories": {
+    "corps": {
+      "titre": "Les parties du corps (Pzuh noh meu theu)",
+      "sous": {
+        "tete": {
+          "titre": "La tête : Tsè",
+          "entrees": [
+            { "fr": "la tête", "mo": "Tsè" },
+            { "fr": "les cheveux", "mo": "Mnoung tsè" },
+            { "fr": "l'œil", "mo": "Zôk" },
+            { "fr": "les yeux", "mo": "Mgnok / mnouok" },
+            { "fr": "le front", "mo": "zi" },
+            { "fr": "la joue", "mo": "Gheu'" },
+            { "fr": "les joues", "mo": "Pgheu'" },
+            { "fr": "arcade sourcilière", "mo": "Kheng zôk" },
+            { "fr": "la langue", "mo": "Lum" },
+            { "fr": "les narines", "mo": "Boung-zzè" },
+            { "fr": "la gorge", "mo": "Ghák" },
+            { "fr": "fontanelle", "mo": "Ton douh" },
+            { "fr": "la barbe", "mo": "plhwè" },
+            { "fr": "les cils", "mo": "pkhing mgnok (mnouok)" },
+            { "fr": "une oreille", "mo": "Toung" },
+            { "fr": "les oreilles", "mo": "Ptoung" },
+            { "fr": "la bouche", "mo": "Tchwè" },
+            { "fr": "les lèvres", "mo": "kekep tchwè" },
+            { "fr": "la dent / les dents", "mo": "Song / Psong" },
+            { "fr": "nez", "mo": "Zzè" },
+            { "fr": "les paupières", "mo": "guep mgnôk (mnouok)" },
+            { "fr": "le cerveau", "mo": "Djuh tsè" },
+            { "fr": "le cou", "mo": "thong" },
+            { "fr": "la nuque", "mo": "Djum tsè" }
+          ]
+        },
+        "tronc": {
+          "titre": "Le tronc : Kèm nô meu",
+          "entrees": [
+            { "fr": "épaule", "mo": "Khèbeu'" },
+            { "fr": "poitrine", "mo": "Khekxop" },
+            { "fr": "les seins / le sein", "mo": "Beuh / peuh" },
+            { "fr": "ventre", "mo": "Vèm" },
+            { "fr": "le nombril", "mo": "Tông" },
+            { "fr": "bassin", "mo": "Dedeng" },
+            { "fr": "bas ventre", "mo": "Tou dedeng" },
+            { "fr": "la colonne vertébrale", "mo": "kwí kà'zè" },
+            { "fr": "hanche", "mo": "Dzeng" },
+            { "fr": "le sexe", "mo": "Touh / guèdjeu" },
+            { "fr": "les fesses", "mo": "Djoung" },
+            { "fr": "l'anus", "mo": "Boun ndjoun" },
+            { "fr": "le dos", "mo": "Kà'zè" }
+          ]
+        },
+        "membres": {
+          "titre": "Les membres : P-young nô meu",
+          "entrees": [
+            { "fr": "le bras", "mo": "Ta'phe" },
+            { "fr": "les bras", "mo": "Bhe" },
+            { "fr": "l'ongle du doigt", "mo": "Kxop phe" },
+            { "fr": "les ongles des doigts", "mo": "khxop bhe" },
+            { "fr": "aisselle", "mo": "Hákzè" },
+            { "fr": "le coude", "mo": "Touh phe" },
+            { "fr": "le doigt", "mo": "Tsè phe" },
+            { "fr": "les doigts", "mo": "Tsè mbe" },
+            { "fr": "l'auriculaire", "mo": "Meu djio tsè phe" },
+            { "fr": "la plante de pied", "mo": "Touh khwè" },
+            { "fr": "l'ongle de l'orteil", "mo": "kxop tsèkhwè" },
+            { "fr": "la paume de main", "mo": "Tong phe" },
+            { "fr": "le pied", "mo": "Khwè" },
+            { "fr": "les pieds", "mo": "P-khwè" },
+            { "fr": "le genou", "mo": "zoung" },
+            { "fr": "les genoux", "mo": "P-zoung" },
+            { "fr": "l'orteil", "mo": "Tsè khwè" },
+            { "fr": "le talon", "mo": "Tou khwè" }
+          ]
+        }
+      },
+      "phonetique": {
+        "note": "Formes tonalisées relevées sur le schéma anatomique de la leçon 9 (utiles pour la prononciation ; tons, schwa ə et ŋ tels que dessinés).",
+        "entrees": [
+          { "fr": "la tête", "mo": "Tsɛ́" },
+          { "fr": "les cheveux", "mo": "Nûŋ'tsɛ" },
+          { "fr": "l'œil", "mo": "Zók" },
+          { "fr": "le nez", "mo": "Zhè" },
+          { "fr": "la joue", "mo": "Ghò" },
+          { "fr": "la dent", "mo": "Sòŋ" },
+          { "fr": "le cou", "mo": "Thóŋ" },
+          { "fr": "la bouche", "mo": "Cwè" },
+          { "fr": "épaule", "mo": "Khɛ̀bò'" },
+          { "fr": "poitrine", "mo": "Khəkhxóp" },
+          { "fr": "aisselle", "mo": "Hákzɛ" },
+          { "fr": "le bras", "mo": "Phə" },
+          { "fr": "la colonne vertébrale", "mo": "Kwǐ" },
+          { "fr": "le coude", "mo": "Tǔphə" },
+          { "fr": "ventre", "mo": "Vèm" },
+          { "fr": "hanche", "mo": "Dzɛ̀ŋ" },
+          { "fr": "la paume de main", "mo": "Tǒŋ phə" },
+          { "fr": "le doigt", "mo": "Tsɛ́phə" },
+          { "fr": "cuisse (?)", "mo": "Thǒmkhwè" },
+          { "fr": "le genou", "mo": "Zùŋ" },
+          { "fr": "le pied", "mo": "Khwè" },
+          { "fr": "bas de jambe / mollet (?)", "mo": "Lǒmkhwè" },
+          { "fr": "l'orteil", "mo": "Tsêkhwè" },
+          { "fr": "le tronc", "mo": "Kèm nô mè" },
+          { "fr": "les membres", "mo": "Yùŋ nô mè" }
+        ]
+      }
+    },
+    "mets": {
+      "titre": "Les types de mets (zzèze)",
+      "entrees": [
+        { "fr": "légumes", "mo": "Djap" },
+        { "fr": "arachide", "mo": "Beyang" },
+        { "fr": "macabo", "mo": "Mèkèpou / Kou'kang" },
+        { "fr": "igname", "mo": "Loung / leuh" },
+        { "fr": "viandes", "mo": "Bap" },
+        { "fr": "manioc", "mo": "Médong" },
+        { "fr": "haricot", "mo": "Kou'dek" },
+        { "fr": "koki", "mo": "Kou kekxeu" },
+        { "fr": "plantain", "mo": "kwèlong" },
+        { "fr": "pistache", "mo": "Djuh" },
+        { "fr": "couscous", "mo": "Sang" },
+        { "fr": "riz", "mo": "Kouléssie" },
+        { "fr": "sauce", "mo": "Nah" },
+        { "fr": "légumes maïs", "mo": "Djap sang" },
+        { "fr": "légumes arachides", "mo": "Djap bèyang" },
+        { "fr": "légumes macabo", "mo": "Djap mèkèpou" },
+        { "fr": "pilé d'ignames séchée", "mo": "tchouh gwing" },
+        { "fr": "taro", "mo": "Pé" },
+        { "fr": "plantain malaxé et viande (Kondelé)", "mo": "kwèlong bap" },
+        { "fr": "couscous manioc", "mo": "Foufou / Khoumkhoum" },
+        { "fr": "« tenue militaire » (mets)", "mo": "whèkouhouh" },
+        { "fr": "sauce d'arachide", "mo": "Nah bèyang" },
+        { "fr": "mets de pistache", "mo": "Poùh djuh" },
+        { "fr": "sauce noire", "mo": "Nah dong" },
+        { "fr": "riz sauté", "mo": "Tèm kouléssie" },
+        { "fr": "sauce jaune", "mo": "Nah tchè" }
+      ]
+    },
+    "boissons": {
+      "titre": "Les types de boissons (plouh)",
+      "entrees": [
+        { "fr": "eau", "mo": "Chè" },
+        { "fr": "vin de raphia", "mo": "Lou'kxeu" },
+        { "fr": "bière", "mo": "Lou' bvèvè" },
+        { "fr": "vin de palme", "mo": "Lou'tôh" },
+        { "fr": "jus", "mo": "Lou'dumlum / limseng (Lù'dumlum / lumsəŋ)" },
+        { "fr": "vin rouge", "mo": "Mèdjouga / Pan lou'" }
+      ]
+    },
+    "maison": {
+      "titre": "Les équipements de maison",
+      "entrees": [
+        { "fr": "salon", "mo": "Taple dim dum (dùm)" },
+        { "fr": "chaise / fauteuil", "mo": "Kouoh / longtchia" },
+        { "fr": "table à manger", "mo": "Taple lok dze wè" },
+        { "fr": "armoire", "mo": "Copa" },
+        { "fr": "rideau", "mo": "Bvè woudou" },
+        { "fr": "photos de famille", "mo": "Fetou toudié" },
+        { "fr": "lit", "mo": "Koudié" },
+        { "fr": "placard", "mo": "Copa" },
+        { "fr": "télévision", "mo": "Toh lok seng tchouong" },
+        { "fr": "cuisinière / foyer", "mo": "Tchè mok" },
+        { "fr": "assiette", "mo": "Kang" },
+        { "fr": "mortier", "mo": "Demdem" },
+        { "fr": "pilon", "mo": "Khouong / Khwong" },
+        { "fr": "pierre à écraser", "mo": "Loung" },
+        { "fr": "balai", "mo": "Sandié" },
+        { "fr": "seau", "mo": "Lounga" },
+        { "fr": "marmite / marmites", "mo": "Bang / pbang" },
+        { "fr": "feu à gaz", "mo": "Fefouo mok" }
+      ]
+    },
+    "temps": {
+      "titre": "Les moments de la journée (Tié'noh dze) — leçon 2",
+      "note": "« hier » et « demain » sont tous deux notés Youo dans la source, distingués par le ton.",
+      "entrees": [
+        { "fr": "matin", "mo": "Fokdze" },
+        { "fr": "très tôt le matin", "mo": "Mè tsù Fokdze (Mè tsu' fokdze)" },
+        { "fr": "le jour / mi-journée", "mo": "Moktche" },
+        { "fr": "après-midi / fin de journée / soir", "mo": "Bouodze" },
+        { "fr": "la nuit", "mo": "tsû'h (tsu')" },
+        { "fr": "minuit / très tard dans la nuit", "mo": "Tchyatsû'h (tsu')" },
+        { "fr": "hier", "mo": "Youo" },
+        { "fr": "aujourd'hui", "mo": "Lia'h / Là la" },
+        { "fr": "maintenant", "mo": "tià'h / tià' la" },
+        { "fr": "demain", "mo": "Youo" },
+        { "fr": "demain matin", "mo": "Fokdze" },
+        { "fr": "après-demain", "mo": "Djeumdze youô / Apta youô" },
+        { "fr": "au revoir", "mo": "Ohoô / ohôo bè" },
+        { "fr": "à très bientôt", "mo": "Tè meu dà'h" },
+        { "fr": "à demain", "mo": "Tè youô" },
+        { "fr": "prochainement", "mo": "Tè lié' meu" }
+      ]
+    },
+    "calendrier": {
+      "titre": "Les huit jours de la semaine bandenkop (Gapdze) — leçon 6",
+      "note": "La semaine bandenkop compte huit jours (Gapdze Denkwop be lié hom). Certains jours portent des interdits ou indications rituelles.",
+      "entrees": [
+        { "fr": "semaine", "mo": "Gapdze" },
+        { "fr": "jour 1 — jour du marché", "mo": "Liégang" },
+        { "fr": "jour 2 — indiqué pour les mariages et sorties des sociétés secrètes cagoulées", "mo": "Liékouong" },
+        { "fr": "jour 3", "mo": "Temgou" },
+        { "fr": "jour 4 — interdit de faire du bruit", "mo": "Liédjou" },
+        { "fr": "jour 5 — interdit de cultiver", "mo": "Chepté" },
+        { "fr": "jour 6 — indiqué pour les mariages et sorties des sociétés secrètes cagoulées", "mo": "Kouogouè" },
+        { "fr": "jour 7 — interdit de faire du bruit", "mo": "Dzèsoe" },
+        { "fr": "jour 8 — interdit de cultiver", "mo": "Djedjeu" }
+      ]
+    },
+    "personnes": {
+      "titre": "Personnes et parenté (extraites des salutations, leçon 1)",
+      "entrees": [
+        { "fr": "papa", "mo": "papa" },
+        { "fr": "maman", "mo": "mama" },
+        { "fr": "grand-père", "mo": "bô'o" },
+        { "fr": "grand-mère", "mo": "moo" },
+        { "fr": "mon ami", "mo": "sou a" },
+        { "fr": "mes amis", "mo": "sou pè" },
+        { "fr": "le maître / la maîtresse", "mo": "tchitcha" },
+        { "fr": "les maîtres / les maîtresses", "mo": "pè tchitcha" }
+      ]
+    },
+    "salutations": {
+      "titre": "Les salutations (Tcha'zè) — leçon 1",
+      "note": "« Ou … » s'adresse à une personne, « Peu … » à plusieurs. Schéma : Ou/Peu + lhie (matin) / youok (soir) + leu + interlocuteur ; « pepong » ≈ « avez-vous bien dormi ».",
+      "sous": {
+        "matin": {
+          "titre": "Salutations du matin (Tcha'zè fokdze)",
+          "entrees": [
+            { "fr": "bonjour papa", "mo": "Ou lhie (lhë) leu papa ?" },
+            { "fr": "bonjour maman", "mo": "Ou lhie (lhë) leu mama ?" },
+            { "fr": "bonjour grand-père", "mo": "Ou lhie (lhë) you leu bô'o ?" },
+            { "fr": "bonjour grand-mère", "mo": "Ou lhie (lhë) you leu moo ?" },
+            { "fr": "bonjour mon ami", "mo": "Ou lhie (lhë) you leu sou a ?" },
+            { "fr": "bonjour le maître / la maîtresse", "mo": "Ou lhie (lhë) you leu tchitcha ?" },
+            { "fr": "bonjour papa et maman (à plusieurs)", "mo": "Peu lhie (lhë) yé leu papa peu mama ?" },
+            { "fr": "bonjour les maîtres / maîtresses (à plusieurs)", "mo": "Peu lhie (lhë) yé leu pè tchitcha ?" },
+            { "fr": "tu as bien dormi papa ?", "mo": "Ou lhie (lhë) pepong leu papa ?" },
+            { "fr": "tu as bien dormi maman ?", "mo": "Ou lhie (lhë) pepong leu mama ?" },
+            { "fr": "tu as bien dormi grand-père ?", "mo": "Ou lhie (lhë) pepong leu bô'o ?" },
+            { "fr": "tu as bien dormi mon ami ?", "mo": "Ou lhie (lhë) pepong leu sou a ?" },
+            { "fr": "vous avez bien dormi grand-mère et grand-père ?", "mo": "Peu lhie (lhë) pepong leu bô'o peu moo ?" },
+            { "fr": "vous avez bien dormi maman et papa ?", "mo": "Peu lhie (lhë) pepong leu mama peu papa ?" },
+            { "fr": "vous avez bien dormi mes amis ?", "mo": "Peu lhie (lhë) pepong leu sou pè ?" }
+          ]
+        },
+        "soir": {
+          "titre": "Salutations du soir (Tcha'zè bouedze)",
+          "entrees": [
+            { "fr": "bonsoir papa", "mo": "Ou youok you leu papa ?" },
+            { "fr": "bonsoir maman", "mo": "Ou youok you leu mama ?" },
+            { "fr": "bonsoir grand-père", "mo": "Ou youok you leu bô'o ?" },
+            { "fr": "bonsoir grand-mère", "mo": "Ou youok you leu moo ?" },
+            { "fr": "bonsoir mon ami", "mo": "Ou youok you leu sou a ?" },
+            { "fr": "bonsoir le maître / la maîtresse", "mo": "Ou youk you leu tchitcha ?" },
+            { "fr": "bonsoir papa et maman (à plusieurs)", "mo": "Peu youok yé leu papa peu mam ?" },
+            { "fr": "bonsoir les maîtres / maîtresses (à plusieurs)", "mo": "Peu youok yé leu pè tchitcha ?" },
+            { "fr": "bonsoir mes amis", "mo": "Peu youok yé leu sou pè ?" },
+            { "fr": "vous avez passé une bonne journée maman (et d'autres) ?", "mo": "Peu youok be theu leu mama ?" }
+          ]
+        },
+        "toutMoment": {
+          "titre": "Salutations à tout moment (Tcha'zè bè tié kele)",
+          "note": "« Guè … » = je salue (une pers. ou de sa part), « Pè … » = nous saluons ; « da'lè / Da'yé lè » = bonjour/bonsoir passe-partout ; « ba / wé » relient les personnes ; « wang » = tous.",
+          "entrees": [
+            { "fr": "bonjour ou bonsoir (à une personne)", "mo": "da'lè" },
+            { "fr": "bonjour ou bonsoir papa", "mo": "Guè tcha'zé papa" },
+            { "fr": "bonjour ou bonsoir maman", "mo": "Guè tcha'zé mama" },
+            { "fr": "bonjour ou bonsoir le maître / la maîtresse", "mo": "Guè tcha'zé tchitcha" },
+            { "fr": "bonjour ou bonsoir mon ami", "mo": "Guè tcha'zé soua" },
+            { "fr": "bonjour ou bonsoir (à plusieurs)", "mo": "Da'yé lè" },
+            { "fr": "bonjour ou bonsoir papa et maman", "mo": "Guè tcha'zè wé papa, ba mama" },
+            { "fr": "bonjour ou bonsoir maman et d'autres personnes", "mo": "Guè tcha'zè wé mama" },
+            { "fr": "bonjour ou bonsoir les maîtres / maîtresses", "mo": "Guè tcha'zè wé pè tchitcha" },
+            { "fr": "je vous salue tous", "mo": "Guè tcha'zè wé wang" },
+            { "fr": "nous vous saluons tous", "mo": "Pè tcha'zè wé wang" },
+            { "fr": "nous vous saluons papa et ses amis", "mo": "Pè tcha'zè wé papa" },
+            { "fr": "bonjour ou bonsoir mes amis", "mo": "Guè tcha'zè sou pè" }
+          ]
+        }
+      }
+    },
+    "nombres": {
+      "titre": "Les nombres de 0 à 100 (ne (nye) sang wè teu noh né kem kxè) — leçon 15",
+      "note": "Système décimal : unités 0–9, dizaines (10 Ghem, 20 Eumbueu, 30 Eumtha, 40 Eumkweu, 50 Eumthé, 60 Eumthok, 70 Eumsombueu, 80 Eumhoom, 90 Eumvu'u, 100 khxèh), composés = préfixe d'unité (tchwamoh=+1, tchwoppueu=+2, tchwopta=+3, tchwokweu=+4, tchwopté=+5, tchwopthok oh=+6, tchwopsombueu=+7, tchwophoom=+8, tchwopvu'u=+9) + dizaine.",
+      "entrees": [
+        { "fr": "0", "mo": "Néh" },
+        { "fr": "1", "mo": "kwue / yamo" },
+        { "fr": "2", "mo": "Pueu / yapueu" },
+        { "fr": "3", "mo": "Ta' / yatá" },
+        { "fr": "4", "mo": "Kxweu / yakeu" },
+        { "fr": "5", "mo": "Té / yaté" },
+        { "fr": "6", "mo": "Thok'o" },
+        { "fr": "7", "mo": "Sombueu" },
+        { "fr": "8", "mo": "Hoom" },
+        { "fr": "9", "mo": "Vu'u" },
+        { "fr": "10", "mo": "Ghem" },
+        { "fr": "11", "mo": "Tchwamôh ghem" },
+        { "fr": "12", "mo": "Tchwoppueu ghem" },
+        { "fr": "13", "mo": "Tchwopta ghem" },
+        { "fr": "14", "mo": "Tchwopkweu ghem" },
+        { "fr": "15", "mo": "Tchwopté ghem" },
+        { "fr": "16", "mo": "Tchwopthok oh ghem" },
+        { "fr": "17", "mo": "Tchwopsombueu ghem" },
+        { "fr": "18", "mo": "Tchwophoom ghem" },
+        { "fr": "19", "mo": "Tchwop vu'u ghem" },
+        { "fr": "20", "mo": "Eumbueu" },
+        { "fr": "21", "mo": "tchwamoh eumbueu" },
+        { "fr": "22", "mo": "tchwoppueu eumbueu" },
+        { "fr": "23", "mo": "Tchwopta eumbueu" },
+        { "fr": "24", "mo": "tchwokweu eumbueu" },
+        { "fr": "25", "mo": "Tchwopté eumbueu" },
+        { "fr": "26", "mo": "Tchwopthok oh eumbueu" },
+        { "fr": "27", "mo": "Tchwopsombueu eumbueu" },
+        { "fr": "28", "mo": "Tchwophoom eumbueu" },
+        { "fr": "29", "mo": "Tchwopvu'u eumbueu" },
+        { "fr": "30", "mo": "Eumtha" },
+        { "fr": "31", "mo": "tchwamoh Eumtha" },
+        { "fr": "32", "mo": "tchwoppueu Eumtha" },
+        { "fr": "33", "mo": "Tchwopta Eumtha" },
+        { "fr": "34", "mo": "tchwokweu Eumtha" },
+        { "fr": "35", "mo": "Tchwopté Eumtha" },
+        { "fr": "36", "mo": "Tchwopthok oh Eumtha" },
+        { "fr": "37", "mo": "Tchwopsombueu Eumtha" },
+        { "fr": "38", "mo": "Tchwophoom Eumtha" },
+        { "fr": "39", "mo": "Tchwopvu'u Eumtha" },
+        { "fr": "40", "mo": "Eumkweu" },
+        { "fr": "41", "mo": "tchwamoh Eumkweu" },
+        { "fr": "42", "mo": "tchwoppueu Eumkweu" },
+        { "fr": "43", "mo": "Tchwopta Eumkweu" },
+        { "fr": "44", "mo": "tchwopkweu Eumkweu" },
+        { "fr": "45", "mo": "Tchwopté Eumkweu" },
+        { "fr": "46", "mo": "Tchwopthok oh Eumkweu" },
+        { "fr": "47", "mo": "Tchwopsombueu Eumkweu" },
+        { "fr": "48", "mo": "Tchwophoom Eumkweu" },
+        { "fr": "49", "mo": "Tchwopvu'u Eumkweu" },
+        { "fr": "50", "mo": "Eumthé" },
+        { "fr": "51", "mo": "tchwamoh umthé" },
+        { "fr": "52", "mo": "tchwoppueu umthé" },
+        { "fr": "53", "mo": "Tchwopta umthé" },
+        { "fr": "54", "mo": "tchwokweu umthé" },
+        { "fr": "55", "mo": "Tchwopté umthé" },
+        { "fr": "56", "mo": "Tchwopthok oh umthé" },
+        { "fr": "57", "mo": "Tchwopsombueu umthé" },
+        { "fr": "58", "mo": "Tchwophoom umthé" },
+        { "fr": "59", "mo": "Tchwopvu'u umthé" },
+        { "fr": "60", "mo": "Eumthok" },
+        { "fr": "61", "mo": "tchwamoh eumthooc" },
+        { "fr": "62", "mo": "tchwoppueu eumthooc" },
+        { "fr": "63", "mo": "Tchwopta eumthooc" },
+        { "fr": "64", "mo": "tchwokweu eumthooc" },
+        { "fr": "65", "mo": "Tchwopté eumthooc" },
+        { "fr": "66", "mo": "Tchwopthok oh eumthooc" },
+        { "fr": "67", "mo": "Tchwopsombueu eumthooc" },
+        { "fr": "68", "mo": "Tchwophoom eumthooc" },
+        { "fr": "69", "mo": "Tchwopvu'u eumthooc" },
+        { "fr": "70", "mo": "Eumsombueu" },
+        { "fr": "71", "mo": "tchwamoh eumsomb" },
+        { "fr": "72", "mo": "tchwoppueu eumsomb" },
+        { "fr": "73", "mo": "Tchwopta eumsomb" },
+        { "fr": "74", "mo": "Tchwokweu eumsomb" },
+        { "fr": "75", "mo": "Tchwopté eumsomb" },
+        { "fr": "76", "mo": "Tchwopthok oh eumsomb" },
+        { "fr": "77", "mo": "Tchwopsombueu eumsomb" },
+        { "fr": "78", "mo": "Tchwophoom eumsomb" },
+        { "fr": "79", "mo": "Tchwopvu'u eumsomb" },
+        { "fr": "80", "mo": "Eumhoom" },
+        { "fr": "81", "mo": "tchwamoh eumhoom" },
+        { "fr": "82", "mo": "Tchwoppueu eumhoom" },
+        { "fr": "83", "mo": "Tchwopta eumhoom" },
+        { "fr": "84", "mo": "tchwopkweu eumhoom" },
+        { "fr": "85", "mo": "Tchwopté eumhoom" },
+        { "fr": "86", "mo": "Tchwopthoc eumhoom" },
+        { "fr": "87", "mo": "Tchwopsombueu eumhoom" },
+        { "fr": "88", "mo": "Tchwophoom eumhoom" },
+        { "fr": "89", "mo": "Tchwopvu'u eumhoom" },
+        { "fr": "90", "mo": "Eumvu'u" },
+        { "fr": "91", "mo": "tchwamoh eumvu'u" },
+        { "fr": "92", "mo": "tchwoppueu eumvu'u" },
+        { "fr": "93", "mo": "Tchwopta eumvu'u" },
+        { "fr": "94", "mo": "tchwokweu eumvu'u" },
+        { "fr": "95", "mo": "Tchwopté eumvu'u" },
+        { "fr": "96", "mo": "Tchwopthok oh eumvu'u" },
+        { "fr": "97", "mo": "Tchwopsombueu eumvu'u" },
+        { "fr": "98", "mo": "Tchwophoom eumvu'u" },
+        { "fr": "99", "mo": "Tchwopvu'u eumvu'u" },
+        { "fr": "100", "mo": "khxèh" }
+      ]
+    },
+    "chefferie": {
+      "titre": "Chefferie et notables (Tsouo poua Pkem) — leçon 16",
+      "note": "À la tête du royaume, le Roi (Fé) administre le territoire avec les notables (Pkem), porteurs de titres divers.",
+      "entrees": [
+        { "fr": "chefferie", "mo": "Tsouo" },
+        { "fr": "une chefferie bamiléké", "mo": "Tsouo gwong Bhienum (Bhënum)" },
+        { "fr": "le Roi (chef)", "mo": "Fé" },
+        { "fr": "notable(s)", "mo": "Pkem" },
+        { "fr": "titres de notables", "mo": "Meukhem, Dze, Méfé, Nwabé, Nwafé, Tafé, Dzemèfé, Sah, Dzèfé, Meudzèfé, Buh, Sop, Ta'" }
+      ]
+    },
+    "ustensiles": {
+      "titre": "Les ustensiles de cuisine (zè khisim) — leçon 17",
+      "entrees": [
+        { "fr": "la cuillère", "mo": "louh" },
+        { "fr": "louche pour la sauce", "mo": "louh náh" },
+        { "fr": "louche perforée", "mo": "louh náh thezè thezè" },
+        { "fr": "louche pour couscous", "mo": "louh sang" },
+        { "fr": "fourchette", "mo": "louh song" },
+        { "fr": "gobelet", "mo": "Thu'" },
+        { "fr": "bassine", "mo": "Métom kang" },
+        { "fr": "couteau", "mo": "Meugne" },
+        { "fr": "poêle", "mo": "flépa" },
+        { "fr": "le plat", "mo": "Pac (ou pap) kang" },
+        { "fr": "assiette creuse", "mo": "kxop kang" },
+        { "fr": "pierre pour écraser", "mo": "gwo'" },
+        { "fr": "pierre à écraser", "mo": "loung sok" },
+        { "fr": "le pilon", "mo": "khwong / kwong demdem" },
+        { "fr": "mortier", "mo": "kxop pé" },
+        { "fr": "marmite", "mo": "Bang" }
+      ]
+    },
+    "interdits": {
+      "titre": "Les interdits (ptcheu) — leçon 18",
+      "note": "Structure : « Pe tche … peu » = « On ne … pas ». Contenu culturel (tabous).",
+      "entrees": [
+        { "fr": "on ne siffle pas la nuit", "mo": "Pe tche thong kom tsù' peu" },
+        { "fr": "on n'urine pas au lieu sacré", "mo": "Pe tche tchii diessie (diesse) peu" },
+        { "fr": "on ne mange pas sans se laver les mains", "mo": "Pe tche dze wè tche sokbhe peu" },
+        { "fr": "on ne fend pas le bois la nuit", "mo": "Pe tche sé kouè tsù peu" },
+        { "fr": "on ne mange pas le gwing sans avoir été initié", "mo": "Pe tche pfuo gwing tche tchop peu" },
+        { "fr": "on ne porte pas le chapeau devant un notable", "mo": "Pe tche soe tcheu' bhè khèm peu" },
+        { "fr": "on ne regarde pas en arrière après le bain de purification", "mo": "Pe tche soc chè tche djùm peu" },
+        { "fr": "on ne coupe pas le rang d'une société secrète", "mo": "Pe tche thok tchetchia p-keum peu" },
+        { "fr": "on ne fait pas de bruit quand siège une société secrète", "mo": "Pe tche bakgne lié keum peu" },
+        { "fr": "le Roi ne sort pas de son palais le jour djedjeu", "mo": "Fé tche them tsouo djedjeu' peu" }
+      ]
+    },
+    "materiaux": {
+      "titre": "Les matériaux de construction (Zè lok kouo pa') — leçon 12",
+      "entrees": [
+        { "fr": "parpaing", "mo": "Pacpaing" },
+        { "fr": "brique de terre", "mo": "Keuh Tcha'a" },
+        { "fr": "ciment", "mo": "semik" },
+        { "fr": "mortier (construction)", "mo": "Ploploh" },
+        { "fr": "chaux", "mo": "Bim" },
+        { "fr": "gravier", "mo": "Guelavier" },
+        { "fr": "pierre", "mo": "Loung" },
+        { "fr": "carreaux", "mo": "Kalo" },
+        { "fr": "tuyau", "mo": "Tio" },
+        { "fr": "planche", "mo": "Pèlang" },
+        { "fr": "bambou de chine", "mo": "Fock" },
+        { "fr": "nervure / bambou", "mo": "Deng" },
+        { "fr": "paille", "mo": "Yang" },
+        { "fr": "nattes", "mo": "Ping" },
+        { "fr": "tôle", "mo": "Sing" },
+        { "fr": "clou", "mo": "Teu" },
+        { "fr": "porte", "mo": "Djédié" },
+        { "fr": "fenêtre", "mo": "Houdou / Boung Dié" },
+        { "fr": "courant électrique", "mo": "Kxè Latré" },
+        { "fr": "sable", "mo": "Sansang / Mvang" }
+      ]
+    },
+    "oiseaux": {
+      "titre": "Les oiseaux (Pôpseng) — leçon 13",
+      "entrees": [
+        { "fr": "le coq", "mo": "Keu'h" },
+        { "fr": "la poule", "mo": "Guep" },
+        { "fr": "poussin", "mo": "Meu guep" },
+        { "fr": "canard", "mo": "Dok fawè" },
+        { "fr": "moineau", "mo": "Tchoe kouo" },
+        { "fr": "épervier", "mo": "Mèheum" },
+        { "fr": "perdrix", "mo": "Seunguep" },
+        { "fr": "corbeau", "mo": "Mèlang" },
+        { "fr": "hibou", "mo": "Za' (Zà')" },
+        { "fr": "oiseau à touffe", "mo": "Fheu" },
+        { "fr": "mange-mille", "mo": "Meuyong" },
+        { "fr": "oiseaux", "mo": "Peng" },
+        { "fr": "oiseau", "mo": "Meuseung" }
+      ]
+    },
+    "animaux": {
+      "titre": "Les animaux (Nom) — leçon 14",
+      "note": "Page photographiée en biais : le bloc de droite (à partir de « le chien ») reste à confirmer.",
+      "entrees": [
+        { "fr": "le rat", "mo": "Bapdem" },
+        { "fr": "le singe", "mo": "Kheh" },
+        { "fr": "le porc-épic", "mo": "Tiéguem" },
+        { "fr": "le hérisson", "mo": "Dzop" },
+        { "fr": "l'éléphant", "mo": "Soh'nom" },
+        { "fr": "la tortue", "mo": "Tchouèmèkwoh" },
+        { "fr": "la panthère", "mo": "Nom ghueh" },
+        { "fr": "le caméléon", "mo": "Kwèyang" },
+        { "fr": "l'écureuil", "mo": "Tchazè" },
+        { "fr": "le lièvre", "mo": "Gap" },
+        { "fr": "l'hyène", "mo": "Gnagnuk" },
+        { "fr": "le serpent", "mo": "Noe" },
+        { "fr": "le lion", "mo": "Nomtchena'" },
+        { "fr": "le chien", "mo": "Bve" },
+        { "fr": "le cafard / le cancrelat", "mo": "Tchè" },
+        { "fr": "le grillon", "mo": "Hong" },
+        { "fr": "taureau", "mo": "Nonnah" },
+        { "fr": "le bœuf", "mo": "Khiépang" },
+        { "fr": "la chenille", "mo": "Tetah" },
+        { "fr": "l'escargot", "mo": "Tetoh" },
+        { "fr": "la grenouille", "mo": "bvè" }
+      ]
+    },
+    "arbres": {
+      "titre": "Les arbres fruitiers (Ptsè mi pe dze thom map a) — leçon 20",
+      "note": "arbre = Tsè / Tcheu.",
+      "entrees": [
+        { "fr": "avocatier", "mo": "Tsè pya" },
+        { "fr": "papayer", "mo": "Tsè popo / Tsè pó' dek / Tsè pó' dok" },
+        { "fr": "manguier", "mo": "Tsè meguelo" },
+        { "fr": "safoutier", "mo": "Tsè Tchyé" },
+        { "fr": "bananier", "mo": "Tcheu Kédié" },
+        { "fr": "bananier plantain", "mo": "Tcheu Kwelong" },
+        { "fr": "palmier", "mo": "Tsè Tô" },
+        { "fr": "arbre à fruits noirs", "mo": "Tsè bhè" },
+        { "fr": "cerisier", "mo": "Tsè tchang" }
+      ]
+    },
+    "attitudes": {
+      "titre": "Les attitudes en public (Ne (gne) tchwè tchechia pôh) — leçon 19",
+      "note": "Étiquette envers les aînés (wèzeu) et le chef (fé). Contenu culturel.",
+      "entrees": [
+        { "fr": "on ne se comporte pas de la même manière avec les aînés qu'avec les amis", "mo": "Meu tche tchwè peuh soupi pa' pouah p-wèzeuh a peu" },
+        { "fr": "lorsqu'on salue un aîné, on ne lui tend pas la main", "mo": "Pe di tcha'zè gwèzeu pe lè nah phe bii" },
+        { "fr": "toujours céder la place aux aînés", "mo": "hè kwô' bi p-wèzeu" },
+        { "fr": "il est recommandé de s'incliner lorsqu'on salue un aîné", "mo": "Bong guè meu li tchazè tchiébhii bègne nii sie (se)" },
+        { "fr": "il est interdit de couper la parole à un aîné ou de hausser le ton", "mo": "Meu tche dja ghom koo khah djii isè bi gang bhii peu" },
+        { "fr": "on ne fixe pas l'aîné dans les yeux lorsqu'il parle", "mo": "Meu tche tche gang bhii noh zok zi thie' yi a wè gom a peu" },
+        { "fr": "on se décoiffe devant le chef, les parents et les aînés", "mo": "Pe tchwo' tcheu' bhè fé poua wèzeu" },
+        { "fr": "on ne croise pas les pieds devant le chef ni devant les aînés", "mo": "Pe tche banzè kwè bhè fé peu, ba bhè pichié bhè pouh peu" },
+        { "fr": "éviter de bâiller devant les gens ou de mâcher sauvagement", "mo": "Kè jiegne mbè Ko kôm wèzeuh bhè pôh pa' guènôm a" }
+      ]
+    },
+    "remerciements": {
+      "titre": "Les remerciements (Ne (gne) ping) — leçon 21",
+      "note": "Deux formes : monologuée (on remercie) et dialoguée (échange remercie ↔ remercié).",
+      "entrees": [
+        { "fr": "merci (je remercie)", "mo": "Guê ping" },
+        { "fr": "merci (variante)", "mo": "Zie'" },
+        { "fr": "merci (variante)", "mo": "Wè tè yi meu" },
+        { "fr": "merci (variante)", "mo": "Pe lè yom yom" }
+      ],
+      "dialogue": [
+        { "remercie": "Meupe ou", "repond": "Ou pe yi" },
+        { "remercie": "Beng guefouo", "repond": "A loe tche nyé pié meu" },
+        { "remercie": "La' pe tcheng", "repond": "Meu lè jè boung" },
+        { "remercie": "Wè pe lah", "repond": "Yi meu pe wè" },
+        { "remercie": "Yi gang meu tag", "repond": "Ba'a tcheu yium" },
+        { "remercie": "Tchia khouo", "repond": "Gheghang tom" },
+        { "remercie": "Meu tche ou khxo", "repond": "Boo Sie (sse) khxo" }
+      ]
+    },
+    "chants": {
+      "titre": "Chants (Youop chè) — leçon 22",
+      "note": "Chants traditionnels (paroles en Mə̀yú' Bandenkop, sans traduction dans le manuel).",
+      "entrees": [
+        { "fr": "chant 1 — ligne 1", "mo": "Taguemdom lom kwèlong nem bve" },
+        { "fr": "chant 1 — ligne 2", "mo": "Bve lé lé tè kouo tsè" },
+        { "fr": "chant 1 — ligne 3", "mo": "A log ta' deng siezii" },
+        { "fr": "chant 1 — ligne 4", "mo": "Tooouuuuukèlou Taguemdom" },
+        { "fr": "chant 2 — ligne 1", "mo": "Bang phè log noe lou'" },
+        { "fr": "chant 2 — ligne 2", "mo": "Bang phè log noe lou'" },
+        { "fr": "chant 2 — ligne 3", "mo": "Ne lou', noe lou' tè bim" }
+      ]
+    }
+  },
+  "grammaire": {
+    "pronomsPersonnels": {
+      "titre": "Les pronoms personnels — leçon 3",
+      "entrees": [
+        { "fr": "je", "mo": "Guê" },
+        { "fr": "tu", "mo": "Ou" },
+        { "fr": "il / elle", "mo": "À" },
+        { "fr": "nous", "mo": "Pê" },
+        { "fr": "vous", "mo": "Peu" },
+        { "fr": "ils / elles", "mo": "Wap" }
+      ],
+      "noteConjugaison": "Variantes de sujet observées dans les conjugaisons : je = guê / gê / dè ; nous = pè / pê ; ils = wap / wâp."
+    },
+    "adjectifsPossessifs": {
+      "titre": "Les adjectifs possessifs — leçon 4",
+      "note": "Ex. « Meu a » = mon enfant, « bang a » = ma marmite ; « Poh pok » = nos enfants. (Meu = enfant, Poh = enfants, bang = marmite.)",
+      "entrees": [
+        { "fr": "mon / ma", "mo": "a / zè / mè" },
+        { "fr": "ton / ta", "mo": "ou / you / mou" },
+        { "fr": "son / sa", "mo": "i / yi / mi" },
+        { "fr": "notre / nos", "mo": "yok / zok / mok / pok" },
+        { "fr": "votre / vos", "mo": "yé / zé / mé / pé" },
+        { "fr": "leur / leurs", "mo": "yap / zap / map / pap" }
+      ]
+    },
+    "pronomsPossessifs": {
+      "titre": "Les pronoms possessifs — leçon 5",
+      "note": "Entités comptables (singulier → pluriel). Entités non comptables : mè, mu, mi, mok, mé, map.",
+      "entrees": [
+        { "fr": "le mien / la mienne", "mo": "Yè" },
+        { "fr": "les miens / les miennes", "mo": "Pè" },
+        { "fr": "le tien / la tienne", "mo": "You" },
+        { "fr": "les tiens / les tiennes", "mo": "Pou" },
+        { "fr": "le sien / la sienne", "mo": "Yi" },
+        { "fr": "les siens / les siennes", "mo": "Pi" },
+        { "fr": "le nôtre", "mo": "Yok" },
+        { "fr": "les nôtres", "mo": "Pok" },
+        { "fr": "le vôtre", "mo": "Yé" },
+        { "fr": "les vôtres", "mo": "Pé" },
+        { "fr": "le leur", "mo": "Yap" },
+        { "fr": "les leurs", "mo": "Pap" }
+      ]
+    },
+    "possessifIndicateurs": {
+      "titre": "Autres indicateurs du possessif singulier — leçon 6",
+      "entrees": [
+        { "fr": "mon (ex. mon légume = djàp à)", "mo": "à" },
+        { "fr": "ton / mon [argent] (ex. mon argent = khap à, ton argent = khap ou)", "mo": "ou" },
+        { "fr": "son (ex. son ami = sou i)", "mo": "i" }
+      ]
+    },
+    "verbeEtre": {
+      "titre": "Conjugaison du verbe « être » (ne / gne pe)",
+      "infinitif": "ne pe / gne pe",
+      "temps": {
+        "present": [
+          { "fr": "je suis", "mo": "Guê be" },
+          { "fr": "tu es", "mo": "Ou be" },
+          { "fr": "il est / elle est", "mo": "A be" },
+          { "fr": "nous sommes", "mo": "Pê be" },
+          { "fr": "vous êtes", "mo": "Peu be" },
+          { "fr": "ils sont / elles sont", "mo": "Wâp be" }
+        ],
+        "imparfait": [
+          { "fr": "j'étais", "mo": "Dê be" },
+          { "fr": "tu étais", "mo": "Ou lê be" },
+          { "fr": "il était / elle était", "mo": "A lê be" },
+          { "fr": "nous étions", "mo": "Pè lê be" },
+          { "fr": "vous étiez", "mo": "Peu lê be" },
+          { "fr": "ils étaient / elles étaient", "mo": "Wap lê be" }
+        ],
+        "passeSimple": [
+          { "fr": "je fus", "mo": "Dè pe" },
+          { "fr": "tu fus", "mo": "Où lè pe" },
+          { "fr": "il fut / elle fut", "mo": "A lè pe" },
+          { "fr": "nous fûmes", "mo": "Pè lè pe" },
+          { "fr": "vous fûtes", "mo": "Peu lè pe" },
+          { "fr": "ils furent / elles furent", "mo": "Wap lè pe" }
+        ],
+        "futurSimple": [
+          { "fr": "je serai", "mo": "Gôo lhye pe" },
+          { "fr": "tu seras", "mo": "Ou gôo lhye pe" },
+          { "fr": "il sera / elle sera", "mo": "A gôo lhye pe" },
+          { "fr": "nous serons", "mo": "Pê gôo lhye pe" },
+          { "fr": "vous serez", "mo": "Peu gôo lhye pe" },
+          { "fr": "ils seront / elles seront", "mo": "Wap gôo lhye pe" }
+        ],
+        "passeCompose": [
+          { "fr": "j'ai été", "mo": "khè pe" },
+          { "fr": "tu as été", "mo": "Ou kè pe" },
+          { "fr": "il a été / elle a été", "mo": "A kè pe" },
+          { "fr": "nous avons été", "mo": "Pè ké pe" },
+          { "fr": "vous avez été", "mo": "Peu kè pe" },
+          { "fr": "ils ont été / elles ont été", "mo": "Wap kè pe" }
+        ],
+        "plusQueParfait": [
+          { "fr": "j'avais été", "mo": "Dè lá be" },
+          { "fr": "tu avais été", "mo": "Ou lè lá be" },
+          { "fr": "il avait été / elle avait été", "mo": "A lè lá be" },
+          { "fr": "nous avions été", "mo": "Pè lè lá be" },
+          { "fr": "vous aviez été", "mo": "Peu lè lá be" },
+          { "fr": "ils avaient été / elles avaient été", "mo": "Wap lè lá be" }
+        ]
+      }
+    }
+  },
+  "phonologie": {
+    "titre": "Alphabet et sons (AGLC) — leçon 25 : les consonnes",
+    "note": "Mots-exemples tonalisés (précieux pour la prononciation). Chaque entrée : lettre/son → mot-exemple (mo) = sens (fr).",
+    "consonnesSimples": [
+      { "lettre": "p", "mo": "pà'", "fr": "maison" },
+      { "lettre": "f", "mo": "fà'", "fr": "travail" },
+      { "lettre": "m", "mo": "mó", "fr": "enfant" },
+      { "lettre": "t", "mo": "tǎm", "fr": "tambour" },
+      { "lettre": "v", "mo": "vèm", "fr": "ventre" },
+      { "lettre": "n", "mo": "na'", "fr": "sauce" },
+      { "lettre": "s", "mo": "sáŋ", "fr": "couscous" },
+      { "lettre": "l", "mo": "là'zè", "fr": "montrer" },
+      { "lettre": "h", "mo": "he", "fr": "donner" },
+      { "lettre": "w", "mo": "wɔ́k", "fr": "nous" },
+      { "lettre": "k", "mo": "kàŋ", "fr": "pipe" },
+      { "lettre": "z", "mo": "zà'", "fr": "endroit" },
+      { "lettre": "c", "mo": "cwop", "fr": "initier" },
+      { "lettre": "x", "mo": "kxɔp", "fr": "mortier" },
+      { "lettre": "ŋ (ngn)", "mo": "ŋàŋ", "fr": "racine" },
+      { "lettre": "d", "mo": "dàp", "fr": "fil" },
+      { "lettre": "b", "mo": "bàp", "fr": "viande" }
+    ],
+    "consonnesDoubles": [
+      { "lettre": "gh", "mo": "ghɔ̀m", "fr": "parole" },
+      { "lettre": "sh", "mo": "thɛ́shɛ̀", "fr": "calebasse" },
+      { "lettre": "zh (je)", "mo": "zhénɛ̀", "fr": "sagesse" },
+      { "lettre": "pf", "mo": "pfwo", "fr": "manger" },
+      { "lettre": "ts", "mo": "tséh tsɛ", "fr": "tête" },
+      { "lettre": "j (dje)", "mo": "jwɔ̀'", "fr": "patate" },
+      { "lettre": "g (gue)", "mo": "gù'", "fr": "force" },
+      { "lettre": "ph (ppeh)", "mo": "phɛ̀", "fr": "kola" },
+      { "lettre": "th", "mo": "thɛ̂", "fr": "planter" },
+      { "lettre": "ny", "mo": "ŋwà'nyɛ̀", "fr": "livre" }
+    ],
+    "consonnesGeminees": [
+      { "lettre": "pp", "mo": "phaé", "fr": "folie" },
+      { "lettre": "nn", "mo": "nce", "fr": "serpent" },
+      { "lettre": "mm", "mo": "mmé", "fr": "votre" },
+      { "lettre": "ss", "mo": "ssé", "fr": "face" },
+      { "lettre": "ff", "mo": "ffwó", "fr": "frère" },
+      { "lettre": "ww", "mo": "wwó", "fr": "huile" },
+      { "lettre": "ll", "mo": "lli", "fr": "colle" }
+    ],
+    "tons": {
+      "titre": "Les cinq tons de l'AGLC — leçon 23",
+      "note": "L'AGLC distingue 5 tons (essentiels au sens). Exemples sur héɓok / bǒ / lê.",
+      "entrees": [
+        { "ton": "haut", "marque": "á", "exemple": "héɓok" },
+        { "ton": "moyen", "marque": "a", "exemple": "héɓok" },
+        { "ton": "bas", "marque": "à", "exemple": "héɓok-à" },
+        { "ton": "montant", "marque": "ǎ", "exemple": "bǒ" },
+        { "ton": "descendant", "marque": "â", "exemple": "lê" }
+      ]
+    },
+    "voyelles": {
+      "titre": "Les voyelles (Zhwə mənywòk' nwa'nya) — leçon 24",
+      "note": "Inventaire vocalique AGLC + mot-exemple = sens.",
+      "entrees": [
+        { "lettre": "a", "mo": "kán", "fr": "assiette" },
+        { "lettre": "e (éh)", "mo": "pé", "fr": "taro" },
+        { "lettre": "ə (eu)", "mo": "ŋàŋ", "fr": "danse" },
+        { "lettre": "ɛ (èh)", "mo": "wè", "fr": "chose" },
+        { "lettre": "o", "mo": "wwó", "fr": "huile" },
+        { "lettre": "i", "mo": "liŋ", "fr": "qualité" },
+        { "lettre": "ə (eu')", "mo": "kə'", "fr": "couper" },
+        { "lettre": "œ (euh)", "mo": "thœ", "fr": "percer" },
+        { "lettre": "ɔ (oh)", "mo": "sɔk", "fr": "piment" },
+        { "lettre": "u (ou)", "mo": "lu'", "fr": "vin" },
+        { "lettre": "u (uh)", "mo": "nùm", "fr": "soleil" }
+      ]
+    }
+  },
+  "lexiqueUtile": {
+    "note": "Éléments extraits des phrases, exemples et légendes (leçons 2 à 7).",
+    "entrees": [
+      { "fr": "Bandenkop (le lieu)", "mo": "Denkwop" },
+      { "fr": "quartier / village", "mo": "pfèlah" },
+      { "fr": "village bamiléké", "mo": "Ta' lah gwong Bhienum (Bhënum)" },
+      { "fr": "sept", "mo": "boua" },
+      { "fr": "semaine", "mo": "Gapdze" },
+      { "fr": "enfant", "mo": "Meu" },
+      { "fr": "enfants", "mo": "Poh" },
+      { "fr": "marmite", "mo": "bang" },
+      { "fr": "légume", "mo": "djàp" },
+      { "fr": "argent", "mo": "khap" },
+      { "fr": "ami", "mo": "sou" },
+      { "fr": "animaux", "mo": "Nom" },
+      { "fr": "oiseaux", "mo": "Pôpseng" },
+      { "fr": "interdit(s)", "mo": "ptcheu" }
+    ]
+  },
+  "phrases": [
+    {
+      "fr": "Bandenkop compte sept quartiers (villages).",
+      "mo": "Ba'a ghè pfèlah sombeu. Pfèlah boua be : Hialah, Tsèla kah, Tsèlah touh, Packem, Denkeng, Tsèmeuhia, Dengou.",
+      "note": "Transcription approx. de la leçon 7 ; « pfèlah boua » = les sept quartiers."
+    },
+    {
+      "fr": "La semaine bandenkop compte huit jours.",
+      "mo": "Gapdze Denkwop be lié hom.",
+      "note": "Leçon 6."
+    },
+    {
+      "fr": "mon enfant, ma marmite",
+      "mo": "Meu a, bang a",
+      "note": "Leçon 4 (adjectifs possessifs)."
+    },
+    {
+      "fr": "mon argent, ton argent",
+      "mo": "khap à, khap ou",
+      "note": "Leçon 6."
+    },
+    {
+      "fr": "Manuel de formation en langue et culture Bandenkop — Niveau zéro (sous-titre de couverture)",
+      "mo": "Ŋwà'nyə lòk dănyə əp kè pǒ ghòm Mə̀yú' Də̀ŋkhwɔ̀p — Dyé nyə̀'kəké",
+      "note": "Sous-titre de couverture en AGLC (aussi écrit en « français-sons » : Nwa'gne lok dagne pké peu ghom a denkwop / Dié gne keké). Traduction mot-à-mot à confirmer."
+    }
+  ]
+}
