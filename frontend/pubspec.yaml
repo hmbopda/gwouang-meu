@@ -55,6 +55,9 @@ dependencies:
   cupertino_icons: ^1.0.8
   material_symbols_icons: ^4.2785.1
 
+  # Synthèse vocale (prononciation du traducteur — web + mobile)
+  flutter_tts: ^4.2.0
+
   # Ouvrir navigateur pour OAuth (Google, Facebook, etc.)
   url_launcher: ^6.3.0
 

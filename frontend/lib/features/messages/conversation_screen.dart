@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:material_symbols_icons/symbols.dart';
@@ -705,6 +706,7 @@ class _TranslatorSheetState extends ConsumerState<_TranslatorSheet> {
   TranslationResult? _result;
   bool _resultToNative = true;
   String? _error;
+  final FlutterTts _tts = FlutterTts();
 
   @override
   void initState() {
@@ -722,6 +724,7 @@ class _TranslatorSheetState extends ConsumerState<_TranslatorSheet> {
   @override
   void dispose() {
     _controller.dispose();
+    _tts.stop();
     super.dispose();
   }
 
@@ -730,6 +733,19 @@ class _TranslatorSheetState extends ConsumerState<_TranslatorSheet> {
     setState(() => _direction = dir);
     // Re-traduit aussitôt dans le nouveau sens si un texte est présent.
     if (_controller.text.trim().isNotEmpty) _run();
+  }
+
+  /// Lit à voix haute (voix française, la plus proche disponible — il n'existe
+  /// pas encore de voix native ; l'audio authentique par locuteurs viendra).
+  Future<void> _speak(String text) async {
+    if (text.trim().isEmpty) return;
+    try {
+      await _tts.stop();
+      await _tts.setLanguage('fr-FR');
+      await _tts.speak(text);
+    } catch (_) {
+      // TTS best-effort : indisponible sur certains navigateurs/appareils.
+    }
   }
 
   Future<void> _run() async {
@@ -844,7 +860,26 @@ class _TranslatorSheetState extends ConsumerState<_TranslatorSheet> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          GwSectionLabel(_resultToNative ? label : 'Français'),
+          Row(
+            children: [
+              Expanded(
+                child: GwSectionLabel(_resultToNative ? label : 'Français'),
+              ),
+              if (r.translation.isNotEmpty)
+                InkWell(
+                  onTap: () => _speak(r.translation),
+                  borderRadius: BorderRadius.circular(GwTokens.rPill),
+                  child: Container(
+                    padding: const EdgeInsets.all(7),
+                    decoration: BoxDecoration(
+                      color: t.sageText.withValues(alpha: 0.14),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(Symbols.volume_up, size: 18, color: t.sageText),
+                  ),
+                ),
+            ],
+          ),
           const SizedBox(height: 8),
           SelectableText(
             r.translation.isEmpty ? '—' : r.translation,
@@ -852,18 +887,9 @@ class _TranslatorSheetState extends ConsumerState<_TranslatorSheet> {
           ),
           if (r.pronunciation != null) ...[
             const SizedBox(height: 10),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(Symbols.volume_up, size: 16, color: t.sageText),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: SelectableText(
-                    r.pronunciation!,
-                    style: GwType.mono(fontSize: 14, color: t.sageText),
-                  ),
-                ),
-              ],
+            SelectableText(
+              r.pronunciation!,
+              style: GwType.mono(fontSize: 14, color: t.sageText),
             ),
           ],
           const SizedBox(height: 12),
