@@ -19,7 +19,7 @@
     ]
   },
   "meta": {
-    "source": "Manuel de formation en langue et culture Bandenkop, Niveau zéro (leçons 1–11, 15–18 et 25 transcrites sur 25 ; sommaire complet indexé dans meta.lecons) — transcription depuis photos fournies par le fondateur",
+    "source": "Manuel de formation en langue et culture Bandenkop, Niveau zéro — INTÉGRALITÉ des 25 leçons transcrite (sommaire indexé dans meta.lecons) — transcription depuis photos fournies par le fondateur",
     "direction": "bidirectionnel français ⇄ Mə̀yú' Bandenkop",
     "champs": "fr = français ; mo = Mə̀yú' Bandenkop (orthographe du recueil, telle quelle, variantes séparées par « / »)",
     "avertissement": "Transcription fidèle des tableaux imprimés ; l'orthographe et les tons suivent la source. Certaines graphies (schwa ə, tons, occlusive glottale ') peuvent différer de conventions académiques. Les gloses marquées « (?) » sont des inférences à confirmer.",
@@ -36,19 +36,19 @@
       { "n": 9, "fr": "Les parties du corps", "mo": "Pzuh noh meu theu", "page": 15, "couvert": true },
       { "n": 10, "fr": "Conjugaison du verbe être", "mo": "ne (gne) pe", "page": 16, "couvert": true },
       { "n": 11, "fr": "Les équipements de maison", "mo": "", "page": 17, "couvert": true },
-      { "n": 12, "fr": "Les matériaux de construction", "mo": "Zè lok kouo pa'", "page": 18, "couvert": false },
-      { "n": 13, "fr": "Les oiseaux", "mo": "Pôpseng", "page": 19, "couvert": false },
-      { "n": 14, "fr": "Les animaux", "mo": "Nom", "page": 19, "couvert": false },
+      { "n": 12, "fr": "Les matériaux de construction", "mo": "Zè lok kouo pa'", "page": 18, "couvert": true },
+      { "n": 13, "fr": "Les oiseaux", "mo": "Pôpseng", "page": 19, "couvert": true },
+      { "n": 14, "fr": "Les animaux", "mo": "Nom", "page": 19, "couvert": true },
       { "n": 15, "fr": "Les nombres de 0 à 100", "mo": "ne (nye) sang wè teu noh né kem kxè", "page": 20, "couvert": true },
       { "n": 16, "fr": "Chefferie et les notables", "mo": "Tsouo poua P Kem", "page": 23, "couvert": true },
       { "n": 17, "fr": "Les ustensiles de cuisine", "mo": "zè khisim", "page": 24, "couvert": true },
       { "n": 18, "fr": "Les interdits", "mo": "ptcheu", "page": 25, "couvert": true },
-      { "n": 19, "fr": "Les attitudes en public", "mo": "Ne (gne) tchwè tchechia pôh", "page": 26, "couvert": false },
-      { "n": 20, "fr": "Les arbres fruitiers", "mo": "Ptsè mi pe dze thom map a", "page": 27, "couvert": false },
-      { "n": 21, "fr": "Les remerciements", "mo": "Ne (gne) ping", "page": 28, "couvert": false },
-      { "n": 22, "fr": "Chants", "mo": "Youop chè", "page": 28, "couvert": false },
-      { "n": 23, "fr": "Les tons", "mo": "Jɛ", "page": 29, "couvert": false },
-      { "n": 24, "fr": "Les voyelles", "mo": "", "page": 29, "couvert": false },
+      { "n": 19, "fr": "Les attitudes en public", "mo": "Ne (gne) tchwè tchechia pôh", "page": 26, "couvert": true },
+      { "n": 20, "fr": "Les arbres fruitiers", "mo": "Ptsè mi pe dze thom map a", "page": 27, "couvert": true },
+      { "n": 21, "fr": "Les remerciements", "mo": "Ne (gne) ping", "page": 28, "couvert": true },
+      { "n": 22, "fr": "Chants", "mo": "Youop chè", "page": 28, "couvert": true },
+      { "n": 23, "fr": "Les tons", "mo": "Jɛ", "page": 29, "couvert": true },
+      { "n": 24, "fr": "Les voyelles", "mo": "", "page": 29, "couvert": true },
       { "n": 25, "fr": "Les consonnes", "mo": "dzè manywòk' nwa'nya", "page": 30, "couvert": true }
     ]
   },
@@ -481,7 +481,143 @@
         { "fr": "on ne mange pas sans se laver les mains", "mo": "Pe tche dze wè tche sokbhe peu" },
         { "fr": "on ne fend pas le bois la nuit", "mo": "Pe tche sé kouè tsù peu" },
         { "fr": "on ne mange pas le gwing sans avoir été initié", "mo": "Pe tche pfuo gwing tche tchop peu" },
-        { "fr": "on ne porte pas le chapeau devant un notable", "mo": "Pe tche soe tcheu' bhè khèm peu" }
+        { "fr": "on ne porte pas le chapeau devant un notable", "mo": "Pe tche soe tcheu' bhè khèm peu" },
+        { "fr": "on ne regarde pas en arrière après le bain de purification", "mo": "Pe tche soc chè tche djùm peu" },
+        { "fr": "on ne coupe pas le rang d'une société secrète", "mo": "Pe tche thok tchetchia p-keum peu" },
+        { "fr": "on ne fait pas de bruit quand siège une société secrète", "mo": "Pe tche bakgne lié keum peu" },
+        { "fr": "le Roi ne sort pas de son palais le jour djedjeu", "mo": "Fé tche them tsouo djedjeu' peu" }
+      ]
+    },
+    "materiaux": {
+      "titre": "Les matériaux de construction (Zè lok kouo pa') — leçon 12",
+      "entrees": [
+        { "fr": "parpaing", "mo": "Pacpaing" },
+        { "fr": "brique de terre", "mo": "Keuh Tcha'a" },
+        { "fr": "ciment", "mo": "semik" },
+        { "fr": "mortier (construction)", "mo": "Ploploh" },
+        { "fr": "chaux", "mo": "Bim" },
+        { "fr": "gravier", "mo": "Guelavier" },
+        { "fr": "pierre", "mo": "Loung" },
+        { "fr": "carreaux", "mo": "Kalo" },
+        { "fr": "tuyau", "mo": "Tio" },
+        { "fr": "planche", "mo": "Pèlang" },
+        { "fr": "bambou de chine", "mo": "Fock" },
+        { "fr": "nervure / bambou", "mo": "Deng" },
+        { "fr": "paille", "mo": "Yang" },
+        { "fr": "nattes", "mo": "Ping" },
+        { "fr": "tôle", "mo": "Sing" },
+        { "fr": "clou", "mo": "Teu" },
+        { "fr": "porte", "mo": "Djédié" },
+        { "fr": "fenêtre", "mo": "Houdou / Boung Dié" },
+        { "fr": "courant électrique", "mo": "Kxè Latré" },
+        { "fr": "sable", "mo": "Sansang / Mvang" }
+      ]
+    },
+    "oiseaux": {
+      "titre": "Les oiseaux (Pôpseng) — leçon 13",
+      "entrees": [
+        { "fr": "le coq", "mo": "Keu'h" },
+        { "fr": "la poule", "mo": "Guep" },
+        { "fr": "poussin", "mo": "Meu guep" },
+        { "fr": "canard", "mo": "Dok fawè" },
+        { "fr": "moineau", "mo": "Tchoe kouo" },
+        { "fr": "épervier", "mo": "Mèheum" },
+        { "fr": "perdrix", "mo": "Seunguep" },
+        { "fr": "corbeau", "mo": "Mèlang" },
+        { "fr": "hibou", "mo": "Za' (Zà')" },
+        { "fr": "oiseau à touffe", "mo": "Fheu" },
+        { "fr": "mange-mille", "mo": "Meuyong" },
+        { "fr": "oiseaux", "mo": "Peng" },
+        { "fr": "oiseau", "mo": "Meuseung" }
+      ]
+    },
+    "animaux": {
+      "titre": "Les animaux (Nom) — leçon 14",
+      "note": "Page photographiée en biais : le bloc de droite (à partir de « le chien ») reste à confirmer.",
+      "entrees": [
+        { "fr": "le rat", "mo": "Bapdem" },
+        { "fr": "le singe", "mo": "Kheh" },
+        { "fr": "le porc-épic", "mo": "Tiéguem" },
+        { "fr": "le hérisson", "mo": "Dzop" },
+        { "fr": "l'éléphant", "mo": "Soh'nom" },
+        { "fr": "la tortue", "mo": "Tchouèmèkwoh" },
+        { "fr": "la panthère", "mo": "Nom ghueh" },
+        { "fr": "le caméléon", "mo": "Kwèyang" },
+        { "fr": "l'écureuil", "mo": "Tchazè" },
+        { "fr": "le lièvre", "mo": "Gap" },
+        { "fr": "l'hyène", "mo": "Gnagnuk" },
+        { "fr": "le serpent", "mo": "Noe" },
+        { "fr": "le lion", "mo": "Nomtchena'" },
+        { "fr": "le chien", "mo": "Bve" },
+        { "fr": "le cafard / le cancrelat", "mo": "Tchè" },
+        { "fr": "le grillon", "mo": "Hong" },
+        { "fr": "taureau", "mo": "Nonnah" },
+        { "fr": "le bœuf", "mo": "Khiépang" },
+        { "fr": "la chenille", "mo": "Tetah" },
+        { "fr": "l'escargot", "mo": "Tetoh" },
+        { "fr": "la grenouille", "mo": "bvè" }
+      ]
+    },
+    "arbres": {
+      "titre": "Les arbres fruitiers (Ptsè mi pe dze thom map a) — leçon 20",
+      "note": "arbre = Tsè / Tcheu.",
+      "entrees": [
+        { "fr": "avocatier", "mo": "Tsè pya" },
+        { "fr": "papayer", "mo": "Tsè popo / Tsè pó' dek / Tsè pó' dok" },
+        { "fr": "manguier", "mo": "Tsè meguelo" },
+        { "fr": "safoutier", "mo": "Tsè Tchyé" },
+        { "fr": "bananier", "mo": "Tcheu Kédié" },
+        { "fr": "bananier plantain", "mo": "Tcheu Kwelong" },
+        { "fr": "palmier", "mo": "Tsè Tô" },
+        { "fr": "arbre à fruits noirs", "mo": "Tsè bhè" },
+        { "fr": "cerisier", "mo": "Tsè tchang" }
+      ]
+    },
+    "attitudes": {
+      "titre": "Les attitudes en public (Ne (gne) tchwè tchechia pôh) — leçon 19",
+      "note": "Étiquette envers les aînés (wèzeu) et le chef (fé). Contenu culturel.",
+      "entrees": [
+        { "fr": "on ne se comporte pas de la même manière avec les aînés qu'avec les amis", "mo": "Meu tche tchwè peuh soupi pa' pouah p-wèzeuh a peu" },
+        { "fr": "lorsqu'on salue un aîné, on ne lui tend pas la main", "mo": "Pe di tcha'zè gwèzeu pe lè nah phe bii" },
+        { "fr": "toujours céder la place aux aînés", "mo": "hè kwô' bi p-wèzeu" },
+        { "fr": "il est recommandé de s'incliner lorsqu'on salue un aîné", "mo": "Bong guè meu li tchazè tchiébhii bègne nii sie (se)" },
+        { "fr": "il est interdit de couper la parole à un aîné ou de hausser le ton", "mo": "Meu tche dja ghom koo khah djii isè bi gang bhii peu" },
+        { "fr": "on ne fixe pas l'aîné dans les yeux lorsqu'il parle", "mo": "Meu tche tche gang bhii noh zok zi thie' yi a wè gom a peu" },
+        { "fr": "on se décoiffe devant le chef, les parents et les aînés", "mo": "Pe tchwo' tcheu' bhè fé poua wèzeu" },
+        { "fr": "on ne croise pas les pieds devant le chef ni devant les aînés", "mo": "Pe tche banzè kwè bhè fé peu, ba bhè pichié bhè pouh peu" },
+        { "fr": "éviter de bâiller devant les gens ou de mâcher sauvagement", "mo": "Kè jiegne mbè Ko kôm wèzeuh bhè pôh pa' guènôm a" }
+      ]
+    },
+    "remerciements": {
+      "titre": "Les remerciements (Ne (gne) ping) — leçon 21",
+      "note": "Deux formes : monologuée (on remercie) et dialoguée (échange remercie ↔ remercié).",
+      "entrees": [
+        { "fr": "merci (je remercie)", "mo": "Guê ping" },
+        { "fr": "merci (variante)", "mo": "Zie'" },
+        { "fr": "merci (variante)", "mo": "Wè tè yi meu" },
+        { "fr": "merci (variante)", "mo": "Pe lè yom yom" }
+      ],
+      "dialogue": [
+        { "remercie": "Meupe ou", "repond": "Ou pe yi" },
+        { "remercie": "Beng guefouo", "repond": "A loe tche nyé pié meu" },
+        { "remercie": "La' pe tcheng", "repond": "Meu lè jè boung" },
+        { "remercie": "Wè pe lah", "repond": "Yi meu pe wè" },
+        { "remercie": "Yi gang meu tag", "repond": "Ba'a tcheu yium" },
+        { "remercie": "Tchia khouo", "repond": "Gheghang tom" },
+        { "remercie": "Meu tche ou khxo", "repond": "Boo Sie (sse) khxo" }
+      ]
+    },
+    "chants": {
+      "titre": "Chants (Youop chè) — leçon 22",
+      "note": "Chants traditionnels (paroles en Mə̀yú' Bandenkop, sans traduction dans le manuel).",
+      "entrees": [
+        { "fr": "chant 1 — ligne 1", "mo": "Taguemdom lom kwèlong nem bve" },
+        { "fr": "chant 1 — ligne 2", "mo": "Bve lé lé tè kouo tsè" },
+        { "fr": "chant 1 — ligne 3", "mo": "A log ta' deng siezii" },
+        { "fr": "chant 1 — ligne 4", "mo": "Tooouuuuukèlou Taguemdom" },
+        { "fr": "chant 2 — ligne 1", "mo": "Bang phè log noe lou'" },
+        { "fr": "chant 2 — ligne 2", "mo": "Bang phè log noe lou'" },
+        { "fr": "chant 2 — ligne 3", "mo": "Ne lou', noe lou' tè bim" }
       ]
     }
   },
@@ -633,7 +769,35 @@
       { "lettre": "ff", "mo": "ffwó", "fr": "frère" },
       { "lettre": "ww", "mo": "wwó", "fr": "huile" },
       { "lettre": "ll", "mo": "lli", "fr": "colle" }
-    ]
+    ],
+    "tons": {
+      "titre": "Les cinq tons de l'AGLC — leçon 23",
+      "note": "L'AGLC distingue 5 tons (essentiels au sens). Exemples sur héɓok / bǒ / lê.",
+      "entrees": [
+        { "ton": "haut", "marque": "á", "exemple": "héɓok" },
+        { "ton": "moyen", "marque": "a", "exemple": "héɓok" },
+        { "ton": "bas", "marque": "à", "exemple": "héɓok-à" },
+        { "ton": "montant", "marque": "ǎ", "exemple": "bǒ" },
+        { "ton": "descendant", "marque": "â", "exemple": "lê" }
+      ]
+    },
+    "voyelles": {
+      "titre": "Les voyelles (Zhwə mənywòk' nwa'nya) — leçon 24",
+      "note": "Inventaire vocalique AGLC + mot-exemple = sens.",
+      "entrees": [
+        { "lettre": "a", "mo": "kán", "fr": "assiette" },
+        { "lettre": "e (éh)", "mo": "pé", "fr": "taro" },
+        { "lettre": "ə (eu)", "mo": "ŋàŋ", "fr": "danse" },
+        { "lettre": "ɛ (èh)", "mo": "wè", "fr": "chose" },
+        { "lettre": "o", "mo": "wwó", "fr": "huile" },
+        { "lettre": "i", "mo": "liŋ", "fr": "qualité" },
+        { "lettre": "ə (eu')", "mo": "kə'", "fr": "couper" },
+        { "lettre": "œ (euh)", "mo": "thœ", "fr": "percer" },
+        { "lettre": "ɔ (oh)", "mo": "sɔk", "fr": "piment" },
+        { "lettre": "u (ou)", "mo": "lu'", "fr": "vin" },
+        { "lettre": "u (uh)", "mo": "nùm", "fr": "soleil" }
+      ]
+    }
   },
   "lexiqueUtile": {
     "note": "Éléments extraits des phrases, exemples et légendes (leçons 2 à 7).",
