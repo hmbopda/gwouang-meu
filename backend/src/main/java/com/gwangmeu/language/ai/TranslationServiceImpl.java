@@ -6,34 +6,47 @@ import com.gwangmeu.language.ai.dto.TranslateRequest;
 import com.gwangmeu.language.ai.dto.TranslateResponse;
 import com.gwangmeu.language.ai.dto.TranslationDirection;
 import com.gwangmeu.shared.ai.ClaudeAiClient;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.util.DigestUtils;
 import org.springframework.util.StringUtils;
 
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Implementation du moteur de traduction.
+ * Implementation du moteur de traduction — optimise pour la vitesse.
  *
  * Principe :
  *  - le dictionnaire (lexique atteste + regles de codification) est charge UNE fois
- *    depuis le classpath (src/main/resources/dictionaries) et mis en cache memoire ;
- *  - il est injecte dans le "system prompt" de Claude (donc mis en cache cote API
- *    grace au cache_control ephemeral deja pose par ClaudeAiClient) ;
- *  - Claude doit repondre par un JSON strict {translation, pronunciation, confidence, notes} ;
+ *    depuis le classpath et mis en cache memoire, puis injecte dans un system prompt
+ *    STABLE (donc mis en cache cote API Anthropic via cache_control ephemeral) ;
+ *  - Claude repond par un JSON strict {translation, pronunciation, confidence, notes} ;
  *  - il lui est INTERDIT d'inventer une forme native inexistante.
  *
- * Aucune migration ni acces base : lecture fichier ressource uniquement.
- * Si la cle API est absente au runtime, on leve TranslationUnavailableException (-> 503) :
+ * Optimisations :
+ *  1. Modele HAIKU (rapide + economique) par defaut, avec repli automatique sur SONNET
+ *     si Haiku est indisponible pour le compte (bascule une fois, jamais de crash).
+ *     Surchargeable via la propriete `application.translation-model`.
+ *  2. Cache Redis des traductions (best-effort) : une phrase deja traduite revient
+ *     instantanement, sans rappeler l'IA. Toute erreur Redis est ignoree.
+ *  3. Contexte injecte compacte (JSON minifie), `max_tokens` borne.
+ *
+ * Aucune migration ni acces base SQL : lecture fichier ressource + cache Redis.
+ * Si la cle API est absente au runtime -> TranslationUnavailableException (503) :
  * le demarrage n'est jamais impacte.
  */
 @Slf4j
@@ -42,21 +55,43 @@ import java.util.concurrent.ConcurrentHashMap;
 public class TranslationServiceImpl implements TranslationService {
 
     private static final String DEFAULT_LANGUAGE = "moye-bandenkop";
-    private static final int MAX_TOKENS = 1024;
+    private static final int MAX_TOKENS = 800;
     private static final int MAX_LEXICON_ENTRIES = 3000;
+    private static final Duration CACHE_TTL = Duration.ofDays(30);
+    private static final String CACHE_PREFIX = "gw:tr:";
 
     private final ClaudeAiClient claudeAiClient;
     private final ObjectMapper objectMapper;
+    private final RedisConnectionFactory redisConnectionFactory;
 
-    /**
-     * Meme source de cle que ClaudeAiClient. Valeur par defaut vide -> le bean se construit
-     * toujours (pas de crash au boot). La presence est verifiee a chaque requete.
-     */
+    /** Meme source de cle que ClaudeAiClient. Defaut vide -> pas de crash au boot. */
     @Value("${application.anthropic-api-key:}")
     private String anthropicApiKey;
 
-    /** Cache memoire du contexte lexical, par code de langue (construit paresseusement, une fois). */
+    /** Force un modele precis (ex. un ID Haiku propre au compte). Vide -> Haiku puis repli Sonnet. */
+    @Value("${application.translation-model:}")
+    private String forcedModel;
+
+    /** Cache memoire du contexte lexical, par code de langue (construit une fois). */
     private final Map<String, String> contextCache = new ConcurrentHashMap<>();
+
+    /** Cache Redis best-effort (null si indisponible). */
+    private StringRedisTemplate redis;
+
+    /** Passe a false si le modele rapide echoue une fois (repli Sonnet le reste de la vie du process). */
+    private volatile boolean fastModelOk = true;
+
+    @PostConstruct
+    void initRedis() {
+        try {
+            StringRedisTemplate t = new StringRedisTemplate(redisConnectionFactory);
+            t.afterPropertiesSet();
+            this.redis = t;
+        } catch (Exception e) {
+            log.warn("Cache Redis indisponible pour la traduction (on continue sans) : {}", e.getMessage());
+            this.redis = null;
+        }
+    }
 
     @Override
     public TranslateResponse translate(TranslateRequest request) {
@@ -73,22 +108,104 @@ public class TranslationServiceImpl implements TranslationService {
                     "Service de traduction indisponible : cle API IA non configuree.");
         }
 
-        // Peut lever IllegalArgumentException (langue non supportee) -> 400 via GlobalExceptionHandler.
-        String languageContext = getLanguageContext(code);
+        // 1. Cache Redis (instantané si déjà traduit).
+        String cacheKey = cacheKey(code, direction, text);
+        TranslateResponse cached = readCache(cacheKey, text, direction);
+        if (cached != null) {
+            return cached;
+        }
 
+        // 2. Peut lever IllegalArgumentException (langue non supportee) -> 400.
+        String languageContext = getLanguageContext(code);
         String systemPrompt = buildSystemPrompt(code, languageContext);
         String userMessage = buildUserMessage(direction, text);
 
-        String raw;
+        // 3. Appel IA (Haiku rapide, repli Sonnet).
+        String raw = callClaude(systemPrompt, userMessage, code, direction);
+
+        // 4. Parse + mise en cache.
+        return parseResponse(raw, text, direction, cacheKey);
+    }
+
+    // ------------------------------------------------------------------
+    // Appel modele (Haiku -> repli Sonnet)
+    // ------------------------------------------------------------------
+
+    private String callClaude(String systemPrompt, String userMessage, String code, TranslationDirection direction) {
+        if (StringUtils.hasText(forcedModel)) {
+            return callOrThrow(forcedModel, systemPrompt, userMessage, code, direction);
+        }
+        if (fastModelOk) {
+            try {
+                return claudeAiClient.complete(ClaudeAiClient.HAIKU, systemPrompt, userMessage, MAX_TOKENS);
+            } catch (Exception e) {
+                fastModelOk = false;
+                log.warn("Modele rapide (Haiku) indisponible, bascule definitive sur Sonnet : {}", e.getMessage());
+            }
+        }
+        return callOrThrow(ClaudeAiClient.SONNET, systemPrompt, userMessage, code, direction);
+    }
+
+    private String callOrThrow(String model, String systemPrompt, String userMessage,
+                               String code, TranslationDirection direction) {
         try {
-            raw = claudeAiClient.complete(ClaudeAiClient.SONNET, systemPrompt, userMessage, MAX_TOKENS);
+            return claudeAiClient.complete(model, systemPrompt, userMessage, MAX_TOKENS);
         } catch (Exception e) {
-            log.error("Translation Claude call failed [lang={}, dir={}]: {}", code, direction, e.getMessage());
+            log.error("Translation Claude call failed [model={}, lang={}, dir={}]: {}",
+                    model, code, direction, e.getMessage());
             throw new TranslationUnavailableException(
                     "Service de traduction momentanement indisponible.", e);
         }
+    }
 
-        return parseResponse(raw, text, direction);
+    // ------------------------------------------------------------------
+    // Cache Redis (best-effort — jamais bloquant)
+    // ------------------------------------------------------------------
+
+    private String cacheKey(String code, TranslationDirection direction, String text) {
+        String hash = DigestUtils.md5DigestAsHex(text.toLowerCase().getBytes(StandardCharsets.UTF_8));
+        return CACHE_PREFIX + code + ':' + direction.name() + ':' + hash;
+    }
+
+    private TranslateResponse readCache(String key, String sourceText, TranslationDirection direction) {
+        if (redis == null) {
+            return null;
+        }
+        try {
+            String json = redis.opsForValue().get(key);
+            if (json == null) {
+                return null;
+            }
+            JsonNode n = objectMapper.readTree(json);
+            String pron = n.path("p").asText("").trim();
+            String notes = n.path("n").asText("").trim();
+            return TranslateResponse.builder()
+                    .translation(n.path("t").asText("").trim())
+                    .pronunciation(pron.isEmpty() ? null : pron)
+                    .confidence(n.path("c").asDouble(0.0))
+                    .notes(notes.isEmpty() ? null : notes)
+                    .sourceText(sourceText)
+                    .direction(direction)
+                    .build();
+        } catch (Exception e) {
+            return null; // cache best-effort : on ignore et on appellera l'IA
+        }
+    }
+
+    private void writeCache(String key, String translation, String pronunciation, double confidence, String notes) {
+        if (redis == null || translation == null || translation.isEmpty()) {
+            return;
+        }
+        try {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("t", translation);
+            m.put("p", pronunciation);
+            m.put("c", confidence);
+            m.put("n", notes);
+            redis.opsForValue().set(key, objectMapper.writeValueAsString(m), CACHE_TTL);
+        } catch (Exception e) {
+            // best-effort : on n'echoue jamais une traduction a cause du cache
+        }
     }
 
     // ------------------------------------------------------------------
@@ -133,10 +250,11 @@ public class TranslationServiceImpl implements TranslationService {
     }
 
     // ------------------------------------------------------------------
-    // Parsing de la reponse
+    // Parsing de la reponse (+ mise en cache)
     // ------------------------------------------------------------------
 
-    private TranslateResponse parseResponse(String raw, String sourceText, TranslationDirection direction) {
+    private TranslateResponse parseResponse(String raw, String sourceText,
+                                            TranslationDirection direction, String cacheKey) {
         String json = extractJson(raw);
         try {
             JsonNode node = objectMapper.readTree(json);
@@ -148,6 +266,10 @@ public class TranslationServiceImpl implements TranslationService {
             double confidence = node.path("confidence").asDouble(0.0);
             if (confidence < 0) confidence = 0;
             if (confidence > 1) confidence = 1;
+
+            // Mise en cache best-effort (uniquement si traduction non vide).
+            writeCache(cacheKey, translation, pronunciation.isEmpty() ? null : pronunciation,
+                    confidence, notes.isEmpty() ? null : notes);
 
             return TranslateResponse.builder()
                     .translation(translation)
@@ -211,12 +333,12 @@ public class TranslationServiceImpl implements TranslationService {
                     .append(lang.path("group").asText("")).append(".\n\n");
         }
 
-        // Regles de codification (morphologie, phonologie, prefixes de classe)
+        // Regles de codification (morphologie, phonologie, prefixes de classe) — JSON compact.
         if (enrichment != null) {
             JsonNode codification = enrichment.path("codification");
             if (!codification.isMissingNode()) {
                 sb.append("REGLES DE CODIFICATION (morphologie, phonologie, prefixes de classe) :\n");
-                sb.append(toPrettyJson(codification)).append("\n\n");
+                sb.append(codification.toString()).append("\n\n");
             }
         }
 
@@ -295,14 +417,6 @@ public class TranslationServiceImpl implements TranslationService {
         } catch (Exception e) {
             log.error("Cannot read dictionary resource '{}': {}", path, e.getMessage());
             return null;
-        }
-    }
-
-    private String toPrettyJson(JsonNode node) {
-        try {
-            return objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(node);
-        } catch (Exception e) {
-            return node.toString();
         }
     }
 }

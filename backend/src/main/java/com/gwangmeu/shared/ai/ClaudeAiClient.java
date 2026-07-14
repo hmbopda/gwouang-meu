@@ -14,6 +14,7 @@ import java.util.Map;
  * Utilise RestClient (Spring 6, synchrone) — aucune dependance webflux.
  *
  * Modeles disponibles :
+ *   HAIKU  = "claude-haiku-4-5-20251001" (rapide + economique : traduction, taches courtes)
  *   SONNET = "claude-sonnet-4-6" (guide, quiz, moderation, resume)
  *   OPUS   = "claude-opus-4-6"   (enrichissement culturel profond)
  *
@@ -26,6 +27,7 @@ import java.util.Map;
 @Component
 public class ClaudeAiClient {
 
+    public static final String HAIKU  = "claude-haiku-4-5-20251001";
     public static final String SONNET = "claude-sonnet-4-6";
     public static final String OPUS   = "claude-opus-4-6";
 
