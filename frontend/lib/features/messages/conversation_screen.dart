@@ -10,10 +10,12 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:gwangmeu/core/theme/gw_tokens.dart';
 import 'package:gwangmeu/features/chat/chat_notifier.dart';
+import 'package:gwangmeu/features/messages/services/translation_service.dart';
 import 'package:gwangmeu/features/profile/profile_notifier.dart';
 import 'package:gwangmeu/features/villages/services/village_language_service.dart';
 import 'package:gwangmeu/shared/models/chat_group_model.dart';
 import 'package:gwangmeu/shared/models/chat_message_model.dart';
+import 'package:gwangmeu/shared/widgets/gw_dialog.dart';
 
 /// Conversation de groupe (#3b) — bulles 18 px, rôles inline, message vocal
 /// avec forme d'onde, micro = action primaire (48 px or), suggestion IA
@@ -44,7 +46,6 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
   final _inputCtrl = TextEditingController();
   final _scrollCtrl = ScrollController();
   bool _hasText = false;
-  bool _translateDismissed = false;
   RealtimeChannel? _channel;
   Timer? _pollTimer;
   bool _realtimeLive = false;
@@ -258,7 +259,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
       itemBuilder: (context, index) {
         // index 0 (bas de liste) : suggestion IA traduction (langue native réelle)
         if (index == 0) {
-          return (translateLang == null || _translateDismissed)
+          return translateLang == null
               ? const SizedBox.shrink()
               : _translatePill(t, translateLang);
         }
@@ -488,23 +489,13 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                 const SizedBox(width: 8),
                 Flexible(
                   child: Text(
-                    'Traduire cette conversation en ${lang.label} ?',
+                    'Traduire français ↔ ${lang.label}',
                     style: GwType.ui(fontSize: 12.5, color: t.stoneMid),
                   ),
                 ),
                 const SizedBox(width: 8),
                 GestureDetector(
-                  onTap: () {
-                    setState(() => _translateDismissed = true);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          'Traduction en ${lang.label} — bientôt (moteur IA + dictionnaire en préparation)',
-                          style: GwType.ui(fontSize: 14, color: t.stone),
-                        ),
-                      ),
-                    );
-                  },
+                  onTap: () => _openTranslator(lang),
                   child: Text(
                     'Activer',
                     style: GwType.ui(
@@ -518,6 +509,14 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  /// Ouvre le traducteur IA (moteur `/translate`) pour la langue [lang].
+  void _openTranslator(Language lang) {
+    showGwDialog<void>(
+      context,
+      builder: (_) => _TranslatorSheet(lang: lang),
     );
   }
 
@@ -672,4 +671,212 @@ class _DashedBorderPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _DashedBorderPainter old) =>
       old.color != color;
+}
+
+// ── Traducteur IA (moteur /translate) ───────────────────────
+
+/// Feuille de traduction français ⇄ langue native, branchée sur le moteur
+/// backend `/translate` (Claude + dictionnaire). Ouverte via « Activer ».
+class _TranslatorSheet extends ConsumerStatefulWidget {
+  const _TranslatorSheet({required this.lang});
+
+  final Language lang;
+
+  @override
+  ConsumerState<_TranslatorSheet> createState() => _TranslatorSheetState();
+}
+
+class _TranslatorSheetState extends ConsumerState<_TranslatorSheet> {
+  final _controller = TextEditingController();
+  String _direction = TranslationDirection.frToNative;
+  bool _loading = false;
+  TranslationResult? _result;
+  bool _resultToNative = true;
+  String? _error;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _run() async {
+    final text = _controller.text.trim();
+    if (text.isEmpty || _loading) return;
+    FocusScope.of(context).unfocus();
+    final dir = _direction;
+    setState(() {
+      _loading = true;
+      _error = null;
+      _result = null;
+    });
+    try {
+      final res = await ref.read(translationServiceProvider).translate(
+            text: text,
+            direction: dir,
+          );
+      if (!mounted) return;
+      setState(() {
+        _result = res;
+        _resultToNative = dir == TranslationDirection.frToNative;
+      });
+    } on TranslationUnavailableException {
+      if (!mounted) return;
+      setState(() => _error =
+          "Le moteur de traduction s'active (quelques instants). Réessaie dans un moment.");
+    } catch (_) {
+      if (!mounted) return;
+      setState(() =>
+          _error = 'La traduction a échoué. Vérifie ta connexion et réessaie.');
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = GwTokens.of(context);
+    final label = widget.lang.label;
+    final toNative = _direction == TranslationDirection.frToNative;
+
+    return GwDialog(
+      title: 'Traduire',
+      subtitle: 'Français ↔ $label',
+      icon: Symbols.translate,
+      actions: [
+        GwDialogAction(
+          label: 'Traduire',
+          icon: Symbols.auto_awesome,
+          primary: true,
+          loading: _loading,
+          onPressed: _run,
+        ),
+      ],
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: GwChoicePill(
+                  label: 'Français → $label',
+                  selected: toNative,
+                  expand: true,
+                  onTap: () => setState(
+                      () => _direction = TranslationDirection.frToNative),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: GwChoicePill(
+                  label: '$label → Français',
+                  selected: !toNative,
+                  expand: true,
+                  onTap: () => setState(
+                      () => _direction = TranslationDirection.nativeToFr),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          TextField(
+            controller: _controller,
+            minLines: 1,
+            maxLines: 4,
+            style: GwType.ui(fontSize: 15, color: t.stone),
+            decoration: gwInputDecoration(
+              context,
+              hint: toNative ? 'Texte en français…' : 'Texte en $label…',
+            ),
+          ),
+          if (_error != null) ...[
+            const SizedBox(height: 14),
+            GwInfoBanner(tone: GwBannerTone.ember, text: _error!),
+          ],
+          if (_result != null) ...[
+            const SizedBox(height: 16),
+            _resultCard(t, _result!, label),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _resultCard(GwTokens t, TranslationResult r, String label) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: GwTokens.sageBg,
+        borderRadius: BorderRadius.circular(GwTokens.rCardLg),
+        border: Border.all(color: GwTokens.sageLine),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          GwSectionLabel(_resultToNative ? label : 'Français'),
+          const SizedBox(height: 8),
+          SelectableText(
+            r.translation.isEmpty ? '—' : r.translation,
+            style: GwType.display(fontSize: 22, color: t.stone),
+          ),
+          if (r.pronunciation != null) ...[
+            const SizedBox(height: 10),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Symbols.volume_up, size: 16, color: t.sageText),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: SelectableText(
+                    r.pronunciation!,
+                    style: GwType.mono(fontSize: 14, color: t.sageText),
+                  ),
+                ),
+              ],
+            ),
+          ],
+          const SizedBox(height: 12),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _confidenceChip(t, r.confidence),
+              if (r.notes != null) ...[
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    r.notes!,
+                    style:
+                        GwType.ui(fontSize: 12, height: 1.4, color: t.stoneMid),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _confidenceChip(GwTokens t, double c) {
+    final pct = (c * 100).round();
+    final (Color bg, Color line, Color fg) = c >= 0.75
+        ? (GwTokens.sageBg, GwTokens.sageLine, t.sageText)
+        : c >= 0.4
+            ? (t.goldBg, t.goldLine, t.goldText)
+            : (GwTokens.emberBg, GwTokens.emberLine, t.emberText);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(GwTokens.rPill),
+        border: Border.all(color: line),
+      ),
+      child: Text(
+        'confiance $pct %',
+        style:
+            GwType.mono(fontSize: 11, fontWeight: FontWeight.w600, color: fg),
+      ),
+    );
+  }
 }
