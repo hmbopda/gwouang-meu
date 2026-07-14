@@ -10,6 +10,7 @@ import 'package:gwangmeu/features/genealogy/models/family_tree.dart';
 import 'package:gwangmeu/features/genealogy/models/genealogy_union.dart';
 import 'package:gwangmeu/features/genealogy/models/person_genealogy.dart';
 import 'package:gwangmeu/features/genealogy/services/genealogy_api_service.dart';
+import 'package:gwangmeu/features/profile/profile_notifier.dart';
 import 'package:gwangmeu/core/theme/gw_tokens.dart';
 import 'package:gwangmeu/features/genealogy/state/ai_insights.dart';
 import 'package:gwangmeu/features/genealogy/state/migration_journey.dart';
@@ -878,7 +879,7 @@ void _showEditDialog(BuildContext context, PersonGenealogy person, String treeOw
 }
 
 /// Fixed action buttons at the bottom of the person tab.
-class _FixedActions extends StatelessWidget {
+class _FixedActions extends ConsumerWidget {
   final PersonGenealogy person;
   final String treeOwnerId;
 
@@ -888,10 +889,17 @@ class _FixedActions extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final t = GwTokens.of(context);
     // Brun patrimonial de la charte (#3b2a16) pour le bouton secondaire fort.
     const brown = Color(0xFF3B2A16);
+    // Édition réservée à SA propre fiche (compte lié) ou à une fiche sans compte
+    // (ajoutée/gérée par l'utilisateur). JAMAIS la fiche d'un AUTRE compte réel.
+    // Le backend applique déjà la même règle (createdBy OU userId) ; ici on
+    // masque le bouton pour ne même pas le proposer.
+    final myUserId = ref.watch(profileNotifierProvider).valueOrNull?.id;
+    final canEditPerson = person.userId == null ||
+        (myUserId != null && person.userId == myUserId);
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
       decoration: BoxDecoration(
@@ -901,15 +909,17 @@ class _FixedActions extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // ── Modifier la fiche (or plein) ──
-          _FixedActionBtn(
-            icon: Symbols.edit,
-            label: 'Modifier la fiche',
-            backgroundColor: GwTokens.gold,
-            foregroundColor: GwTokens.inkOnGold,
-            onTap: () => _showEditDialog(context, person, treeOwnerId),
-          ),
-          const SizedBox(height: 6),
+          // ── Modifier la fiche (or plein) — seulement si autorisé ──
+          if (canEditPerson) ...[
+            _FixedActionBtn(
+              icon: Symbols.edit,
+              label: 'Modifier la fiche',
+              backgroundColor: GwTokens.gold,
+              foregroundColor: GwTokens.inkOnGold,
+              onTap: () => _showEditDialog(context, person, treeOwnerId),
+            ),
+            const SizedBox(height: 6),
+          ],
 
           // ── Voir carte de migration (brun plein) ──
           _FixedActionBtn(
