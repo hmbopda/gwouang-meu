@@ -4311,6 +4311,7 @@ class _OnlineMembersState extends ConsumerState<_OnlineMembers> {
                     (m) => _memberRow(t, m, online.contains(m.userId))),
               const SizedBox(height: 10),
             ],
+            if (members.isNotEmpty) _viewAllButton(t, members.length),
           ],
         );
       },
@@ -4473,95 +4474,438 @@ class _OnlineMembersState extends ConsumerState<_OnlineMembers> {
     );
   }
 
-  Future<void> _openDirectChat(
-      BuildContext context, WidgetRef ref, VillageMemberModel member) async {
-    final t = GwTokens.of(context);
-    final name = member.displayName ?? 'Membre';
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(children: [
-          SizedBox(
-              width: 16,
-              height: 16,
-              child: CircularProgressIndicator(
-                  strokeWidth: 2, color: GwTokens.gold)),
-          const SizedBox(width: 10),
-          Text('Ouverture de la discussion avec $name…',
-              style: GwType.ui(fontSize: 14, color: t.stone)),
-        ]),
-        duration: const Duration(seconds: 3),
-        backgroundColor: t.inkCard,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(GwTokens.rBtn)),
-      ),
-    );
-
-    try {
-      final group = await ref.read(createDirectChatProvider.notifier).openWith(
-            villageId: widget.village.id,
-            targetUserId: member.userId,
-            targetName: name,
-          );
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).hideCurrentSnackBar();
-      showModalBottomSheet(
-        context: context,
-        isScrollControlled: true,
-        backgroundColor: Colors.transparent,
-        builder: (ctx) => DraggableScrollableSheet(
-          initialChildSize: 0.52,
-          minChildSize: 0.35,
-          maxChildSize: 0.92,
-          snap: true,
-          snapSizes: const [0.52, 0.75, 0.92],
-          builder: (_, __) => ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
-            child: Column(
+  /// Bouton « Voir tous les membres · N » — ouvre le panneau complet
+  /// (recherche + filtres + statut en ligne) via [showGwDialog].
+  Widget _viewAllButton(GwTokens t, int total) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 2, 12, 12),
+      child: Material(
+        color: t.inkLift,
+        borderRadius: BorderRadius.circular(GwTokens.rBtn),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(GwTokens.rBtn),
+          onTap: () => _showAllMembers(
+              context, widget.village.id, widget.village.name),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(GwTokens.rBtn),
+              border: Border.all(color: t.line),
+            ),
+            child: Row(
               children: [
-                Container(
-                  color: t.inkCard,
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: Center(
-                    child: Container(
-                      width: 36,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: t.line,
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                  ),
-                ),
+                Icon(Symbols.groups, size: 17, color: t.goldText),
+                const SizedBox(width: 8),
                 Expanded(
-                  child: _InlineMessages(
-                    group: group,
-                    onClose: () => Navigator.of(ctx).pop(),
-                  ),
+                  child: Text('Voir tous les membres',
+                      style: GwType.ui(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: t.stoneMid)),
                 ),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: t.goldBg,
+                    borderRadius: BorderRadius.circular(GwTokens.rPill),
+                  ),
+                  child: Text('$total',
+                      style: GwType.mono(fontSize: 10, color: t.goldText)),
+                ),
+                const SizedBox(width: 4),
+                Icon(Symbols.chevron_right, size: 18, color: t.stoneDim),
               ],
             ),
           ),
         ),
-      );
-    } catch (_) {
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).hideCurrentSnackBar();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Impossible d\'ouvrir la discussion',
-              style: GwType.ui(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white)),
-          backgroundColor: GwTokens.ember,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(GwTokens.rPill)),
+      ),
+    );
+  }
+
+  /// Thin wrapper : délègue au helper partagé [_openMemberDirectChat].
+  Future<void> _openDirectChat(
+          BuildContext context, WidgetRef ref, VillageMemberModel member) =>
+      _openMemberDirectChat(context, ref, widget.village.id, member);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DM PARTAGÉ — ouverture d'une discussion directe avec un membre
+// (réutilisé par le rail « En ligne » et le panneau « Tous les membres »).
+// ═══════════════════════════════════════════════════════════════
+
+/// Ouvre (ou crée) la discussion directe avec [member] au sein de [villageId],
+/// puis présente le fil de messages dans un bottom-sheet.
+Future<void> _openMemberDirectChat(
+  BuildContext context,
+  WidgetRef ref,
+  String villageId,
+  VillageMemberModel member,
+) async {
+  final t = GwTokens.of(context);
+  final name = member.displayName ?? 'Membre';
+
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Row(children: [
+        SizedBox(
+            width: 16,
+            height: 16,
+            child: CircularProgressIndicator(
+                strokeWidth: 2, color: GwTokens.gold)),
+        const SizedBox(width: 10),
+        Text('Ouverture de la discussion avec $name…',
+            style: GwType.ui(fontSize: 14, color: t.stone)),
+      ]),
+      duration: const Duration(seconds: 3),
+      backgroundColor: t.inkCard,
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(GwTokens.rBtn)),
+    ),
+  );
+
+  try {
+    final group = await ref.read(createDirectChatProvider.notifier).openWith(
+          villageId: villageId,
+          targetUserId: member.userId,
+          targetName: name,
+        );
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => DraggableScrollableSheet(
+        initialChildSize: 0.52,
+        minChildSize: 0.35,
+        maxChildSize: 0.92,
+        snap: true,
+        snapSizes: const [0.52, 0.75, 0.92],
+        builder: (_, __) => ClipRRect(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
+          child: Column(
+            children: [
+              Container(
+                color: t.inkCard,
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Center(
+                  child: Container(
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: t.line,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+              ),
+              Expanded(
+                child: _InlineMessages(
+                  group: group,
+                  onClose: () => Navigator.of(ctx).pop(),
+                ),
+              ),
+            ],
+          ),
         ),
-      );
+      ),
+    );
+  } catch (_) {
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Impossible d\'ouvrir la discussion',
+            style: GwType.ui(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Colors.white)),
+        backgroundColor: GwTokens.ember,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(GwTokens.rPill)),
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PANNEAU « TOUS LES MEMBRES » — liste complète + recherche + filtres
+// ═══════════════════════════════════════════════════════════════
+
+/// Ouvre le panneau « Tous les membres » d'un village (responsive :
+/// bottom-sheet plein écran sur mobile, dialog centré sur desktop web).
+void _showAllMembers(
+    BuildContext context, String villageId, String villageName) {
+  showGwDialog(
+    context,
+    builder: (_) =>
+        _AllMembersPanel(villageId: villageId, villageName: villageName),
+  );
+}
+
+/// Contenu du panneau « Tous les membres » : la liste COMPLÈTE des membres du
+/// village avec barre de recherche, pilules de filtre (Tous / En ligne / par
+/// rôle) et statut en ligne temps réel. Chaque ligne ouvre le DM.
+class _AllMembersPanel extends ConsumerStatefulWidget {
+  const _AllMembersPanel({required this.villageId, required this.villageName});
+  final String villageId;
+  final String villageName;
+
+  @override
+  ConsumerState<_AllMembersPanel> createState() => _AllMembersPanelState();
+}
+
+class _AllMembersPanelState extends ConsumerState<_AllMembersPanel> {
+  // Valeurs sentinelles des filtres non liés à un rôle.
+  static const _kAll = '__ALL__';
+  static const _kOnline = '__ONLINE__';
+
+  final TextEditingController _searchCtrl = TextEditingController();
+  String _query = '';
+  String _filter = _kAll;
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = GwTokens.of(context);
+    final membersAsync = ref.watch(villageMembersProvider(widget.villageId));
+    final online = ref.watch(onlineUsersProvider);
+
+    return GwDialog(
+      title: 'Tous les membres',
+      subtitle: widget.villageName,
+      icon: Symbols.groups,
+      contentPadding: EdgeInsets.zero,
+      child: membersAsync.when(
+        loading: () => const Padding(
+          padding: EdgeInsets.symmetric(vertical: 48),
+          child: Center(
+              child: CircularProgressIndicator(
+                  strokeWidth: 2, color: GwTokens.gold)),
+        ),
+        error: (_, __) => Padding(
+          padding: const EdgeInsets.all(24),
+          child: Text('Impossible de charger les membres',
+              style: GwType.ui(fontSize: 14, color: t.stoneDim)),
+        ),
+        data: (members) => _content(t, members, online),
+      ),
+    );
+  }
+
+  Widget _content(
+      GwTokens t, List<VillageMemberModel> members, Set<String> online) {
+    // Rôles/types distincts réellement présents (triés) → pilules de filtre.
+    final types = <String>{
+      for (final m in members) m.type.toUpperCase(),
+    }.toList()
+      ..sort();
+
+    // 1) Filtre actif
+    Iterable<VillageMemberModel> list = members;
+    if (_filter == _kOnline) {
+      list = list.where((m) => online.contains(m.userId));
+    } else if (_filter != _kAll) {
+      list = list.where((m) => m.type.toUpperCase() == _filter);
     }
+    // 2) Recherche par nom (en direct)
+    final q = _query.trim().toLowerCase();
+    if (q.isNotEmpty) {
+      list =
+          list.where((m) => (m.displayName ?? '').toLowerCase().contains(q));
+    }
+    // 3) Tri : en ligne d'abord, puis par nom
+    final filtered = list.toList()
+      ..sort((a, b) {
+        final ao = online.contains(a.userId) ? 0 : 1;
+        final bo = online.contains(b.userId) ? 0 : 1;
+        if (ao != bo) return ao - bo;
+        return (a.displayName ?? '')
+            .toLowerCase()
+            .compareTo((b.displayName ?? '').toLowerCase());
+      });
+
+    final onlineCount = members.where((m) => online.contains(m.userId)).length;
+    final listH =
+        (MediaQuery.sizeOf(context).height * 0.5).clamp(240.0, 460.0);
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // Barre de recherche
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
+          child: TextField(
+            controller: _searchCtrl,
+            onChanged: (v) => setState(() => _query = v),
+            style: GwType.ui(fontSize: 14, color: t.stone),
+            decoration: gwInputDecoration(context,
+                hint: 'Rechercher un membre…', prefixIcon: Symbols.search),
+          ),
+        ),
+        // Pilules de filtre : Tous · En ligne · <rôles présents>
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _filterPill(t, 'Tous', _kAll, members.length),
+              _filterPill(t, 'En ligne', _kOnline, onlineCount),
+              for (final ty in types)
+                _filterPill(t, _memberRoleLabel(ty), ty,
+                    members.where((m) => m.type.toUpperCase() == ty).length),
+            ],
+          ),
+        ),
+        Container(height: 1, color: t.line),
+        // Liste complète (défilement interne borné, sans cap)
+        SizedBox(
+          height: listH,
+          child: filtered.isEmpty
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Text(
+                        q.isEmpty && _filter == _kAll
+                            ? 'Aucun membre'
+                            : 'Aucun résultat',
+                        style: GwType.ui(fontSize: 13, color: t.stoneFaint)),
+                  ),
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  itemCount: filtered.length,
+                  itemBuilder: (_, i) => _memberRow(
+                      t, filtered[i], online.contains(filtered[i].userId)),
+                ),
+        ),
+      ],
+    );
+  }
+
+  Widget _filterPill(GwTokens t, String label, String value, int count) {
+    final sel = _filter == value;
+    return Material(
+      color: sel ? t.goldBg : t.inkLift,
+      borderRadius: BorderRadius.circular(GwTokens.rPill),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(GwTokens.rPill),
+        onTap: () => setState(() => _filter = value),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(GwTokens.rPill),
+            border: Border.all(color: sel ? t.goldLine : t.line),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(label,
+                  style: GwType.ui(
+                      fontSize: 12.5,
+                      fontWeight: sel ? FontWeight.w700 : FontWeight.w500,
+                      color: sel ? t.goldText : t.stoneMid)),
+              const SizedBox(width: 6),
+              Text('$count',
+                  style: GwType.mono(
+                      fontSize: 10,
+                      color: sel ? t.goldText : t.stoneFaint)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _memberRow(GwTokens t, VillageMemberModel member, bool isOnline) {
+    final name = member.displayName ?? 'Membre';
+    final initials = name
+        .trim()
+        .split(' ')
+        .take(2)
+        .map((w) => w.isNotEmpty ? w[0].toUpperCase() : '')
+        .join();
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () =>
+            _openMemberDirectChat(context, ref, widget.villageId, member),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Row(
+            children: [
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  CircleAvatar(
+                    radius: 20,
+                    backgroundColor: GwTokens.sageBg,
+                    backgroundImage: member.avatarUrl != null &&
+                            member.avatarUrl!.isNotEmpty
+                        ? NetworkImage(member.avatarUrl!)
+                        : null,
+                    child: member.avatarUrl == null ||
+                            member.avatarUrl!.isEmpty
+                        ? Text(initials,
+                            style: GwType.display(
+                                fontSize: 12, color: t.sageText))
+                        : null,
+                  ),
+                  if (isOnline)
+                    Positioned(
+                      right: -1,
+                      bottom: -1,
+                      child: Container(
+                        width: 13,
+                        height: 13,
+                        decoration: BoxDecoration(
+                          color: GwTokens.sage,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: t.inkCard, width: 2),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GwType.ui(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: t.stone)),
+                    const SizedBox(height: 2),
+                    Text(
+                        isOnline
+                            ? 'En ligne · ${_memberRoleLabel(member.type)}'
+                            : _memberRoleLabel(member.type),
+                        style: GwType.mono(
+                            fontSize: 10,
+                            color: isOnline ? GwTokens.sage : t.stoneFaint)),
+                  ],
+                ),
+              ),
+              Icon(Symbols.chat_bubble, size: 16, color: t.goldText),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 
