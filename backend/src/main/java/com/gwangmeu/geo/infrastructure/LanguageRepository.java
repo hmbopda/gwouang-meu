@@ -14,4 +14,7 @@ public interface LanguageRepository extends JpaRepository<Language, UUID> {
     List<Language> findAllByIdIn(List<UUID> ids);
 
     List<Language> findAllByOrderByNameAsc();
+
+    /** Langues actives du referentiel, triees par nom francais (V57). */
+    List<Language> findByActiveTrueOrderByFrenchNameAsc();
 }
