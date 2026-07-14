@@ -1,8 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:gwangmeu/core/network/api_client.dart';
 import 'package:gwangmeu/features/chat/chat_notifier.dart';
 import 'package:gwangmeu/features/chat/direct_chat.dart';
 import 'package:gwangmeu/features/genealogy/genealogy_notifier.dart';
+import 'package:gwangmeu/features/profile/profile_notifier.dart';
 import 'package:gwangmeu/features/villages/villages_notifier.dart';
 import 'package:gwangmeu/shared/models/chat_group_model.dart';
 
@@ -16,6 +18,7 @@ class Conversation {
     required this.group,
     required this.scopeLabel,
     required this.kind,
+    this.unreadCount = 0,
   });
 
   final ChatGroupModel group;
@@ -24,6 +27,11 @@ class Conversation {
   final String scopeLabel;
 
   final ConversationKind kind;
+
+  /// Messages non lus. Le backend ne l'expose PAS encore : `ChatGroupDto` ne
+  /// porte ni compteur de non-lus ni dernier message. La valeur reste donc 0
+  /// (badge masqué) tant qu'un champ dédié n'est pas ajouté côté API.
+  final int unreadCount;
 
   bool get isDirect => kind == ConversationKind.direct;
   bool get isFamily => kind == ConversationKind.family;
@@ -124,4 +132,26 @@ final unreadMessagesCountProvider = Provider<int>((ref) {
   // TODO(messages): brancher sur l'API chat quand le backend expose le compteur.
   // En attendant, pas de faux badge : 0 non-lu.
   return 0;
+});
+
+/// Id de l'AUTRE participant d'une conversation directe (1:1), pour la pastille
+/// de présence « en ligne ». Best-effort via /chat/groups/{id}/members : on
+/// prend le premier membre différent de soi. En cas d'erreur (ou si la
+/// conversation n'a pas encore de membres résolus) → null : pas de pastille.
+///
+/// N'est lu QUE pour les lignes de type DIRECT (les groupes village/famille ne
+/// déclenchent aucun appel), et mis en cache par groupe (autoDispose.family).
+final directPeerIdProvider =
+    FutureProvider.autoDispose.family<String?, String>((ref, groupId) async {
+  final myId = ref.watch(profileNotifierProvider).valueOrNull?.id;
+  if (myId == null) return null;
+  final client = ref.read(apiClientProvider);
+  final json = await client.get('/api/v1/chat/groups/$groupId/members');
+  final list = json['data'] as List? ?? const [];
+  for (final e in list) {
+    if (e is! Map<String, dynamic>) continue;
+    final uid = (e['userId'] ?? e['id'])?.toString();
+    if (uid != null && uid.isNotEmpty && uid != myId) return uid;
+  }
+  return null;
 });

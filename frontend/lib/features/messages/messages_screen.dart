@@ -10,13 +10,15 @@ import 'package:gwangmeu/features/chat/direct_chat.dart';
 import 'package:gwangmeu/features/home/home_screen.dart';
 import 'package:gwangmeu/features/messages/conversation_screen.dart';
 import 'package:gwangmeu/features/messages/messages_providers.dart';
+import 'package:gwangmeu/features/presence/presence_service.dart';
+import 'package:gwangmeu/shared/models/chat_group_model.dart';
 import 'package:gwangmeu/shared/widgets/gw_dialog.dart';
 
-/// Messages — refonte « messagerie ». Mobile : liste → navigation vers le fil.
-/// Desktop/web : split 3 colonnes (liste · fil embarqué · panneau contact).
-/// Alimenté par les vraies conversations (villages + famille + directs).
-enum _MsgFilter { tous, villages, clans, directs }
-
+/// Messages — boîte de réception UNIQUE, façon Messenger. Toutes les
+/// conversations de l'utilisateur (DM + chats de village + chats de
+/// famille/clan) sont fusionnées en une seule liste triée par activité
+/// récente. Mobile : liste → navigation vers le fil. Desktop/web : split
+/// 3 colonnes (liste · fil embarqué · panneau contact).
 class MessagesScreen extends ConsumerStatefulWidget {
   const MessagesScreen({super.key});
 
@@ -25,16 +27,8 @@ class MessagesScreen extends ConsumerStatefulWidget {
 }
 
 class _MessagesScreenState extends ConsumerState<MessagesScreen> {
-  _MsgFilter _filter = _MsgFilter.tous;
   String _query = '';
   Conversation? _selected; // desktop split
-
-  static const _labels = {
-    _MsgFilter.tous: 'Tous',
-    _MsgFilter.villages: 'Villages',
-    _MsgFilter.clans: 'Clans',
-    _MsgFilter.directs: 'Directs',
-  };
 
   @override
   Widget build(BuildContext context) {
@@ -69,11 +63,9 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
         if (!desktop) const GwWeaveBand(),
         _header(t),
         _search(t),
-        _filters(t),
-        const SizedBox(height: 12),
+        const SizedBox(height: 6),
         Expanded(
           child: _ConvList(
-            filter: _filter,
             query: _query,
             selectedId: desktop ? _selected?.group.id : null,
             onSelect:
@@ -92,6 +84,7 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
               child: Text('Messages',
                   style: GwType.display(fontSize: 24, color: t.stone)),
             ),
+            // Nouveau message (DM) — le « + » de la boîte unique.
             Material(
               color: t.goldBg,
               borderRadius: BorderRadius.circular(GwTokens.rBtn),
@@ -111,12 +104,12 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
       );
 
   Widget _search(GwTokens t) => Padding(
-        padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+        padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
         child: TextField(
           onChanged: (v) => setState(() => _query = v.trim()),
           style: GwType.ui(fontSize: 14, color: t.stone),
           decoration: InputDecoration(
-            hintText: 'Rechercher un message, une personne…',
+            hintText: 'Rechercher une conversation…',
             hintStyle: GwType.ui(fontSize: 14, color: t.stoneDim),
             prefixIcon: Icon(Symbols.search, size: 20, color: t.stoneDim),
             filled: true,
@@ -135,42 +128,6 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
           ),
         ),
       );
-
-  Widget _filters(GwTokens t) => SizedBox(
-        height: 38,
-        child: ListView(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          children: [
-            for (final f in _MsgFilter.values) ...[
-              _pill(t, _labels[f]!, f),
-              const SizedBox(width: 8),
-            ],
-          ],
-        ),
-      );
-
-  Widget _pill(GwTokens t, String label, _MsgFilter f) {
-    final active = _filter == f;
-    return GestureDetector(
-      onTap: () => setState(() => _filter = f),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 15),
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: active ? GwTokens.gold : t.inkLift,
-          borderRadius: BorderRadius.circular(GwTokens.rPill),
-          border: Border.all(color: active ? GwTokens.gold : t.line),
-        ),
-        child: Text(label,
-            style: GwType.ui(
-                fontSize: 13,
-                fontWeight: active ? FontWeight.w700 : FontWeight.w600,
-                color: active ? GwTokens.inkOnGold : t.stoneMid)),
-      ),
-    );
-  }
 
   Widget _thread(GwTokens t) {
     final sel = _selected;
@@ -351,18 +308,19 @@ class _NewMessageSheetState extends ConsumerState<_NewMessageSheet> {
 }
 
 // ─────────────────────────────────────────────────────────────
-//  Liste unifiée (villages + famille + directs) filtrée
+//  Liste unifiée — villages + famille + directs, une seule boîte
 // ─────────────────────────────────────────────────────────────
+
+/// Date plancher pour trier les conversations sans `createdAt`.
+final _epoch = DateTime.utc(1970);
 
 class _ConvList extends ConsumerWidget {
   const _ConvList({
-    required this.filter,
     required this.query,
     this.onSelect,
     this.selectedId,
   });
 
-  final _MsgFilter filter;
   final String query;
   final void Function(Conversation)? onSelect;
   final String? selectedId;
@@ -370,68 +328,58 @@ class _ConvList extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final t = GwTokens.of(context);
-    final convAsync = ref.watch(myConversationsProvider); // villages + directs village
+    final convAsync = ref.watch(myConversationsProvider); // villages + DM village
     final directAsync = ref.watch(myDirectConversationsProvider); // DM globaux
-    final needFamily =
-        filter == _MsgFilter.tous || filter == _MsgFilter.clans;
-    final famAsync = needFamily
-        ? ref.watch(myFamilyConversationsProvider)
-        : const AsyncData<List<Conversation>>([]);
+    final famAsync = ref.watch(myFamilyConversationsProvider); // famille / clan
 
-    if (convAsync.isLoading || famAsync.isLoading) {
+    final conv = convAsync.valueOrNull;
+    final direct = directAsync.valueOrNull;
+    final fam = famAsync.valueOrNull;
+    final anyLoading =
+        convAsync.isLoading || directAsync.isLoading || famAsync.isLoading;
+    final noData = conv == null && direct == null && fam == null;
+
+    // Tant qu'aucune source n'a répondu, on patiente. Ensuite on affiche ce
+    // qui est dispo — une source en erreur (backend pas déployé) ne bloque pas.
+    if (noData && anyLoading) {
       return Center(child: CircularProgressIndicator(color: t.goldText));
     }
-    if (convAsync.hasError && famAsync.hasError) {
-      return _emptyState(t, Symbols.forum,
-          'Impossible de charger vos conversations.\nTirez pour réessayer.');
+    if (noData) {
+      return RefreshIndicator(
+        color: t.goldText,
+        onRefresh: () async => _refresh(ref),
+        child: ListView(children: [
+          SizedBox(height: MediaQuery.sizeOf(context).height * 0.18),
+          _emptyState(t, Symbols.forum,
+              'Impossible de charger vos conversations.\nTirez pour réessayer.'),
+        ]),
+      );
     }
-    // Les DM globaux (/my-groups) sont fusionnés au mieux : s'ils sont en
-    // erreur ou en cours (backend pas encore déployé), la liste ne bloque pas.
-    final conv = <Conversation>[
-      ...(convAsync.valueOrNull ?? const <Conversation>[]),
-      ...(directAsync.valueOrNull ?? const <Conversation>[]),
-    ];
-    final fam = famAsync.valueOrNull ?? const <Conversation>[];
 
-    List<Conversation> list;
-    switch (filter) {
-      case _MsgFilter.tous:
-        list = [...conv, ...fam];
-        break;
-      case _MsgFilter.villages:
-        list = conv.where((c) => c.kind == ConversationKind.village).toList();
-        break;
-      case _MsgFilter.directs:
-        list = conv.where((c) => c.isDirect).toList();
-        break;
-      case _MsgFilter.clans:
-        list = fam;
-        break;
+    // Fusion + déduplication par id de groupe (une même conversation peut
+    // remonter de plusieurs sources), puis tri par activité récente.
+    final byId = <String, Conversation>{};
+    for (final c in [...?conv, ...?direct, ...?fam]) {
+      byId.putIfAbsent(c.group.id, () => c);
     }
-    list.sort((a, b) => (b.group.createdAt ?? DateTime(1970))
-        .compareTo(a.group.createdAt ?? DateTime(1970)));
+    var list = byId.values.toList()
+      ..sort((a, b) => (b.group.createdAt ?? _epoch)
+          .compareTo(a.group.createdAt ?? _epoch));
     list = _filterByQuery(list, query);
-
-    final emptyMsg = switch (filter) {
-      _MsgFilter.directs => 'Aucun message direct pour le moment',
-      _MsgFilter.clans => 'Renseignez votre clan dans votre lignée\n'
-          'pour rejoindre la discussion de famille.',
-      _MsgFilter.villages =>
-        'Rejoignez un village pour accéder à ses conversations',
-      _MsgFilter.tous => 'Aucune conversation pour le moment',
-    };
 
     return RefreshIndicator(
       color: t.goldText,
-      onRefresh: () async {
-        ref.invalidate(myConversationsProvider);
-        ref.invalidate(myDirectConversationsProvider);
-        ref.invalidate(myFamilyConversationsProvider);
-      },
+      onRefresh: () async => _refresh(ref),
       child: list.isEmpty
           ? ListView(children: [
               SizedBox(height: MediaQuery.sizeOf(context).height * 0.18),
-              _emptyState(t, Symbols.forum, emptyMsg),
+              _emptyState(
+                t,
+                Symbols.forum,
+                query.isEmpty
+                    ? 'Aucune conversation pour le moment'
+                    : 'Aucun résultat pour « $query ».',
+              ),
             ])
           : ListView.separated(
               padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
@@ -460,6 +408,12 @@ class _ConvList extends ConsumerWidget {
               },
             ),
     );
+  }
+
+  void _refresh(WidgetRef ref) {
+    ref.invalidate(myConversationsProvider);
+    ref.invalidate(myDirectConversationsProvider);
+    ref.invalidate(myFamilyConversationsProvider);
   }
 }
 
@@ -492,10 +446,10 @@ Widget _emptyState(GwTokens t, IconData icon, String message) {
 }
 
 // ─────────────────────────────────────────────────────────────
-//  Rangée conversation — avatar rond teinté, nom, aperçu, heure
+//  Rangée conversation — avatar (+ présence DM), nom, aperçu, heure, non-lus
 // ─────────────────────────────────────────────────────────────
 
-class _ConversationRow extends StatelessWidget {
+class _ConversationRow extends ConsumerWidget {
   const _ConversationRow({
     required this.conversation,
     required this.index,
@@ -516,14 +470,28 @@ class _ConversationRow extends StatelessWidget {
   ];
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final t = GwTokens.of(context);
     final g = conversation.group;
     final tint =
         conversation.isFamily ? GwTokens.gold : _tints[index % _tints.length];
+    // Aperçu du dernier message : indisponible côté backend (ChatGroupDto ne
+    // porte pas de dernier message) → repli sur la description ou le nombre de
+    // membres.
     final preview = (g.description?.isNotEmpty == true)
         ? g.description!
         : '${g.memberCount} membre${g.memberCount > 1 ? 's' : ''}';
+    final unread = conversation.unreadCount;
+
+    // Présence : pastille verte pour un DM 1:1 dont l'autre membre est en ligne.
+    // On ne résout le pair (via /members) QUE pour les conversations directes.
+    var online = false;
+    if (conversation.isDirect) {
+      final peerId = ref.watch(directPeerIdProvider(g.id)).valueOrNull;
+      if (peerId != null) {
+        online = ref.watch(onlineUsersProvider).contains(peerId);
+      }
+    }
 
     return Material(
       color: selected ? t.goldBg : Colors.transparent,
@@ -540,25 +508,7 @@ class _ConversationRow extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
           child: Row(
             children: [
-              Container(
-                width: 50,
-                height: 50,
-                decoration: BoxDecoration(
-                  color: tint.withValues(alpha: 0.18),
-                  shape: BoxShape.circle,
-                  border: Border.all(color: tint.withValues(alpha: 0.5)),
-                ),
-                alignment: Alignment.center,
-                child: conversation.isFamily
-                    ? Icon(Symbols.family_history, size: 23, color: tint)
-                    : Text(
-                        g.name.isNotEmpty ? g.name[0].toUpperCase() : '?',
-                        style: GwType.display(
-                            fontSize: 19,
-                            fontWeight: FontWeight.w600,
-                            color: tint),
-                      ),
-              ),
+              _avatar(t, g, tint, online),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -572,7 +522,9 @@ class _ConversationRow extends StatelessWidget {
                               overflow: TextOverflow.ellipsis,
                               style: GwType.ui(
                                   fontSize: 15,
-                                  fontWeight: FontWeight.w600,
+                                  fontWeight: unread > 0
+                                      ? FontWeight.w700
+                                      : FontWeight.w600,
                                   color: t.stone)),
                         ),
                         const SizedBox(width: 8),
@@ -581,13 +533,19 @@ class _ConversationRow extends StatelessWidget {
                                 fontSize: 10,
                                 color: t.stoneFaint,
                                 letterSpacing: 0.5)),
+                        if (unread > 0) ...[
+                          const SizedBox(width: 6),
+                          _unreadBadge(unread),
+                        ],
                       ],
                     ),
                     const SizedBox(height: 3),
                     Text(preview,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: GwType.ui(fontSize: 13, color: t.stoneDim)),
+                        style: GwType.ui(
+                            fontSize: 13,
+                            color: unread > 0 ? t.stoneMid : t.stoneDim)),
                     const SizedBox(height: 4),
                     Text(
                       '${conversation.scopeLabel.toUpperCase()} · ${_typeLabel(conversation.kind)}',
@@ -605,6 +563,67 @@ class _ConversationRow extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _avatar(GwTokens t, ChatGroupModel g, Color tint, bool online) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Container(
+          width: 50,
+          height: 50,
+          decoration: BoxDecoration(
+            color: tint.withValues(alpha: 0.18),
+            shape: BoxShape.circle,
+            border: Border.all(color: tint.withValues(alpha: 0.5)),
+          ),
+          alignment: Alignment.center,
+          child: conversation.isFamily
+              ? Icon(Symbols.family_history, size: 23, color: tint)
+              : Text(
+                  g.name.isNotEmpty ? g.name[0].toUpperCase() : '?',
+                  style: GwType.display(
+                      fontSize: 19, fontWeight: FontWeight.w600, color: tint),
+                ),
+        ),
+        // Pastille « en ligne » (DM 1:1 uniquement).
+        if (online)
+          Positioned(
+            right: 0,
+            bottom: 0,
+            child: Container(
+              width: 14,
+              height: 14,
+              decoration: BoxDecoration(
+                color: GwTokens.sage,
+                shape: BoxShape.circle,
+                border: Border.all(color: t.ink, width: 2.5),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _unreadBadge(int count) {
+    return Container(
+      constraints: const BoxConstraints(minWidth: 18),
+      height: 18,
+      padding: const EdgeInsets.symmetric(horizontal: 5),
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: GwTokens.ember,
+        borderRadius: BorderRadius.circular(9),
+      ),
+      child: Text(
+        count > 99 ? '99+' : '$count',
+        style: GwType.mono(
+            fontSize: 10,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0,
+            color: GwTokens.inkOnGold),
       ),
     );
   }
