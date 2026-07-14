@@ -18,10 +18,10 @@
     ]
   },
   "meta": {
-    "source": "Recueil de leçons Mə̀yú' Bandenkop (leçons 7 à 11) — transcription depuis photos fournies par le fondateur",
+    "source": "Recueil de leçons Mə̀yú' Bandenkop (leçons 2 à 11) — transcription depuis photos fournies par le fondateur",
     "direction": "bidirectionnel français ⇄ Mə̀yú' Bandenkop",
     "champs": "fr = français ; mo = Mə̀yú' Bandenkop (orthographe du recueil, telle quelle, variantes séparées par « / »)",
-    "avertissement": "Transcription fidèle des tableaux imprimés ; l'orthographe et les tons suivent la source. Certaines graphies (schwa ə, tons, occlusive glottale ') peuvent différer de conventions académiques. À vérifier/enrichir avec les pages suivantes.",
+    "avertissement": "Transcription fidèle des tableaux imprimés ; l'orthographe et les tons suivent la source. Certaines graphies (schwa ə, tons, occlusive glottale ') peuvent différer de conventions académiques. Les gloses marquées « (?) » sont des inférences à confirmer.",
     "note": "Premier dictionnaire du projet. Destiné à être injecté en contexte au LLM (traduction augmentée par lexique) et à la génération de prononciation."
   },
   "categories": {
@@ -98,6 +98,36 @@
             { "fr": "le talon", "mo": "Tou khwè" }
           ]
         }
+      },
+      "phonetique": {
+        "note": "Formes tonalisées relevées sur le schéma anatomique de la leçon 9 (utiles pour la prononciation ; tons, schwa ə et ŋ tels que dessinés).",
+        "entrees": [
+          { "fr": "la tête", "mo": "Tsɛ́" },
+          { "fr": "les cheveux", "mo": "Nûŋ'tsɛ" },
+          { "fr": "l'œil", "mo": "Zók" },
+          { "fr": "le nez", "mo": "Zhè" },
+          { "fr": "la joue", "mo": "Ghò" },
+          { "fr": "la dent", "mo": "Sòŋ" },
+          { "fr": "le cou", "mo": "Thóŋ" },
+          { "fr": "la bouche", "mo": "Cwè" },
+          { "fr": "épaule", "mo": "Khɛ̀bò'" },
+          { "fr": "poitrine", "mo": "Khəkhxóp" },
+          { "fr": "aisselle", "mo": "Hákzɛ" },
+          { "fr": "le bras", "mo": "Phə" },
+          { "fr": "la colonne vertébrale", "mo": "Kwǐ" },
+          { "fr": "le coude", "mo": "Tǔphə" },
+          { "fr": "ventre", "mo": "Vèm" },
+          { "fr": "hanche", "mo": "Dzɛ̀ŋ" },
+          { "fr": "la paume de main", "mo": "Tǒŋ phə" },
+          { "fr": "le doigt", "mo": "Tsɛ́phə" },
+          { "fr": "cuisse (?)", "mo": "Thǒmkhwè" },
+          { "fr": "le genou", "mo": "Zùŋ" },
+          { "fr": "le pied", "mo": "Khwè" },
+          { "fr": "bas de jambe / mollet (?)", "mo": "Lǒmkhwè" },
+          { "fr": "l'orteil", "mo": "Tsêkhwè" },
+          { "fr": "le tronc", "mo": "Kèm nô mè" },
+          { "fr": "les membres", "mo": "Yùŋ nô mè" }
+        ]
       }
     },
     "mets": {
@@ -164,18 +194,94 @@
         { "fr": "marmite / marmites", "mo": "Bang / pbang" },
         { "fr": "feu à gaz", "mo": "Fefouo mok" }
       ]
+    },
+    "temps": {
+      "titre": "Les moments de la journée (Tié'noh dze) — leçon 2",
+      "note": "« hier » et « demain » sont tous deux notés Youo dans la source, distingués par le ton.",
+      "entrees": [
+        { "fr": "matin", "mo": "Fokdze" },
+        { "fr": "très tôt le matin", "mo": "Mè tsù Fokdze (Mè tsu' fokdze)" },
+        { "fr": "le jour / mi-journée", "mo": "Moktche" },
+        { "fr": "après-midi / fin de journée / soir", "mo": "Bouodze" },
+        { "fr": "la nuit", "mo": "tsû'h (tsu')" },
+        { "fr": "minuit / très tard dans la nuit", "mo": "Tchyatsû'h (tsu')" },
+        { "fr": "hier", "mo": "Youo" },
+        { "fr": "aujourd'hui", "mo": "Lia'h / Là la" },
+        { "fr": "maintenant", "mo": "tià'h / tià' la" },
+        { "fr": "demain", "mo": "Youo" },
+        { "fr": "demain matin", "mo": "Fokdze" },
+        { "fr": "après-demain", "mo": "Djeumdze youô / Apta youô" },
+        { "fr": "au revoir", "mo": "Ohoô / ohôo bè" },
+        { "fr": "à très bientôt", "mo": "Tè meu dà'h" },
+        { "fr": "à demain", "mo": "Tè youô" },
+        { "fr": "prochainement", "mo": "Tè lié' meu" }
+      ]
+    },
+    "calendrier": {
+      "titre": "Les huit jours de la semaine bandenkop (Gapdze) — leçon 6",
+      "note": "La semaine bandenkop compte huit jours (Gapdze Denkwop be lié hom). Certains jours portent des interdits ou indications rituelles.",
+      "entrees": [
+        { "fr": "semaine", "mo": "Gapdze" },
+        { "fr": "jour 1 — jour du marché", "mo": "Liégang" },
+        { "fr": "jour 2 — indiqué pour les mariages et sorties des sociétés secrètes cagoulées", "mo": "Liékouong" },
+        { "fr": "jour 3", "mo": "Temgou" },
+        { "fr": "jour 4 — interdit de faire du bruit", "mo": "Liédjou" },
+        { "fr": "jour 5 — interdit de cultiver", "mo": "Chepté" },
+        { "fr": "jour 6 — indiqué pour les mariages et sorties des sociétés secrètes cagoulées", "mo": "Kouogouè" },
+        { "fr": "jour 7 — interdit de faire du bruit", "mo": "Dzèsoe" },
+        { "fr": "jour 8 — interdit de cultiver", "mo": "Djedjeu" }
+      ]
     }
   },
   "grammaire": {
-    "pronomsSujets": {
-      "note": "Marqueurs de sujet déduits des conjugaisons ci-dessous.",
+    "pronomsPersonnels": {
+      "titre": "Les pronoms personnels — leçon 3",
       "entrees": [
-        { "fr": "je", "mo": "guê / gê / dè" },
-        { "fr": "tu", "mo": "ou" },
-        { "fr": "il / elle", "mo": "a" },
-        { "fr": "nous", "mo": "pè / pê" },
-        { "fr": "vous", "mo": "peu" },
-        { "fr": "ils / elles", "mo": "wap / wâp" }
+        { "fr": "je", "mo": "Guê" },
+        { "fr": "tu", "mo": "Ou" },
+        { "fr": "il / elle", "mo": "À" },
+        { "fr": "nous", "mo": "Pê" },
+        { "fr": "vous", "mo": "Peu" },
+        { "fr": "ils / elles", "mo": "Wap" }
+      ],
+      "noteConjugaison": "Variantes de sujet observées dans les conjugaisons : je = guê / gê / dè ; nous = pè / pê ; ils = wap / wâp."
+    },
+    "adjectifsPossessifs": {
+      "titre": "Les adjectifs possessifs — leçon 4",
+      "note": "Ex. « Meu a » = mon enfant, « bang a » = ma marmite ; « Poh pok » = nos enfants. (Meu = enfant, Poh = enfants, bang = marmite.)",
+      "entrees": [
+        { "fr": "mon / ma", "mo": "a / zè / mè" },
+        { "fr": "ton / ta", "mo": "ou / you / mou" },
+        { "fr": "son / sa", "mo": "i / yi / mi" },
+        { "fr": "notre / nos", "mo": "yok / zok / mok / pok" },
+        { "fr": "votre / vos", "mo": "yé / zé / mé / pé" },
+        { "fr": "leur / leurs", "mo": "yap / zap / map / pap" }
+      ]
+    },
+    "pronomsPossessifs": {
+      "titre": "Les pronoms possessifs — leçon 5",
+      "note": "Entités comptables (singulier → pluriel). Entités non comptables : mè, mu, mi, mok, mé, map.",
+      "entrees": [
+        { "fr": "le mien / la mienne", "mo": "Yè" },
+        { "fr": "les miens / les miennes", "mo": "Pè" },
+        { "fr": "le tien / la tienne", "mo": "You" },
+        { "fr": "les tiens / les tiennes", "mo": "Pou" },
+        { "fr": "le sien / la sienne", "mo": "Yi" },
+        { "fr": "les siens / les siennes", "mo": "Pi" },
+        { "fr": "le nôtre", "mo": "Yok" },
+        { "fr": "les nôtres", "mo": "Pok" },
+        { "fr": "le vôtre", "mo": "Yé" },
+        { "fr": "les vôtres", "mo": "Pé" },
+        { "fr": "le leur", "mo": "Yap" },
+        { "fr": "les leurs", "mo": "Pap" }
+      ]
+    },
+    "possessifIndicateurs": {
+      "titre": "Autres indicateurs du possessif singulier — leçon 6",
+      "entrees": [
+        { "fr": "mon (ex. mon légume = djàp à)", "mo": "à" },
+        { "fr": "ton / mon [argent] (ex. mon argent = khap à, ton argent = khap ou)", "mo": "ou" },
+        { "fr": "son (ex. son ami = sou i)", "mo": "i" }
       ]
     },
     "verbeEtre": {
@@ -234,11 +340,19 @@
     }
   },
   "lexiqueUtile": {
-    "note": "Éléments extraits des phrases de la leçon 7 (localisation de Bandenkop).",
+    "note": "Éléments extraits des phrases, exemples et légendes (leçons 2 à 7).",
     "entrees": [
       { "fr": "Bandenkop (le lieu)", "mo": "Denkwop" },
       { "fr": "quartier / village", "mo": "pfèlah" },
-      { "fr": "sept", "mo": "boua" }
+      { "fr": "village bamiléké", "mo": "Ta' lah gwong Bhienum (Bhënum)" },
+      { "fr": "sept", "mo": "boua" },
+      { "fr": "semaine", "mo": "Gapdze" },
+      { "fr": "enfant", "mo": "Meu" },
+      { "fr": "enfants", "mo": "Poh" },
+      { "fr": "marmite", "mo": "bang" },
+      { "fr": "légume", "mo": "djàp" },
+      { "fr": "argent", "mo": "khap" },
+      { "fr": "ami", "mo": "sou" }
     ]
   },
   "phrases": [
@@ -246,6 +360,21 @@
       "fr": "Bandenkop compte sept quartiers (villages).",
       "mo": "Ba'a ghè pfèlah sombeu. Pfèlah boua be : Hialah, Tsèla kah, Tsèlah touh, Packem, Denkeng, Tsèmeuhia, Dengou.",
       "note": "Transcription approx. de la leçon 7 ; « pfèlah boua » = les sept quartiers."
+    },
+    {
+      "fr": "La semaine bandenkop compte huit jours.",
+      "mo": "Gapdze Denkwop be lié hom.",
+      "note": "Leçon 6."
+    },
+    {
+      "fr": "mon enfant, ma marmite",
+      "mo": "Meu a, bang a",
+      "note": "Leçon 4 (adjectifs possessifs)."
+    },
+    {
+      "fr": "mon argent, ton argent",
+      "mo": "khap à, khap ou",
+      "note": "Leçon 6."
     }
   ]
 }

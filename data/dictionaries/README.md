@@ -25,4 +25,4 @@ Structure : voir `moye-bandenkop.json`.
 
 | Fichier | Langue | Couverture actuelle |
 |---|---|---|
-| `moye-bandenkop.json` | Mə̀yú' Bandenkop (Bandenkop, Ouest) | corps, mets, boissons, maison, verbe « être », quartiers (~150 paires) |
+| `moye-bandenkop.json` | Mə̀yú' Bandenkop (Bandenkop, Ouest) | corps (+ formes tonalisées du schéma), mets, boissons, maison, moments de la journée, 8 jours de la semaine ; grammaire : pronoms personnels/possessifs, adjectifs possessifs, verbe « être » (6 temps) ; quartiers (~230 paires, leçons 2–11) |
