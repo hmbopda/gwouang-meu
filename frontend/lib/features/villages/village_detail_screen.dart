@@ -14,6 +14,7 @@ import 'package:gwangmeu/shared/models/chat_group_model.dart';
 import 'package:gwangmeu/shared/models/chat_message_model.dart';
 import 'package:gwangmeu/shared/widgets/error_widget.dart';
 import 'package:gwangmeu/features/chat/chat_notifier.dart';
+import 'package:gwangmeu/features/presence/presence_service.dart';
 import 'package:gwangmeu/features/genealogy/genealogy_notifier.dart';
 import 'package:gwangmeu/features/genealogy/models/family_tree.dart';
 import 'package:gwangmeu/features/genealogy/models/person_genealogy.dart';
@@ -879,7 +880,6 @@ class _RightPanel extends StatelessWidget {
                 _ChefCard(village: village),
                 _rightSectionLabel(context, 'Votre ligne de filiation'),
                 const _FiliationTree(),
-                _rightSectionLabel(context, 'Membres'),
                 _OnlineMembers(village: village),
                 const SizedBox(height: 40),
               ],
@@ -4569,93 +4569,238 @@ class _FiliationTree extends ConsumerWidget {
 
 // ── Online Members ──
 
-class _OnlineMembers extends ConsumerWidget {
+class _OnlineMembers extends ConsumerStatefulWidget {
   const _OnlineMembers({required this.village});
   final VillageModel village;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_OnlineMembers> createState() => _OnlineMembersState();
+}
+
+class _OnlineMembersState extends ConsumerState<_OnlineMembers> {
+  bool _expanded = true;
+  final TextEditingController _searchCtrl = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final t = GwTokens.of(context);
-    final membersAsync = ref.watch(villageMembersProvider(village.id));
+    final membersAsync = ref.watch(villageMembersProvider(widget.village.id));
+    final online = ref.watch(onlineUsersProvider);
 
     return membersAsync.when(
-      loading: () => Padding(
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+      loading: () => const Padding(
+        padding: EdgeInsets.fromLTRB(20, 10, 20, 16),
         child: Center(
-            child: CircularProgressIndicator(
-                strokeWidth: 1.5, color: GwTokens.gold)),
+            child: SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                    strokeWidth: 1.5, color: GwTokens.gold))),
       ),
       error: (_, __) => const SizedBox.shrink(),
       data: (members) {
-        if (members.isEmpty) {
-          return Padding(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-            child: Text('Aucun membre en ligne',
-                style: GwType.ui(fontSize: 12, color: t.stoneFaint)),
-          );
-        }
-        return Padding(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-          child: Column(
-            children: members.take(5).map((member) {
-              final name = member.displayName ?? 'Membre';
-              final initials = name
-                  .trim()
-                  .split(' ')
-                  .take(2)
-                  .map((w) => w.isNotEmpty ? w[0].toUpperCase() : '')
-                  .join();
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: GestureDetector(
-                  onTap: () => _openDirectChat(context, ref, member),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 7),
-                    decoration: BoxDecoration(
-                      color: Colors.transparent,
-                      borderRadius: BorderRadius.circular(GwTokens.rBtn),
-                    ),
-                    child: Row(
-                      children: [
-                        CircleAvatar(
-                          radius: 18,
-                          backgroundColor: GwTokens.sageBg,
-                          backgroundImage: member.avatarUrl != null &&
-                                  member.avatarUrl!.isNotEmpty
-                              ? NetworkImage(member.avatarUrl!)
-                              : null,
-                          child: member.avatarUrl == null ||
-                                  member.avatarUrl!.isEmpty
-                              ? Text(initials,
-                                  style: GwType.display(
-                                      fontSize: 11, color: t.sageText))
-                              : null,
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(name,
-                                  style: GwType.ui(
-                                      fontSize: 12.5, color: t.stoneMid)),
-                              Text(_memberRoleLabel(member.type),
-                                  style: GwType.mono(
-                                      fontSize: 9, color: t.stoneFaint)),
-                            ],
-                          ),
-                        ),
-                        Icon(Symbols.chat_bubble, size: 14, color: t.goldText),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
+        final onlineCount =
+            members.where((m) => online.contains(m.userId)).length;
+        // Tri façon Facebook : en ligne d'abord, puis par nom.
+        final sorted = [...members]..sort((a, b) {
+            final ao = online.contains(a.userId) ? 0 : 1;
+            final bo = online.contains(b.userId) ? 0 : 1;
+            if (ao != bo) return ao - bo;
+            return (a.displayName ?? '')
+                .toLowerCase()
+                .compareTo((b.displayName ?? '').toLowerCase());
+          });
+        final q = _query.trim().toLowerCase();
+        final filtered = q.isEmpty
+            ? sorted
+            : sorted
+                .where(
+                    (m) => (m.displayName ?? '').toLowerCase().contains(q))
+                .toList();
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _header(t, members.length, onlineCount),
+            if (_expanded) ...[
+              if (members.length > 5) _searchField(t),
+              if (filtered.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+                  child: Text(q.isEmpty ? 'Aucun membre' : 'Aucun résultat',
+                      style: GwType.ui(fontSize: 12, color: t.stoneFaint)),
+                )
+              else
+                ...filtered.map(
+                    (m) => _memberRow(t, m, online.contains(m.userId))),
+              const SizedBox(height: 10),
+            ],
+          ],
         );
       },
+    );
+  }
+
+  Widget _header(GwTokens t, int total, int onlineCount) {
+    return InkWell(
+      onTap: () => setState(() => _expanded = !_expanded),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 18, 12, 10),
+        child: Row(
+          children: [
+            Text('MEMBRES',
+                style: GwType.mono(
+                    fontSize: 10, letterSpacing: 1.4, color: t.stoneFaint)),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+              decoration: BoxDecoration(
+                color: t.inkLift,
+                borderRadius: BorderRadius.circular(GwTokens.rPill),
+              ),
+              child: Text('$total',
+                  style: GwType.mono(fontSize: 10, color: t.stoneMid)),
+            ),
+            if (onlineCount > 0) ...[
+              const SizedBox(width: 8),
+              Container(
+                  width: 6,
+                  height: 6,
+                  decoration: const BoxDecoration(
+                      color: GwTokens.sage, shape: BoxShape.circle)),
+              const SizedBox(width: 5),
+              Text('$onlineCount en ligne',
+                  style: GwType.mono(fontSize: 10, color: GwTokens.sage)),
+            ],
+            const Spacer(),
+            Icon(_expanded ? Symbols.expand_less : Symbols.expand_more,
+                size: 20, color: t.stoneDim),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _searchField(GwTokens t) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+      child: TextField(
+        controller: _searchCtrl,
+        onChanged: (v) => setState(() => _query = v),
+        style: GwType.ui(fontSize: 13, color: t.stone),
+        decoration: InputDecoration(
+          isDense: true,
+          hintText: 'Rechercher un membre…',
+          hintStyle: GwType.ui(fontSize: 13, color: t.stoneFaint),
+          prefixIcon: Icon(Symbols.search, size: 18, color: t.stoneDim),
+          prefixIconConstraints:
+              const BoxConstraints(minWidth: 36, minHeight: 36),
+          filled: true,
+          fillColor: t.inkLift,
+          contentPadding:
+              const EdgeInsets.symmetric(vertical: 9, horizontal: 8),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(GwTokens.rBtn),
+            borderSide: BorderSide(color: t.line),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(GwTokens.rBtn),
+            borderSide: BorderSide(color: t.line),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(GwTokens.rBtn),
+            borderSide: BorderSide(color: t.goldLine, width: 1.4),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _memberRow(GwTokens t, VillageMemberModel member, bool isOnline) {
+    final name = member.displayName ?? 'Membre';
+    final initials = name
+        .trim()
+        .split(' ')
+        .take(2)
+        .map((w) => w.isNotEmpty ? w[0].toUpperCase() : '')
+        .join();
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 2),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(GwTokens.rBtn),
+          onTap: () => _openDirectChat(context, ref, member),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+            child: Row(
+              children: [
+                Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    CircleAvatar(
+                      radius: 18,
+                      backgroundColor: GwTokens.sageBg,
+                      backgroundImage: member.avatarUrl != null &&
+                              member.avatarUrl!.isNotEmpty
+                          ? NetworkImage(member.avatarUrl!)
+                          : null,
+                      child: member.avatarUrl == null ||
+                              member.avatarUrl!.isEmpty
+                          ? Text(initials,
+                              style: GwType.display(
+                                  fontSize: 11, color: t.sageText))
+                          : null,
+                    ),
+                    if (isOnline)
+                      Positioned(
+                        right: -1,
+                        bottom: -1,
+                        child: Container(
+                          width: 12,
+                          height: 12,
+                          decoration: BoxDecoration(
+                            color: GwTokens.sage,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: t.inkCard, width: 2),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: GwType.ui(fontSize: 12.5, color: t.stoneMid)),
+                      Text(
+                          isOnline
+                              ? 'En ligne'
+                              : _memberRoleLabel(member.type),
+                          style: GwType.mono(
+                              fontSize: 9,
+                              color:
+                                  isOnline ? GwTokens.sage : t.stoneFaint)),
+                    ],
+                  ),
+                ),
+                Icon(Symbols.chat_bubble, size: 14, color: t.goldText),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -4686,7 +4831,7 @@ class _OnlineMembers extends ConsumerWidget {
 
     try {
       final group = await ref.read(createDirectChatProvider.notifier).openWith(
-            villageId: village.id,
+            villageId: widget.village.id,
             targetUserId: member.userId,
             targetName: name,
           );
