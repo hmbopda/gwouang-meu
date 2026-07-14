@@ -1,0 +1,60 @@
+name: Backup — Base de données (quotidien)
+
+# Sauvegarde quotidienne de la base Postgres (pg_dump, format custom) archivée
+# comme artefact GitHub (rétention 90 j) — stockée HORS Supabase, donc utile en
+# cas de sinistre / suppression accidentelle. Déclenchable aussi à la main.
+#
+# PRÉREQUIS (une seule fois) : ajouter le secret GitHub `SUPABASE_DB_URL` =
+# chaîne de connexion « Session pooler » du dashboard Supabase
+# (Settings → Database → Connection string → onglet « Session pooler », port
+# 5432, IPv4, mot de passe inclus). NE PAS utiliser « Transaction pooler »
+# (port 6543, incompatible pg_dump) ni la connexion directe (souvent IPv6, KO
+# sur les runners GitHub).
+
+on:
+  schedule:
+    - cron: '0 3 * * *'   # tous les jours à 03:00 UTC
+  workflow_dispatch: {}    # + déclenchement manuel (onglet Actions)
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    name: Dump quotidien
+    runs-on: ubuntu-latest
+    steps:
+      - name: Installer le client PostgreSQL 17
+        run: |
+          sudo sh -c 'echo "deb https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+          curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/pgdg.gpg
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client-17
+
+      - name: Dump de la base (schéma + données)
+        env:
+          DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          if [ -z "$DB_URL" ]; then
+            echo "::error::Secret SUPABASE_DB_URL manquant — ajoute la chaîne 'Session pooler' du dashboard Supabase."
+            exit 1
+          fi
+          TS=$(date -u +%Y%m%d-%H%M%S)
+          FILE="gwangmeu-backup-$TS.dump"
+          /usr/lib/postgresql/17/bin/pg_dump "$DB_URL" \
+            --no-owner --no-privileges --format=custom --file="$FILE"
+          ls -lh "$FILE"
+          # Garde-fou : un dump vide/minuscule = échec silencieux → on rejette.
+          SIZE=$(stat -c%s "$FILE")
+          if [ "$SIZE" -lt 10240 ]; then
+            echo "::error::Dump suspect (< 10 Ko) — sauvegarde rejetée."
+            exit 1
+          fi
+
+      - name: Archiver le dump (rétention 90 jours)
+        uses: actions/upload-artifact@v4
+        with:
+          name: db-backup
+          path: gwangmeu-backup-*.dump
+          retention-days: 90
+          if-no-files-found: error
