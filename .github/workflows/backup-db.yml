@@ -4,12 +4,12 @@ name: Backup — Base de données (quotidien)
 # comme artefact GitHub (rétention 90 j) — stockée HORS Supabase, donc utile en
 # cas de sinistre / suppression accidentelle. Déclenchable aussi à la main.
 #
-# PRÉREQUIS (une seule fois) : ajouter le secret GitHub `SUPABASE_DB_URL` =
-# chaîne de connexion « Session pooler » du dashboard Supabase
-# (Settings → Database → Connection string → onglet « Session pooler », port
-# 5432, IPv4, mot de passe inclus). NE PAS utiliser « Transaction pooler »
-# (port 6543, incompatible pg_dump) ni la connexion directe (souvent IPv6, KO
-# sur les runners GitHub).
+# PRÉREQUIS (une seule fois) : ajouter le secret GitHub `SUPABASE_DB_PASSWORD` =
+# le MOT DE PASSE BRUT de la base (le même que celui de ta chaîne de connexion).
+# Pas d'URL, pas d'encodage : il est passé via PGPASSWORD, donc les caractères
+# spéciaux (/, @, #, ?…) passent sans souci. L'hôte/port/user/db du « Session
+# pooler » (port 5432, PAS le Transaction pooler 6543 incompatible pg_dump) sont
+# fixés dans l'étape ci-dessous.
 
 on:
   schedule:
@@ -33,15 +33,20 @@ jobs:
 
       - name: Dump de la base (schéma + données)
         env:
-          DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          PGSSLMODE: require
         run: |
-          if [ -z "$DB_URL" ]; then
-            echo "::error::Secret SUPABASE_DB_URL manquant — ajoute la chaîne 'Session pooler' du dashboard Supabase."
+          if [ -z "$PGPASSWORD" ]; then
+            echo "::error::Secret SUPABASE_DB_PASSWORD manquant — mets le MOT DE PASSE BRUT de la base (pas une URL)."
             exit 1
           fi
           TS=$(date -u +%Y%m%d-%H%M%S)
           FILE="gwangmeu-backup-$TS.dump"
-          /usr/lib/postgresql/17/bin/pg_dump "$DB_URL" \
+          /usr/lib/postgresql/17/bin/pg_dump \
+            -h aws-1-eu-west-2.pooler.supabase.com \
+            -p 5432 \
+            -U postgres.objlxdxzpqhrekpqxgab \
+            -d postgres \
             --no-owner --no-privileges --format=custom --file="$FILE"
           ls -lh "$FILE"
           # Garde-fou : un dump vide/minuscule = échec silencieux → on rejette.
