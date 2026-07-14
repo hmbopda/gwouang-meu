@@ -1,0 +1,139 @@
+{
+  "schemaVersion": 1,
+  "base": "moye-bandenkop.json",
+  "statut": "PROPOSÉ par IA (Claude) — À VALIDER par un locuteur (fondateur / anciens du village). Ne pas fusionner dans la base tant que non validé. Aucune forme Bandenkop n'a été inventée : la codification est extraite des formes attestées, les manques sont laissés à « ? ».",
+  "objectif": "Démontrer la méthode d'enrichissement du laboratoire de langue : codifier (règles), enrichir (POS + prononciation + exemples), et cartographier les manques.",
+
+  "codification": {
+    "note": "Règles GROUNDED — chacune illustrée par des formes réellement présentes dans le manuel.",
+    "phonologie": {
+      "tons": "5 tons AGLC distinctifs : haut (á), moyen (a), bas (à), montant (ǎ), descendant (â). Voir base.phonologie.tons.",
+      "voyelles": "a e ɛ ɔ i ə œ u (+ variantes). Voir base.phonologie.voyelles.",
+      "occlusiveGlottale": "L'apostrophe ' note une occlusive glottale, phonème à part entière : pà' (maison), Ta' (trois), tsù' (nuit), lou' (boisson), kə' (couper).",
+      "homophones": [
+        "ŋàŋ = « danse » (leçon 24) ET « racine » (leçon 25) — distingués par le ton/contexte",
+        "Tsè = « tête » ET préfixe « arbre »",
+        "kán/Kang = « assiette » ; kàŋ = « pipe » — proches, à départager par le ton"
+      ]
+    },
+    "morphologie": [
+      {
+        "regle": "Pluriel par préfixe P- / Pt- / Pe-",
+        "exemples": ["oreille Toung → Ptoung", "joue Gheu' → Pgheu'", "dent Song → Psong", "pied Khwè → P-khwè", "genou zoung → P-zoung"],
+        "exceptions": ["enfant Meu → enfants Poh (supplétif)", "œil Zôk → yeux Mgnok (irrégulier)", "bras Ta'phe → Bhe (irrégulier)"],
+        "pluralisateurAnime": "Pour les personnes, pluriel par « pè » : maître tchitcha → pè tchitcha ; ami sou → sou pè."
+      },
+      {
+        "regle": "Possessif postposé : NOM + marqueur",
+        "marqueurs": "mon = a/zè/mè, ton = ou/you/mou, son = i/yi/mi, notre = yok…, votre = yé…, leur = yap… (leçon 4)",
+        "exemples": ["Meu a = mon enfant", "bang a = ma marmite", "khap à = mon argent", "sou a = mon ami", "sou i = son ami"]
+      },
+      {
+        "regle": "Négation / interdit : circonfixe « Pe tche … peu » (= on ne … pas)",
+        "exemples": ["Pe tche thong kom tsù' peu = on ne siffle pas la nuit", "Fé tche them tsouo djedjeu' peu = le Roi ne sort pas le djedjeu"]
+      },
+      {
+        "regle": "Conjugaison = SUJET + [marqueur temporel] + radical",
+        "sujets": "Guê(je) Ou(tu) À(il/elle) Pê(nous) Peu(vous) Wap(ils) — variantes dè/gôo… en contexte",
+        "marqueursTemps": "lê/lè = passé/imparfait ; gôo lhye = futur ; kè/khè = passé composé ; lá = plus-que-parfait",
+        "exemples": ["Guê be = je suis", "A lê be = il était", "Wap gôo lhye pe = ils seront", "Dè lá be = j'avais été"]
+      },
+      {
+        "regle": "Numération décimale",
+        "dizaines": "10 Ghem, 20 Eumbueu, 30 Eumtha, 40 Eumkweu, 50 Eumthé, 60 Eumthok, 70 Eumsombueu, 80 Eumhoom, 90 Eumvu'u, 100 khxèh",
+        "composition": "préfixe d'unité (tchwamoh=+1, tchwoppueu=+2, tchwopta=+3, tchwokweu=+4, tchwopté=+5, tchwopthok oh=+6, tchwopsombueu=+7, tchwophoom=+8, tchwopvu'u=+9) + dizaine",
+        "exemples": ["11 = Tchwamôh ghem", "45 = Tchwopté Eumkweu", "89 = Tchwopvu'u eumhoom"]
+      },
+      {
+        "regle": "Salutation = (Ou sing. / Peu plur.) + (lhie matin / youok soir / tcha'zé à tout moment) + leu + interlocuteur",
+        "exemples": ["Ou lhie leu papa ? = bonjour papa", "Peu youok yé leu pè tchitcha ? = bonsoir les maîtres", "pepong = « bien dormi » (Ou lhie pepong leu mama ? = tu as bien dormi maman ?)"]
+      }
+    ],
+    "prefixesLexicaux": [
+      { "prefixe": "Tsè / Tcheu", "sens": "tête ; arbre", "exemples": ["Tsè = tête", "Tsè pya = avocatier", "Tsè Tô = palmier", "Tcheu Kédié = bananier"] },
+      { "prefixe": "Nom", "sens": "animal / fauve", "exemples": ["Nom ghueh = panthère", "Nomtchena' = lion", "Nom gu = les fauves"] },
+      { "prefixe": "Lou'", "sens": "boisson / vin", "exemples": ["Lou'kxeu = vin de raphia", "Lou'tôh = vin de palme", "Lou'bvèvè = bière"] },
+      { "prefixe": "louh", "sens": "louche / cuillère", "exemples": ["louh = cuillère", "louh náh = louche à sauce", "louh sang = louche à couscous"] },
+      { "prefixe": "Djap / Nah", "sens": "légume / sauce (têtes de composés culinaires)", "exemples": ["Djap bèyang = légume d'arachide", "Nah dong = sauce noire", "Nah tchè = sauce jaune"] },
+      { "prefixe": "Meu", "sens": "enfant ; diminutif « petit- »", "exemples": ["Meu = enfant", "Meu guep = poussin (petit de la poule)", "Meu guep — cf. Guep = poule"] },
+      { "prefixe": "Pa' / pak", "sens": "maison / case", "exemples": ["pà' = maison", "Pa pak Bhienum = une case bamiléké"] }
+    ]
+  },
+
+  "entreesEnrichies": {
+    "note": "Démonstration : entrées attestées augmentées de POS + prononciation tonale + exemple. « pron » repris des formes tonalisées quand disponibles, sinon « à confirmer ». Statut = proposé.",
+    "entrees": [
+      { "fr": "la tête", "mo": "Tsè", "pos": "nom", "pron": "Tsɛ́", "pluriel": "Ptsè (?)", "ex": { "mo": "Tsè a", "fr": "ma tête" } },
+      { "fr": "l'œil", "mo": "Zôk", "pos": "nom", "pron": "Zók", "pluriel": "Mgnok (irrégulier)", "ex": { "mo": "Zôk a", "fr": "mon œil" } },
+      { "fr": "une oreille", "mo": "Toung", "pos": "nom", "pron": "à confirmer", "pluriel": "Ptoung", "ex": { "mo": "Toung a", "fr": "mon oreille" } },
+      { "fr": "enfant", "mo": "Meu", "pos": "nom", "pron": "à confirmer", "pluriel": "Poh (supplétif)", "ex": { "mo": "Meu a", "fr": "mon enfant" } },
+      { "fr": "marmite", "mo": "Bang", "pos": "nom", "pron": "à confirmer", "ex": { "mo": "bang a", "fr": "ma marmite" } },
+      { "fr": "eau", "mo": "Chè", "pos": "nom", "pron": "à confirmer" },
+      { "fr": "manger", "mo": "pfwo", "pos": "verbe", "pron": "pfwo", "note": "attesté leçon 25 (pf)" },
+      { "fr": "donner", "mo": "he", "pos": "verbe", "pron": "he", "note": "attesté leçon 25 (h)" },
+      { "fr": "être", "mo": "(ne) pe", "pos": "verbe", "ex": { "mo": "Guê be", "fr": "je suis" } },
+      { "fr": "arbre", "mo": "Tsè / Tcheu", "pos": "nom (préfixe de classe)", "ex": { "mo": "Tsè Tô", "fr": "palmier" } },
+      { "fr": "animal", "mo": "Nom", "pos": "nom (préfixe de classe)", "ex": { "mo": "Nom ghueh", "fr": "panthère" } },
+      { "fr": "un / 1", "mo": "kwue / yamo", "pos": "numéral", "pron": "à confirmer" },
+      { "fr": "dix / 10", "mo": "Ghem", "pos": "numéral", "ex": { "mo": "Tchwamôh ghem", "fr": "onze (10+1)" } },
+      { "fr": "merci (je remercie)", "mo": "Guê ping", "pos": "expression", "ex": { "mo": "ping", "fr": "remercier" } },
+      { "fr": "soleil", "mo": "nùm", "pos": "nom", "pron": "nùm", "note": "attesté leçon 24 (voyelle u/uh)" },
+      { "fr": "frère", "mo": "ffwó", "pos": "nom", "pron": "ffwó", "note": "attesté leçon 25 (géminée ff)" },
+      { "fr": "chose", "mo": "wè", "pos": "nom", "pron": "wè", "note": "attesté leçon 24 (voyelle ɛ)" },
+      { "fr": "bonjour papa", "mo": "Ou lhie leu papa ?", "pos": "expression", "note": "cadre : Ou/Peu + lhie/youok + leu + cible" }
+    ]
+  },
+
+  "aRecueillir": {
+    "note": "Cartographie des manques pour un usage chat + formation. NE PAS inventer : mo = « ? » tant qu'un locuteur n'a pas fourni la forme.",
+    "dejaAttestesAExploiter": [
+      "manger = pfwo", "donner = he", "frère = ffwó", "soleil = nùm", "merci/remercier = ping",
+      "parole = ghɔ̀m (ghom)", "chose = wè", "eau = Chè", "feu = mok", "huile = wwó",
+      "danse = ŋàŋ", "couper = kə'", "piment = sɔk", "vin = lu'", "travail = fà'", "maison = pà'"
+    ],
+    "manquants": [
+      { "fr": "oui", "mo": "?" },
+      { "fr": "non", "mo": "?" },
+      { "fr": "boire", "mo": "?" },
+      { "fr": "aller", "mo": "?" },
+      { "fr": "venir", "mo": "?" },
+      { "fr": "voir", "mo": "?" },
+      { "fr": "aimer", "mo": "?" },
+      { "fr": "vouloir", "mo": "?" },
+      { "fr": "savoir / pouvoir", "mo": "?" },
+      { "fr": "dire / parler (verbe)", "mo": "? (cf. nom ghɔ̀m = parole)" },
+      { "fr": "dormir (verbe)", "mo": "? (cf. pepong = « bien dormi »)" },
+      { "fr": "qui", "mo": "?" },
+      { "fr": "quoi", "mo": "?" },
+      { "fr": "où", "mo": "?" },
+      { "fr": "quand", "mo": "?" },
+      { "fr": "comment", "mo": "?" },
+      { "fr": "combien", "mo": "? (cf. nye sang = compter)" },
+      { "fr": "pourquoi", "mo": "?" },
+      { "fr": "sœur", "mo": "?" },
+      { "fr": "mari", "mo": "?" },
+      { "fr": "femme / épouse", "mo": "?" },
+      { "fr": "fils", "mo": "?" },
+      { "fr": "fille", "mo": "?" },
+      { "fr": "oncle", "mo": "?" },
+      { "fr": "tante", "mo": "?" },
+      { "fr": "rouge", "mo": "?" },
+      { "fr": "blanc", "mo": "?" },
+      { "fr": "noir", "mo": "? (cf. dong dans « Nah dong » = sauce noire)" },
+      { "fr": "grand", "mo": "?" },
+      { "fr": "petit", "mo": "? (cf. préfixe Meu-)" },
+      { "fr": "bon", "mo": "?" },
+      { "fr": "mauvais", "mo": "?" },
+      { "fr": "chaud", "mo": "?" },
+      { "fr": "froid", "mo": "?" },
+      { "fr": "lune", "mo": "?" },
+      { "fr": "pluie", "mo": "?" },
+      { "fr": "route / chemin", "mo": "?" },
+      { "fr": "comment vas-tu ?", "mo": "?" },
+      { "fr": "je t'aime", "mo": "?" },
+      { "fr": "bienvenue", "mo": "?" }
+    ]
+  },
+
+  "prochainesEtapes": "Ces propositions alimentent l'atelier de validation (Pilier 2). Une fois validées par un locuteur, elles passent dans moye-bandenkop.json (statut validé) et enrichissent le contexte du moteur /translate et du studio de formation."
+}
