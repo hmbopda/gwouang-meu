@@ -288,9 +288,17 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
         // donc messages[index-1] place le plus récent en bas — sans re-inverser.
         final m = messages[index - 1];
         final isMine = myId != null && m.senderId == myId;
+        final canTranslate =
+            translateLang != null && m.content.trim().isNotEmpty;
         return Padding(
           padding: const EdgeInsets.symmetric(vertical: 6),
-          child: isMine ? _sentBubble(t, m) : _receivedBubble(t, m),
+          child: GestureDetector(
+            // Appui long sur un message = le traduire (FR ↔ langue du village).
+            onLongPress: canTranslate
+                ? () => _openTranslator(translateLang, initialText: m.content)
+                : null,
+            child: isMine ? _sentBubble(t, m) : _receivedBubble(t, m),
+          ),
         );
       },
     );
@@ -513,10 +521,11 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
   }
 
   /// Ouvre le traducteur IA (moteur `/translate`) pour la langue [lang].
-  void _openTranslator(Language lang) {
+  /// [initialText] pré-remplit et lance la traduction (ex. message long-pressé).
+  void _openTranslator(Language lang, {String? initialText}) {
     showGwDialog<void>(
       context,
-      builder: (_) => _TranslatorSheet(lang: lang),
+      builder: (_) => _TranslatorSheet(lang: lang, initialText: initialText),
     );
   }
 
@@ -678,9 +687,12 @@ class _DashedBorderPainter extends CustomPainter {
 /// Feuille de traduction français ⇄ langue native, branchée sur le moteur
 /// backend `/translate` (Claude + dictionnaire). Ouverte via « Activer ».
 class _TranslatorSheet extends ConsumerStatefulWidget {
-  const _TranslatorSheet({required this.lang});
+  const _TranslatorSheet({required this.lang, this.initialText});
 
   final Language lang;
+
+  /// Texte pré-rempli (ex. le message long-pressé) — traduit automatiquement.
+  final String? initialText;
 
   @override
   ConsumerState<_TranslatorSheet> createState() => _TranslatorSheetState();
@@ -695,9 +707,29 @@ class _TranslatorSheetState extends ConsumerState<_TranslatorSheet> {
   String? _error;
 
   @override
+  void initState() {
+    super.initState();
+    final init = widget.initialText?.trim() ?? '';
+    if (init.isNotEmpty) {
+      _controller.text = init;
+      // Traduit d'emblée le message ouvert.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _run();
+      });
+    }
+  }
+
+  @override
   void dispose() {
     _controller.dispose();
     super.dispose();
+  }
+
+  void _setDirection(String dir) {
+    if (_direction == dir) return;
+    setState(() => _direction = dir);
+    // Re-traduit aussitôt dans le nouveau sens si un texte est présent.
+    if (_controller.text.trim().isNotEmpty) _run();
   }
 
   Future<void> _run() async {
@@ -762,8 +794,7 @@ class _TranslatorSheetState extends ConsumerState<_TranslatorSheet> {
                   label: 'Français → $label',
                   selected: toNative,
                   expand: true,
-                  onTap: () => setState(
-                      () => _direction = TranslationDirection.frToNative),
+                  onTap: () => _setDirection(TranslationDirection.frToNative),
                 ),
               ),
               const SizedBox(width: 8),
@@ -772,8 +803,7 @@ class _TranslatorSheetState extends ConsumerState<_TranslatorSheet> {
                   label: '$label → Français',
                   selected: !toNative,
                   expand: true,
-                  onTap: () => setState(
-                      () => _direction = TranslationDirection.nativeToFr),
+                  onTap: () => _setDirection(TranslationDirection.nativeToFr),
                 ),
               ),
             ],
