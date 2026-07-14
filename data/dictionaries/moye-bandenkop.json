@@ -1,0 +1,251 @@
+{
+  "schemaVersion": 1,
+  "language": {
+    "code": "moye-bandenkop",
+    "name": "Mə̀yú' Bandenkop",
+    "frenchName": "Bandenkop",
+    "group": "Bamiléké (Hauts-Plateaux)",
+    "region": "Ouest Cameroun — Département des Hauts-Plateaux, Arrondissement de Bangou",
+    "endonymeLieu": "Denkwop",
+    "quartiers": [
+      "Hialah",
+      "Tsèla kah",
+      "Tsèlah touh",
+      "Packem",
+      "Denkeng",
+      "Tsèmeuhia",
+      "Dengou"
+    ]
+  },
+  "meta": {
+    "source": "Recueil de leçons Mə̀yú' Bandenkop (leçons 7 à 11) — transcription depuis photos fournies par le fondateur",
+    "direction": "bidirectionnel français ⇄ Mə̀yú' Bandenkop",
+    "champs": "fr = français ; mo = Mə̀yú' Bandenkop (orthographe du recueil, telle quelle, variantes séparées par « / »)",
+    "avertissement": "Transcription fidèle des tableaux imprimés ; l'orthographe et les tons suivent la source. Certaines graphies (schwa ə, tons, occlusive glottale ') peuvent différer de conventions académiques. À vérifier/enrichir avec les pages suivantes.",
+    "note": "Premier dictionnaire du projet. Destiné à être injecté en contexte au LLM (traduction augmentée par lexique) et à la génération de prononciation."
+  },
+  "categories": {
+    "corps": {
+      "titre": "Les parties du corps (Pzuh noh meu theu)",
+      "sous": {
+        "tete": {
+          "titre": "La tête : Tsè",
+          "entrees": [
+            { "fr": "la tête", "mo": "Tsè" },
+            { "fr": "les cheveux", "mo": "Mnoung tsè" },
+            { "fr": "l'œil", "mo": "Zôk" },
+            { "fr": "les yeux", "mo": "Mgnok / mnouok" },
+            { "fr": "le front", "mo": "zi" },
+            { "fr": "la joue", "mo": "Gheu'" },
+            { "fr": "les joues", "mo": "Pgheu'" },
+            { "fr": "arcade sourcilière", "mo": "Kheng zôk" },
+            { "fr": "la langue", "mo": "Lum" },
+            { "fr": "les narines", "mo": "Boung-zzè" },
+            { "fr": "la gorge", "mo": "Ghák" },
+            { "fr": "fontanelle", "mo": "Ton douh" },
+            { "fr": "la barbe", "mo": "plhwè" },
+            { "fr": "les cils", "mo": "pkhing mgnok (mnouok)" },
+            { "fr": "une oreille", "mo": "Toung" },
+            { "fr": "les oreilles", "mo": "Ptoung" },
+            { "fr": "la bouche", "mo": "Tchwè" },
+            { "fr": "les lèvres", "mo": "kekep tchwè" },
+            { "fr": "la dent / les dents", "mo": "Song / Psong" },
+            { "fr": "nez", "mo": "Zzè" },
+            { "fr": "les paupières", "mo": "guep mgnôk (mnouok)" },
+            { "fr": "le cerveau", "mo": "Djuh tsè" },
+            { "fr": "le cou", "mo": "thong" },
+            { "fr": "la nuque", "mo": "Djum tsè" }
+          ]
+        },
+        "tronc": {
+          "titre": "Le tronc : Kèm nô meu",
+          "entrees": [
+            { "fr": "épaule", "mo": "Khèbeu'" },
+            { "fr": "poitrine", "mo": "Khekxop" },
+            { "fr": "les seins / le sein", "mo": "Beuh / peuh" },
+            { "fr": "ventre", "mo": "Vèm" },
+            { "fr": "le nombril", "mo": "Tông" },
+            { "fr": "bassin", "mo": "Dedeng" },
+            { "fr": "bas ventre", "mo": "Tou dedeng" },
+            { "fr": "la colonne vertébrale", "mo": "kwí kà'zè" },
+            { "fr": "hanche", "mo": "Dzeng" },
+            { "fr": "le sexe", "mo": "Touh / guèdjeu" },
+            { "fr": "les fesses", "mo": "Djoung" },
+            { "fr": "l'anus", "mo": "Boun ndjoun" },
+            { "fr": "le dos", "mo": "Kà'zè" }
+          ]
+        },
+        "membres": {
+          "titre": "Les membres : P-young nô meu",
+          "entrees": [
+            { "fr": "le bras", "mo": "Ta'phe" },
+            { "fr": "les bras", "mo": "Bhe" },
+            { "fr": "l'ongle du doigt", "mo": "Kxop phe" },
+            { "fr": "les ongles des doigts", "mo": "khxop bhe" },
+            { "fr": "aisselle", "mo": "Hákzè" },
+            { "fr": "le coude", "mo": "Touh phe" },
+            { "fr": "le doigt", "mo": "Tsè phe" },
+            { "fr": "les doigts", "mo": "Tsè mbe" },
+            { "fr": "l'auriculaire", "mo": "Meu djio tsè phe" },
+            { "fr": "la plante de pied", "mo": "Touh khwè" },
+            { "fr": "l'ongle de l'orteil", "mo": "kxop tsèkhwè" },
+            { "fr": "la paume de main", "mo": "Tong phe" },
+            { "fr": "le pied", "mo": "Khwè" },
+            { "fr": "les pieds", "mo": "P-khwè" },
+            { "fr": "le genou", "mo": "zoung" },
+            { "fr": "les genoux", "mo": "P-zoung" },
+            { "fr": "l'orteil", "mo": "Tsè khwè" },
+            { "fr": "le talon", "mo": "Tou khwè" }
+          ]
+        }
+      }
+    },
+    "mets": {
+      "titre": "Les types de mets (zzèze)",
+      "entrees": [
+        { "fr": "légumes", "mo": "Djap" },
+        { "fr": "arachide", "mo": "Beyang" },
+        { "fr": "macabo", "mo": "Mèkèpou / Kou'kang" },
+        { "fr": "igname", "mo": "Loung / leuh" },
+        { "fr": "viandes", "mo": "Bap" },
+        { "fr": "manioc", "mo": "Médong" },
+        { "fr": "haricot", "mo": "Kou'dek" },
+        { "fr": "koki", "mo": "Kou kekxeu" },
+        { "fr": "plantain", "mo": "kwèlong" },
+        { "fr": "pistache", "mo": "Djuh" },
+        { "fr": "couscous", "mo": "Sang" },
+        { "fr": "riz", "mo": "Kouléssie" },
+        { "fr": "sauce", "mo": "Nah" },
+        { "fr": "légumes maïs", "mo": "Djap sang" },
+        { "fr": "légumes arachides", "mo": "Djap bèyang" },
+        { "fr": "légumes macabo", "mo": "Djap mèkèpou" },
+        { "fr": "pilé d'ignames séchée", "mo": "tchouh gwing" },
+        { "fr": "taro", "mo": "Pé" },
+        { "fr": "plantain malaxé et viande (Kondelé)", "mo": "kwèlong bap" },
+        { "fr": "couscous manioc", "mo": "Foufou / Khoumkhoum" },
+        { "fr": "« tenue militaire » (mets)", "mo": "whèkouhouh" },
+        { "fr": "sauce d'arachide", "mo": "Nah bèyang" },
+        { "fr": "mets de pistache", "mo": "Poùh djuh" },
+        { "fr": "sauce noire", "mo": "Nah dong" },
+        { "fr": "riz sauté", "mo": "Tèm kouléssie" },
+        { "fr": "sauce jaune", "mo": "Nah tchè" }
+      ]
+    },
+    "boissons": {
+      "titre": "Les types de boissons (plouh)",
+      "entrees": [
+        { "fr": "eau", "mo": "Chè" },
+        { "fr": "vin de raphia", "mo": "Lou'kxeu" },
+        { "fr": "bière", "mo": "Lou' bvèvè" },
+        { "fr": "vin de palme", "mo": "Lou'tôh" },
+        { "fr": "jus", "mo": "Lou'dumlum / limseng (Lù'dumlum / lumsəŋ)" },
+        { "fr": "vin rouge", "mo": "Mèdjouga / Pan lou'" }
+      ]
+    },
+    "maison": {
+      "titre": "Les équipements de maison",
+      "entrees": [
+        { "fr": "salon", "mo": "Taple dim dum (dùm)" },
+        { "fr": "chaise / fauteuil", "mo": "Kouoh / longtchia" },
+        { "fr": "table à manger", "mo": "Taple lok dze wè" },
+        { "fr": "armoire", "mo": "Copa" },
+        { "fr": "rideau", "mo": "Bvè woudou" },
+        { "fr": "photos de famille", "mo": "Fetou toudié" },
+        { "fr": "lit", "mo": "Koudié" },
+        { "fr": "placard", "mo": "Copa" },
+        { "fr": "télévision", "mo": "Toh lok seng tchouong" },
+        { "fr": "cuisinière / foyer", "mo": "Tchè mok" },
+        { "fr": "assiette", "mo": "Kang" },
+        { "fr": "mortier", "mo": "Demdem" },
+        { "fr": "pilon", "mo": "Khouong / Khwong" },
+        { "fr": "pierre à écraser", "mo": "Loung" },
+        { "fr": "balai", "mo": "Sandié" },
+        { "fr": "seau", "mo": "Lounga" },
+        { "fr": "marmite / marmites", "mo": "Bang / pbang" },
+        { "fr": "feu à gaz", "mo": "Fefouo mok" }
+      ]
+    }
+  },
+  "grammaire": {
+    "pronomsSujets": {
+      "note": "Marqueurs de sujet déduits des conjugaisons ci-dessous.",
+      "entrees": [
+        { "fr": "je", "mo": "guê / gê / dè" },
+        { "fr": "tu", "mo": "ou" },
+        { "fr": "il / elle", "mo": "a" },
+        { "fr": "nous", "mo": "pè / pê" },
+        { "fr": "vous", "mo": "peu" },
+        { "fr": "ils / elles", "mo": "wap / wâp" }
+      ]
+    },
+    "verbeEtre": {
+      "titre": "Conjugaison du verbe « être » (ne / gne pe)",
+      "infinitif": "ne pe / gne pe",
+      "temps": {
+        "present": [
+          { "fr": "je suis", "mo": "Guê be" },
+          { "fr": "tu es", "mo": "Ou be" },
+          { "fr": "il est / elle est", "mo": "A be" },
+          { "fr": "nous sommes", "mo": "Pê be" },
+          { "fr": "vous êtes", "mo": "Peu be" },
+          { "fr": "ils sont / elles sont", "mo": "Wâp be" }
+        ],
+        "imparfait": [
+          { "fr": "j'étais", "mo": "Dê be" },
+          { "fr": "tu étais", "mo": "Ou lê be" },
+          { "fr": "il était / elle était", "mo": "A lê be" },
+          { "fr": "nous étions", "mo": "Pè lê be" },
+          { "fr": "vous étiez", "mo": "Peu lê be" },
+          { "fr": "ils étaient / elles étaient", "mo": "Wap lê be" }
+        ],
+        "passeSimple": [
+          { "fr": "je fus", "mo": "Dè pe" },
+          { "fr": "tu fus", "mo": "Où lè pe" },
+          { "fr": "il fut / elle fut", "mo": "A lè pe" },
+          { "fr": "nous fûmes", "mo": "Pè lè pe" },
+          { "fr": "vous fûtes", "mo": "Peu lè pe" },
+          { "fr": "ils furent / elles furent", "mo": "Wap lè pe" }
+        ],
+        "futurSimple": [
+          { "fr": "je serai", "mo": "Gôo lhye pe" },
+          { "fr": "tu seras", "mo": "Ou gôo lhye pe" },
+          { "fr": "il sera / elle sera", "mo": "A gôo lhye pe" },
+          { "fr": "nous serons", "mo": "Pê gôo lhye pe" },
+          { "fr": "vous serez", "mo": "Peu gôo lhye pe" },
+          { "fr": "ils seront / elles seront", "mo": "Wap gôo lhye pe" }
+        ],
+        "passeCompose": [
+          { "fr": "j'ai été", "mo": "khè pe" },
+          { "fr": "tu as été", "mo": "Ou kè pe" },
+          { "fr": "il a été / elle a été", "mo": "A kè pe" },
+          { "fr": "nous avons été", "mo": "Pè ké pe" },
+          { "fr": "vous avez été", "mo": "Peu kè pe" },
+          { "fr": "ils ont été / elles ont été", "mo": "Wap kè pe" }
+        ],
+        "plusQueParfait": [
+          { "fr": "j'avais été", "mo": "Dè lá be" },
+          { "fr": "tu avais été", "mo": "Ou lè lá be" },
+          { "fr": "il avait été / elle avait été", "mo": "A lè lá be" },
+          { "fr": "nous avions été", "mo": "Pè lè lá be" },
+          { "fr": "vous aviez été", "mo": "Peu lè lá be" },
+          { "fr": "ils avaient été / elles avaient été", "mo": "Wap lè lá be" }
+        ]
+      }
+    }
+  },
+  "lexiqueUtile": {
+    "note": "Éléments extraits des phrases de la leçon 7 (localisation de Bandenkop).",
+    "entrees": [
+      { "fr": "Bandenkop (le lieu)", "mo": "Denkwop" },
+      { "fr": "quartier / village", "mo": "pfèlah" },
+      { "fr": "sept", "mo": "boua" }
+    ]
+  },
+  "phrases": [
+    {
+      "fr": "Bandenkop compte sept quartiers (villages).",
+      "mo": "Ba'a ghè pfèlah sombeu. Pfèlah boua be : Hialah, Tsèla kah, Tsèlah touh, Packem, Denkeng, Tsèmeuhia, Dengou.",
+      "note": "Transcription approx. de la leçon 7 ; « pfèlah boua » = les sept quartiers."
+    }
+  ]
+}
