@@ -58,7 +58,7 @@ public class TranslationServiceImpl implements TranslationService {
     private static final int MAX_TOKENS = 800;
     private static final int MAX_LEXICON_ENTRIES = 3000;
     private static final Duration CACHE_TTL = Duration.ofDays(30);
-    private static final String CACHE_PREFIX = "gw:tr:";
+    private static final String CACHE_PREFIX = "gw:tr:v2:";
 
     private final ClaudeAiClient claudeAiClient;
     private final ObjectMapper objectMapper;
@@ -227,9 +227,11 @@ public class TranslationServiceImpl implements TranslationService {
                 - Applique la morphologie fournie : pluriels par prefixe (P-/Pt-/Pe-, "pe" pour les
                   personnes), possessifs postposes, negation circonfixe "Pe tche ... peu",
                   conjugaison SUJET + marqueur temporel + radical, numeration, prefixes de classe.
-                - Donne la prononciation tonale quand elle est attestee ou surement inferable
-                  (5 tons AGLC : haut, moyen, bas, montant, descendant ; occlusive glottale ').
-                  Sinon laisse "pronunciation" vide.
+                - "pronunciation" = transcription A SONS FRANCAIS de la forme native, concue pour
+                  etre LUE A VOIX HAUTE par un francophone (le manuel source exploite les sons du
+                  francais ; EVITE l'alphabet phonetique/API et les caracteres speciaux comme
+                  ɛ ə ŋ ɔ). Indique les tons si connus (accents). Donne-la des que possible ;
+                  sinon laisse "pronunciation" vide.
                 - Donne une confiance entre 0 et 1 (1 = forme directement attestee ; 0.5 = reconstruite
                   par regles ; proche de 0 = tres incertaine).
                 - Reponds STRICTEMENT avec un unique objet JSON valide, SANS aucun texte ni balise
