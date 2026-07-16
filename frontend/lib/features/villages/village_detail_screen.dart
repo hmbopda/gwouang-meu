@@ -404,7 +404,13 @@ class _CenterPanel extends ConsumerStatefulWidget {
 class _CenterPanelState extends ConsumerState<_CenterPanel>
     with SingleTickerProviderStateMixin {
   late final TabController _tabCtrl;
-  static const _tabs = ['Aperçu', 'Patrimoine', 'Us & coutumes', 'Communauté'];
+  static const _tabs = [
+    'Aperçu',
+    'Vie du village',
+    'Patrimoine',
+    'Us & coutumes',
+    'Communauté'
+  ];
 
   VillageModel get v => widget.village;
 
@@ -444,6 +450,7 @@ class _CenterPanelState extends ConsumerState<_CenterPanel>
             labelPadding: const EdgeInsets.symmetric(horizontal: 16),
             tabs: [
               _tabItem(context, 'Aperçu', null),
+              _tabItem(context, 'Vie du village', null),
               _tabItem(context, 'Patrimoine', null),
               _tabItem(context, 'Us & coutumes', null),
               _tabItem(context, 'Communauté', '${v.memberCount}'),
@@ -456,6 +463,7 @@ class _CenterPanelState extends ConsumerState<_CenterPanel>
             children: [
               _ApercuTab(
                   village: v, includeRightPanel: widget.includeRightPanel),
+              _VieTab(village: v),
               _PatrimoineTab(village: v),
               _CoutumesTab(village: v),
               _CommunauteTab(village: v),
@@ -930,6 +938,31 @@ class _PatrimoineTab extends StatelessWidget {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// ONGLET VIE DU VILLAGE — Événements · Annonces (segmenté)
+// (3e segment « Galerie » à venir — place réservée, non implémenté)
+// ═══════════════════════════════════════════════════════════════
+
+class _VieTab extends StatelessWidget {
+  const _VieTab({required this.village});
+  final VillageModel village;
+
+  @override
+  Widget build(BuildContext context) {
+    return _SegmentedTab(segments: [
+      _Segment(
+          label: 'Événements',
+          builder: () => _scrollSection(
+              _HeritageEntriesSection(village: village, kind: 'EVENT'))),
+      _Segment(
+          label: 'Annonces',
+          builder: () => _scrollSection(
+              _HeritageEntriesSection(village: village, kind: 'ANNOUNCEMENT'))),
+      // TODO(galerie) : 3e segment « Galerie » à venir.
+    ]);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
 // ONGLET US & COUTUMES — Traditions · Lieux sacrés · Calendrier (segmenté)
 // ═══════════════════════════════════════════════════════════════
 
@@ -1392,10 +1425,34 @@ class _HeritageKindMeta {
     emptyMsg:
         'Documentez les fêtes, jours de marché et cycles du calendrier traditionnel.',
   );
+  static const event = _HeritageKindMeta(
+    kind: 'EVENT',
+    section: 'Événements',
+    icon: Symbols.event,
+    titleLabel: 'Titre de l\'événement',
+    subtitleLabel: 'Date / quand (ex. 15 août 2026)',
+    addLabel: 'Ajouter un événement',
+    emptyTitle: 'Aucun événement',
+    emptyMsg:
+        'Annoncez les rassemblements, cérémonies et rendez-vous à venir du village.',
+  );
+  static const announcement = _HeritageKindMeta(
+    kind: 'ANNOUNCEMENT',
+    section: 'Annonces',
+    icon: Symbols.campaign,
+    titleLabel: 'Titre de l\'annonce',
+    subtitleLabel: 'Sous-titre (facultatif)',
+    addLabel: 'Publier une annonce',
+    emptyTitle: 'Aucune annonce',
+    emptyMsg:
+        'Partagez les informations et communiqués importants pour la communauté.',
+  );
 
   static _HeritageKindMeta of(String kind) => switch (kind) {
         'SACRED_PLACE' => sacred,
         'CALENDAR' => calendar,
+        'EVENT' => event,
+        'ANNOUNCEMENT' => announcement,
         _ => tradition,
       };
 }
