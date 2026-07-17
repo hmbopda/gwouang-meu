@@ -9,8 +9,11 @@ import 'package:intl/intl.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'package:gwangmeu/core/router/route_names.dart';
 import 'package:gwangmeu/core/theme/gw_tokens.dart';
+import 'package:gwangmeu/features/chat/direct_chat.dart';
 import 'package:gwangmeu/features/chat/chat_notifier.dart';
+import 'package:gwangmeu/features/messages/messages_providers.dart';
 import 'package:gwangmeu/features/messages/services/translation_service.dart';
 import 'package:gwangmeu/features/profile/profile_notifier.dart';
 import 'package:gwangmeu/features/villages/services/village_language_service.dart';
@@ -50,6 +53,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
   RealtimeChannel? _channel;
   Timer? _pollTimer;
   bool _realtimeLive = false;
+  bool _openingDm = false;
 
   @override
   void initState() {
@@ -319,22 +323,26 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
           crossAxisAlignment: CrossAxisAlignment.end,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              width: 34,
-              height: 34,
-              decoration: BoxDecoration(
-                color: senderColor.withValues(alpha: 0.2),
-                shape: BoxShape.circle,
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                (m.senderName ?? '?').isNotEmpty
-                    ? m.senderName![0].toUpperCase()
-                    : '?',
-                style: GwType.ui(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: senderColor),
+            GestureDetector(
+              onTap: () =>
+                  _openDirectWith(m.senderId, m.senderName ?? 'Membre'),
+              child: Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: senderColor.withValues(alpha: 0.2),
+                  shape: BoxShape.circle,
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  (m.senderName ?? '?').isNotEmpty
+                      ? m.senderName![0].toUpperCase()
+                      : '?',
+                  style: GwType.ui(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: senderColor),
+                ),
               ),
             ),
             const SizedBox(width: 10),
@@ -344,12 +352,28 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                 children: [
                   Padding(
                     padding: const EdgeInsets.only(left: 4),
-                    child: Text(
-                      m.senderName ?? 'Membre',
-                      style: GwType.ui(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: senderColor),
+                    child: GestureDetector(
+                      onTap: () =>
+                          _openDirectWith(m.senderId, m.senderName ?? 'Membre'),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              m.senderName ?? 'Membre',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: GwType.ui(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: senderColor),
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Icon(Symbols.chat_bubble,
+                              size: 11, color: senderColor.withValues(alpha: 0.7)),
+                        ],
+                      ),
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -620,6 +644,37 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     await ref
         .read(chatMessagesNotifierProvider(widget.groupId).notifier)
         .sendMessage(text);
+  }
+
+  /// Taper un membre (avatar ou nom d'un message reçu) ouvre la conversation
+  /// personnelle 1-à-1 avec lui — comme sur WhatsApp/Messenger. Idempotent :
+  /// le backend renvoie le DM existant s'il y en a déjà un.
+  Future<void> _openDirectWith(String userId, String displayName) async {
+    if (_openingDm || userId.isEmpty || userId == widget.groupId) return;
+    // Dans un DM 1:1, l'unique autre membre = le pair : inutile de rouvrir.
+    setState(() => _openingDm = true);
+    try {
+      final group = await ref.read(directChatOpenerProvider).openWith(userId);
+      if (!mounted) return;
+      ref.invalidate(myDirectConversationsProvider);
+      // Déjà dans cette même conversation → ne pas empiler un doublon.
+      if (group.id == widget.groupId) return;
+      context.push(
+        Routes.conversation(group.id),
+        extra: <String, Object>{'group': group, 'villageName': displayName},
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: GwTokens.ember,
+          content: Text("Impossible d'ouvrir la conversation",
+              style: GwType.ui(fontSize: 14, color: GwTokens.inkOnGold)),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _openingDm = false);
+    }
   }
 
   // ── Helpers ────────────────────────────────────────────────
