@@ -44,6 +44,10 @@ public class VillageMemberRole extends AuditEntity {
     @Column(name = "granted_by", nullable = false)
     private UUID grantedBy;
 
+    /** Typage optionnel du rôle délégué vers un titre de gouvernance (V61). */
+    @Column(name = "title_id")
+    private UUID titleId;
+
     /** Deserialise le CSV {@code permissions} en un ensemble type. */
     @Transient
     public Set<VillagePermission> getPermissionSet() {
