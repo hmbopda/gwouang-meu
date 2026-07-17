@@ -24,6 +24,7 @@ class GwTokens {
     required this.inkHigh,
     // Or
     required this.goldText,
+    required this.goldTextStrong,
     required this.goldBg,
     required this.goldLine,
     required this.goldGlow,
@@ -64,6 +65,12 @@ class GwTokens {
   /// Dark: gold #C9A84C · Light: goldDeep #9A7810.
   final Color goldText;
 
+  /// Variante or renforcée pour le PETIT texte (≤17 px) : atteint AA (≥4,5:1)
+  /// là où [goldText] reste sous le seuil. Dark: gold #C9A84C (déjà AA) ·
+  /// Light: #7A5E08 (or foncé). Réserver au petit texte or ; le grand titre
+  /// or garde [goldText].
+  final Color goldTextStrong;
+
   /// Fond or translucide (~14-16 %) pour pilules actives et encarts.
   final Color goldBg;
 
@@ -80,7 +87,7 @@ class GwTokens {
   /// Texte secondaire. Dark: #B8AD9E · Light: #6B6255.
   final Color stoneMid;
 
-  /// Hint / placeholder (AA). Dark: #8A8172 · Light: #857B6B.
+  /// Hint / placeholder (AA). Dark: #8A8172 · Light: #6E6455 (assombri pour AA).
   final Color stoneDim;
 
   /// Méta uniquement, jamais sous 12 px. Dark: #7A7268.
@@ -175,6 +182,7 @@ class GwTokens {
     inkLift: Color(0xFF1C1A22),
     inkHigh: Color(0xFF2E2B3C),
     goldText: gold,
+    goldTextStrong: gold, // sur fond sombre, l'or vif est déjà ≥ AA
     goldBg: Color(0x29C9A84C), // 16 %
     goldLine: Color(0x73C9A84C), // 45 %
     goldGlow: Color(0x33C9A84C), // 20 %
@@ -197,12 +205,13 @@ class GwTokens {
     inkLift: Color(0xFFF0E8D8), // paperRaise
     inkHigh: Color(0xFFE8DEC8),
     goldText: goldDeep,
+    goldTextStrong: Color(0xFF7A5E08), // or foncé : ~5,7:1 sur crème (AA petit texte)
     goldBg: Color(0x26C9A84C), // 15 %
     goldLine: Color(0x809A7810), // 50 %
     goldGlow: Color(0x2EC9A84C),
     stone: Color(0xFF231F18),
     stoneMid: Color(0xFF6B6255),
-    stoneDim: Color(0xFF857B6B),
+    stoneDim: Color(0xFF6E6455), // assombri #857B6B→#6E6455 : ~5,4:1 sur crème (AA)
     stoneFaint: Color(0xFF968C7A),
     line: Color(0x14000000), // 8 %
     lineMid: Color(0x24000000), // 14 %

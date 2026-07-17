@@ -442,7 +442,7 @@ class _CenterPanelState extends ConsumerState<_CenterPanel>
             indicatorSize: TabBarIndicatorSize.label,
             indicatorWeight: 2,
             labelColor: t.stone,
-            unselectedLabelColor: t.stoneDim,
+            unselectedLabelColor: t.stoneMid,
             labelStyle: GwType.ui(fontSize: 13, fontWeight: FontWeight.w600),
             unselectedLabelStyle:
                 GwType.ui(fontSize: 13, fontWeight: FontWeight.w400),
@@ -542,17 +542,16 @@ class _CenterPanelState extends ConsumerState<_CenterPanel>
         Wrap(
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            Text('Clan ${v.primaryDialect ?? v.name}',
-                style: GwType.ui(fontSize: 13, color: t.stoneMid)),
-            const _SubSep(),
+            if (v.primaryDialect != null && v.primaryDialect!.trim().isNotEmpty) ...[
+              Text('Langue ${v.primaryDialect!.trim()}',
+                  style: GwType.ui(fontSize: 13, color: t.stoneMid)),
+              const _SubSep(),
+            ],
             Text('${v.memberCount} membre${v.memberCount > 1 ? 's' : ''}',
                 style: GwType.ui(fontSize: 13, color: t.stoneMid)),
             const _SubSep(),
-            Text('Groupe privé',
-                style: GwType.ui(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: t.goldText)),
+            Text('Communauté sur adhésion',
+                style: GwType.ui(fontSize: 13, color: t.stoneMid)),
           ],
         ),
       ],
@@ -656,7 +655,7 @@ class _CenterPanelState extends ConsumerState<_CenterPanel>
             Icon(Symbols.settings, size: 15, color: t.goldText),
             const SizedBox(width: 6),
             Text('Gérer',
-                style: GwType.ui(fontSize: 13, color: t.goldText)),
+                style: GwType.ui(fontSize: 13, color: t.goldTextStrong)),
           ],
         ),
       ),
@@ -1347,14 +1346,14 @@ class _SegmentedTabState extends State<_SegmentedTab> {
                       style: GwType.ui(
                           fontSize: 13,
                           fontWeight: sel ? FontWeight.w700 : FontWeight.w500,
-                          color: sel ? t.goldText : t.stoneMid)),
+                          color: sel ? t.goldTextStrong : t.stoneMid)),
                 ),
                 if (count != null) ...[
                   const SizedBox(width: 5),
                   Text(count,
                       style: GwType.mono(
                           fontSize: 10,
-                          color: sel ? t.goldText : t.stoneFaint)),
+                          color: sel ? t.goldTextStrong : t.stoneFaint)),
                 ],
               ],
             ),
@@ -1886,7 +1885,7 @@ class _ApercuTab extends ConsumerWidget {
           child: _VillageFeedPreview(village: village),
         ),
         _Section(
-          title: 'Votre lignée dans ce village',
+          title: 'Membres du village',
           child: membersAsync.when(
             loading: () => SizedBox(
                 height: 80,
@@ -3022,7 +3021,8 @@ class _MembresTab extends ConsumerWidget {
                 mainAxisSpacing: 1,
                 crossAxisSpacing: 1),
             itemCount: members.length,
-            itemBuilder: (_, i) => _MemberCell(member: members[i], index: i),
+            itemBuilder: (_, i) =>
+                _MemberCell(member: members[i], index: i, villageId: village.id),
           ),
         );
       },
@@ -3780,13 +3780,15 @@ class _MembersGrid extends StatelessWidget {
 
 // ── Member Cell (full grid) ──
 
-class _MemberCell extends StatelessWidget {
-  const _MemberCell({required this.member, required this.index});
+class _MemberCell extends ConsumerWidget {
+  const _MemberCell(
+      {required this.member, required this.index, required this.villageId});
   final VillageMemberModel member;
   final int index;
+  final String villageId;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final t = GwTokens.of(context);
     final colors = [
       GwTokens.azureBg,
@@ -3802,32 +3804,43 @@ class _MemberCell extends StatelessWidget {
       _ => 'Abonné'
     };
 
-    return Container(
+    // Toute la cellule est tappable → ouvre la discussion directe (DM) avec
+    // le membre. Le pictogramme « bulle » signale l'action.
+    return Material(
       color: t.inkCard,
-      padding: const EdgeInsets.all(10),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          CircleAvatar(
-            radius: 20,
-            backgroundColor: colors[ci],
-            backgroundImage:
-                member.avatarUrl != null ? NetworkImage(member.avatarUrl!) : null,
-            child: member.avatarUrl == null
-                ? Text((member.displayName ?? '?')[0].toUpperCase(),
-                    style: GwType.display(color: textColors[ci], fontSize: 13))
-                : null,
+      child: InkWell(
+        onTap: () => _openMemberDirectChat(context, ref, villageId, member),
+        child: Padding(
+          padding: const EdgeInsets.all(10),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircleAvatar(
+                radius: 20,
+                backgroundColor: colors[ci],
+                backgroundImage: member.avatarUrl != null
+                    ? NetworkImage(member.avatarUrl!)
+                    : null,
+                child: member.avatarUrl == null
+                    ? Text((member.displayName ?? '?')[0].toUpperCase(),
+                        style:
+                            GwType.display(color: textColors[ci], fontSize: 13))
+                    : null,
+              ),
+              const SizedBox(height: 6),
+              Text(member.displayName ?? 'Membre',
+                  style: GwType.ui(fontSize: 11, color: t.stoneMid),
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis),
+              const SizedBox(height: 2),
+              Text(roleLabel,
+                  style: GwType.mono(fontSize: 9, color: t.stoneFaint)),
+              const SizedBox(height: 5),
+              Icon(Symbols.chat_bubble, size: 13, color: t.goldTextStrong),
+            ],
           ),
-          const SizedBox(height: 6),
-          Text(member.displayName ?? 'Membre',
-              style: GwType.ui(fontSize: 11, color: t.stoneMid),
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis),
-          const SizedBox(height: 2),
-          Text(roleLabel,
-              style: GwType.mono(fontSize: 9, color: t.stoneFaint)),
-        ],
+        ),
       ),
     );
   }
@@ -3921,6 +3934,10 @@ class _ChefCardState extends ConsumerState<_ChefCard> {
   Widget _header(BuildContext context, VillageChief? chief) {
     final t = GwTokens.of(context);
     final hasChief = chief != null && chief.displayName.trim().isNotEmpty;
+    // Distinction clé : un chef réellement documenté (couronne / or / règne)
+    // vs. le simple créateur-fallback (isCreator) qui n'est PAS le chef →
+    // aucune insigne royale, libellé neutre « Référent de la fiche ».
+    final isRealChief = hasChief && !chief.isCreator;
     final name = hasChief ? chief.displayName.trim() : 'Chef non désigné';
     final avatarUrl = chief?.avatarUrl;
 
@@ -3934,13 +3951,13 @@ class _ChefCardState extends ConsumerState<_ChefCard> {
               height: 54,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                gradient: hasChief
+                gradient: isRealChief
                     ? const LinearGradient(
                         colors: [GwTokens.goldLight, GwTokens.gold])
                     : null,
-                color: hasChief ? null : t.inkLift,
+                color: isRealChief ? null : t.inkLift,
                 border: Border.all(
-                    color: hasChief ? t.goldLine : t.lineMid, width: 1.5),
+                    color: isRealChief ? t.goldLine : t.lineMid, width: 1.5),
                 image: (avatarUrl != null && avatarUrl.isNotEmpty)
                     ? DecorationImage(
                         image: NetworkImage(avatarUrl), fit: BoxFit.cover)
@@ -3953,11 +3970,11 @@ class _ChefCardState extends ConsumerState<_ChefCard> {
                           style: GwType.display(
                               fontSize: 18,
                               fontWeight: FontWeight.w600,
-                              color: hasChief
+                              color: isRealChief
                                   ? GwTokens.inkOnGold
-                                  : t.stoneFaint))),
+                                  : t.stoneMid))),
             ),
-            if (hasChief)
+            if (isRealChief)
               const Positioned(
                   top: -12,
                   left: 0,
@@ -3981,11 +3998,20 @@ class _ChefCardState extends ConsumerState<_ChefCard> {
               const SizedBox(height: 2),
               Row(
                 children: [
-                  Text(hasChief ? 'Chef du village' : 'Aucun chef désigné',
+                  Text(
+                      isRealChief
+                          ? 'Chef du village'
+                          : hasChief
+                              ? 'Référent de la fiche'
+                              : 'Aucun chef désigné',
                       style: GwType.ui(
                           fontSize: 12,
-                          color: hasChief ? t.goldText : t.stoneFaint)),
-                  if (hasChief) ...[
+                          color: isRealChief
+                              ? t.goldTextStrong
+                              : hasChief
+                                  ? t.stoneMid
+                                  : t.stoneFaint)),
+                  if (isRealChief) ...[
                     const SizedBox(width: 6),
                     Container(
                         width: 6,
@@ -3995,7 +4021,7 @@ class _ChefCardState extends ConsumerState<_ChefCard> {
                   ],
                 ],
               ),
-              if (hasChief && chief.since != null) ...[
+              if (isRealChief && chief.since != null) ...[
                 const SizedBox(height: 2),
                 Text('En fonction depuis ${chief.since}',
                     style: GwType.mono(fontSize: 9, color: t.stoneFaint)),
@@ -4070,53 +4096,35 @@ class _ChefCardState extends ConsumerState<_ChefCard> {
               loading: () => _headerSkeleton(context),
               data: (chief) => _header(context, chief),
             ),
-            const SizedBox(height: 14),
-            Row(
-              children: [
-                Expanded(
+            if (!isMember) ...[
+              const SizedBox(height: 14),
+              SizedBox(
+                width: double.infinity,
+                child: GestureDetector(
+                  onTap: _requestAccess,
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 10),
                     decoration: BoxDecoration(
-                        color: t.inkLift,
-                        borderRadius: BorderRadius.circular(GwTokens.rBtn),
-                        border: Border.all(color: t.lineMid)),
+                        color: GwTokens.gold,
+                        borderRadius: BorderRadius.circular(GwTokens.rBtn)),
                     child: Center(
-                        child: Text('Message',
-                            style: GwType.ui(fontSize: 12, color: t.stoneMid))),
-                  ),
-                ),
-                if (!isMember) ...[
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: _requestAccess,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        decoration: BoxDecoration(
-                            color: GwTokens.gold,
-                            borderRadius:
-                                BorderRadius.circular(GwTokens.rBtn)),
-                        child: Center(
-                          child: _requesting
-                              ? const SizedBox(
-                                  width: 16,
-                                  height: 16,
-                                  child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: GwTokens.inkOnGold))
-                              : Text('Demander accès',
-                                  textAlign: TextAlign.center,
-                                  style: GwType.ui(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                      color: GwTokens.inkOnGold)),
-                        ),
-                      ),
+                      child: _requesting
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: GwTokens.inkOnGold))
+                          : Text('Demander accès',
+                              textAlign: TextAlign.center,
+                              style: GwType.ui(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: GwTokens.inkOnGold)),
                     ),
                   ),
-                ],
-              ],
-            ),
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -4929,12 +4937,12 @@ class _AllMembersPanelState extends ConsumerState<_AllMembersPanel> {
                   style: GwType.ui(
                       fontSize: 12.5,
                       fontWeight: sel ? FontWeight.w700 : FontWeight.w500,
-                      color: sel ? t.goldText : t.stoneMid)),
+                      color: sel ? t.goldTextStrong : t.stoneMid)),
               const SizedBox(width: 6),
               Text('$count',
                   style: GwType.mono(
                       fontSize: 10,
-                      color: sel ? t.goldText : t.stoneFaint)),
+                      color: sel ? t.goldTextStrong : t.stoneFaint)),
             ],
           ),
         ),
@@ -5126,13 +5134,6 @@ class _PostCard extends ConsumerWidget {
                   () => ref
                       .read(villageFeedNotifierProvider(villageId).notifier)
                       .react(post.id, 'LIKE')),
-              _actBtn(
-                  context,
-                  Symbols.comment,
-                  post.commentCount > 0
-                      ? '${post.commentCount}'
-                      : 'Commenter',
-                  () {}),
               _actBtn(
                   context,
                   Symbols.favorite,
