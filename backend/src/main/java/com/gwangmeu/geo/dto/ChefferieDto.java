@@ -22,10 +22,15 @@ public record ChefferieDto(
         @Schema(description = "Libelle propre pour affichage (ex: 'Bandenkop')") String label
 ) {
     public static ChefferieDto from(Chefferie c) {
+        // Dual-read : le champ structuré `proper_name` (V60) prime ; à défaut,
+        // repli sur le nettoyage regex — la regex quitte peu à peu le runtime.
+        final String proper = c.getProperName();
+        final String label = (proper != null && !proper.isBlank())
+                ? cleanLabel(proper)
+                : cleanLabel(c.getDenomination());
         return new ChefferieDto(
                 c.getId(), c.getDegre(), c.getRegionName(), c.getDepartmentName(),
-                c.getDepartmentCode(), c.getNumero(), c.getDenomination(),
-                cleanLabel(c.getDenomination())
+                c.getDepartmentCode(), c.getNumero(), c.getDenomination(), label
         );
     }
 
