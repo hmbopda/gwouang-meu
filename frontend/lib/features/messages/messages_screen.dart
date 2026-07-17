@@ -28,6 +28,7 @@ class MessagesScreen extends ConsumerStatefulWidget {
 
 class _MessagesScreenState extends ConsumerState<MessagesScreen> {
   String _query = '';
+  String _filter = 'all'; // all | village | family | direct
   Conversation? _selected; // desktop split
 
   @override
@@ -63,10 +64,12 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
         if (!desktop) const GwWeaveBand(),
         _header(t),
         _search(t),
+        _filterChips(t),
         const SizedBox(height: 6),
         Expanded(
           child: _ConvList(
             query: _query,
+            filter: _filter,
             selectedId: desktop ? _selected?.group.id : null,
             onSelect:
                 desktop ? (c) => setState(() => _selected = c) : null,
@@ -128,6 +131,59 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
           ),
         ),
       );
+
+  // Filtres façon Messenger : Tous / Villages / Clans / Directs.
+  Widget _filterChips(GwTokens t) {
+    const items = [
+      ('all', 'Tous'),
+      ('village', 'Villages'),
+      ('family', 'Clans'),
+      ('direct', 'Directs'),
+    ];
+    return SizedBox(
+      height: 34,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        itemCount: items.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemBuilder: (_, i) {
+          final key = items[i].$1;
+          final selected = _filter == key;
+          return _filterChip(t, items[i].$2, selected,
+              () => setState(() => _filter = key));
+        },
+      ),
+    );
+  }
+
+  Widget _filterChip(
+      GwTokens t, String label, bool selected, VoidCallback onTap) {
+    return Material(
+      color: selected ? GwTokens.gold : Colors.transparent,
+      borderRadius: BorderRadius.circular(GwTokens.rPill),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(GwTokens.rPill),
+        child: Container(
+          alignment: Alignment.center,
+          padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 6),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(GwTokens.rPill),
+            border: Border.all(color: selected ? GwTokens.gold : t.line),
+          ),
+          child: Text(
+            label,
+            style: GwType.ui(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: selected ? GwTokens.inkOnGold : t.stoneMid,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
   Widget _thread(GwTokens t) {
     final sel = _selected;
@@ -317,11 +373,13 @@ final _epoch = DateTime.utc(1970);
 class _ConvList extends ConsumerWidget {
   const _ConvList({
     required this.query,
+    required this.filter,
     this.onSelect,
     this.selectedId,
   });
 
   final String query;
+  final String filter;
   final void Function(Conversation)? onSelect;
   final String? selectedId;
 
@@ -365,6 +423,7 @@ class _ConvList extends ConsumerWidget {
     var list = byId.values.toList()
       ..sort((a, b) => (b.lastActivityAt ?? _epoch)
           .compareTo(a.lastActivityAt ?? _epoch));
+    list = _filterByKind(list, filter);
     list = _filterByQuery(list, query);
 
     return RefreshIndicator(
@@ -425,6 +484,20 @@ List<Conversation> _filterByQuery(List<Conversation> list, String query) {
           c.group.name.toLowerCase().contains(q) ||
           c.scopeLabel.toLowerCase().contains(q))
       .toList();
+}
+
+/// Filtre par nature de conversation (chips Villages / Clans / Directs).
+List<Conversation> _filterByKind(List<Conversation> list, String filter) {
+  switch (filter) {
+    case 'village':
+      return list.where((c) => c.kind == ConversationKind.village).toList();
+    case 'family':
+      return list.where((c) => c.kind == ConversationKind.family).toList();
+    case 'direct':
+      return list.where((c) => c.kind == ConversationKind.direct).toList();
+    default:
+      return list;
+  }
 }
 
 Widget _emptyState(GwTokens t, IconData icon, String message) {

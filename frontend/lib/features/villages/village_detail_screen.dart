@@ -14,6 +14,8 @@ import 'package:gwangmeu/shared/models/chat_group_model.dart';
 import 'package:gwangmeu/shared/models/chat_message_model.dart';
 import 'package:gwangmeu/shared/widgets/error_widget.dart';
 import 'package:gwangmeu/features/chat/chat_notifier.dart';
+import 'package:gwangmeu/features/chat/direct_chat.dart';
+import 'package:gwangmeu/features/messages/messages_providers.dart';
 import 'package:gwangmeu/features/presence/presence_service.dart';
 import 'package:gwangmeu/features/genealogy/genealogy_notifier.dart';
 import 'package:gwangmeu/features/genealogy/models/family_tree.dart';
@@ -4689,23 +4691,24 @@ Future<void> _openMemberDirectChat(
   );
 
   try {
-    final group = await ref.read(createDirectChatProvider.notifier).openWith(
-          villageId: villageId,
-          targetUserId: member.userId,
-          targetName: name,
-        );
+    // DM UNIFIÉ : /chat/direct (idempotent) — un seul fil par personne, où qu'on
+    // le tape (annuaire du village, conversation, nouveau message). La discussion
+    // ouverte ici EST celle de la boîte de réception (fini le fil village-scoped
+    // séparé). On la présente en plein écran perso (bottom-sheet extensible).
+    final group = await ref.read(directChatOpenerProvider).openWith(member.userId);
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ref.invalidate(myDirectConversationsProvider);
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => DraggableScrollableSheet(
-        initialChildSize: 0.52,
-        minChildSize: 0.35,
-        maxChildSize: 0.92,
+        initialChildSize: 0.62,
+        minChildSize: 0.4,
+        maxChildSize: 0.95,
         snap: true,
-        snapSizes: const [0.52, 0.75, 0.92],
+        snapSizes: const [0.62, 0.95],
         builder: (_, __) => ClipRRect(
           borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
           child: Column(
