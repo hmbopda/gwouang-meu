@@ -74,8 +74,11 @@ public class GovernanceViewService {
                 ? modelRepository.findById(modelId).orElse(null)
                 : null;
 
+        // Défaut d'AFFICHAGE = MONOCEPHALIC (la plupart des autorités africaines
+        // ont un chef, même non documenté) ; l'acéphalie est explicite (igbo…).
+        // Ceci n'invente pas de chef : l'apex reste vide tant qu'aucun titulaire.
         String authorityModel = govOpt.map(VillageGovernance::getAuthorityModel)
-                .orElseGet(() -> model != null ? model.getAuthorityModel() : "ACEPHALOUS");
+                .orElseGet(() -> model != null ? model.getAuthorityModel() : "MONOCEPHALIC");
         String themeToken = govOpt.map(VillageGovernance::getThemeToken)
                 .orElseGet(() -> model != null ? model.getThemeToken() : "gov.neutral");
         String honorificStyle = govOpt.map(VillageGovernance::getHonorificStyle)

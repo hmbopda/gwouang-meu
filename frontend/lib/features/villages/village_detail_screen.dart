@@ -3936,13 +3936,15 @@ class _ChefCardState extends ConsumerState<_ChefCard> {
 
   /// En-tête chef : avatar (image ou initiales) + nom serif + rôle + ancienneté.
   /// [chief] null → « Chef non désigné » discret.
-  Widget _header(BuildContext context, VillageChief? chief) {
+  Widget _header(BuildContext context, VillageChief? chief, String themeToken,
+      String? apexTitle) {
     final t = GwTokens.of(context);
     final hasChief = chief != null && chief.displayName.trim().isNotEmpty;
-    // Distinction clé : un chef réellement documenté (couronne / or / règne)
-    // vs. le simple créateur-fallback (isCreator) qui n'est PAS le chef →
-    // aucune insigne royale, libellé neutre « Référent de la fiche ».
+    // Distinction clé : un chef documenté vs. le créateur-fallback (isCreator,
+    // PAS le chef). L'ornement ROYAL (couronne / or) n'apparaît QUE pour le
+    // registre gov.royal — « 1 thème parmi N », piloté par la donnée.
     final isRealChief = hasChief && !chief.isCreator;
+    final royal = isRealChief && themeToken == 'gov.royal';
     final name = hasChief ? chief.displayName.trim() : 'Chef non désigné';
     final avatarUrl = chief?.avatarUrl;
 
@@ -3956,13 +3958,13 @@ class _ChefCardState extends ConsumerState<_ChefCard> {
               height: 54,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                gradient: isRealChief
+                gradient: royal
                     ? const LinearGradient(
                         colors: [GwTokens.goldLight, GwTokens.gold])
                     : null,
-                color: isRealChief ? null : t.inkLift,
+                color: royal ? null : t.inkLift,
                 border: Border.all(
-                    color: isRealChief ? t.goldLine : t.lineMid, width: 1.5),
+                    color: royal ? t.goldLine : t.lineMid, width: 1.5),
                 image: (avatarUrl != null && avatarUrl.isNotEmpty)
                     ? DecorationImage(
                         image: NetworkImage(avatarUrl), fit: BoxFit.cover)
@@ -3975,11 +3977,11 @@ class _ChefCardState extends ConsumerState<_ChefCard> {
                           style: GwType.display(
                               fontSize: 18,
                               fontWeight: FontWeight.w600,
-                              color: isRealChief
+                              color: royal
                                   ? GwTokens.inkOnGold
                                   : t.stoneMid))),
             ),
-            if (isRealChief)
+            if (royal)
               const Positioned(
                   top: -12,
                   left: 0,
@@ -4005,7 +4007,9 @@ class _ChefCardState extends ConsumerState<_ChefCard> {
                 children: [
                   Text(
                       isRealChief
-                          ? 'Chef du village'
+                          ? (apexTitle == null || apexTitle.isEmpty
+                              ? 'Chef du village'
+                              : apexTitle)
                           : hasChief
                               ? 'Référent de la fiche'
                               : 'Aucun chef désigné',
@@ -4031,6 +4035,43 @@ class _ChefCardState extends ConsumerState<_ChefCard> {
                 Text('En fonction depuis ${chief.since}',
                     style: GwType.mono(fontSize: 9, color: t.stoneFaint)),
               ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Conseil acéphale : autorité collégiale, PAS de chef unique (« héros »).
+  /// Rendu quand authorityModel = ACEPHALOUS et aucun chef en fonction.
+  Widget _councilHeader(BuildContext context) {
+    final t = GwTokens.of(context);
+    return Row(
+      children: [
+        Container(
+          width: 54,
+          height: 54,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: t.inkLift,
+            border: Border.all(color: t.lineMid, width: 1.5),
+          ),
+          alignment: Alignment.center,
+          child: Icon(Symbols.groups, size: 26, color: t.sageText),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Conseil du village',
+                  style: GwType.display(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: t.stone)),
+              const SizedBox(height: 2),
+              Text('Autorité collégiale — pas de chef unique',
+                  style: GwType.ui(fontSize: 12, color: t.stoneMid)),
             ],
           ),
         ),
@@ -4084,6 +4125,13 @@ class _ChefCardState extends ConsumerState<_ChefCard> {
     final chiefAsync = ref.watch(villageChiefProvider(widget.village.id));
     final govAsync = ref.watch(governanceViewProvider(widget.village.id));
     final canEdit = permsAsync.valueOrNull?.has('EDIT_VILLAGE') ?? false;
+    final gov = govAsync.valueOrNull;
+    // Conseil acéphale UNIQUEMENT si le modèle est explicitement ACEPHALOUS et
+    // qu'aucun chef n'est en fonction (sinon, chef unique — le défaut).
+    final showCouncil =
+        gov?.authorityModel == 'ACEPHALOUS' && (gov?.apexVacant ?? true);
+    final themeToken = gov?.themeToken ?? 'gov.neutral';
+    final apexTitle = gov?.apex?.titleLabel;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
@@ -4096,13 +4144,18 @@ class _ChefCardState extends ConsumerState<_ChefCard> {
         ),
         child: Column(
           children: [
-            chiefAsync.when(
-              // Erreur : on ne plante pas, on retombe sur un chef générique.
-              error: (_, __) => _header(context, null),
-              // Chargement : squelette discret (avatar + lignes grisées).
-              loading: () => _headerSkeleton(context),
-              data: (chief) => _header(context, chief),
-            ),
+            // Layout piloté par la topologie : conseil ACÉPHALE (pas de « héros »)
+            // vs. chef unique. L'ornement royal suit le thème (gov.royal).
+            if (showCouncil)
+              _councilHeader(context)
+            else
+              chiefAsync.when(
+                error: (_, __) =>
+                    _header(context, null, themeToken, apexTitle),
+                loading: () => _headerSkeleton(context),
+                data: (chief) =>
+                    _header(context, chief, themeToken, apexTitle),
+              ),
             // Institution reconnue (si chef vacant) + notables par rang, résolus
             // par /governance. Dégradation gracieuse : rien tant que non chargé.
             govAsync.maybeWhen(
