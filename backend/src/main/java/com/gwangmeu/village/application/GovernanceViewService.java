@@ -7,6 +7,7 @@ import com.gwangmeu.governance.domain.GovernanceTitleLabel;
 import com.gwangmeu.governance.infrastructure.GovernanceModelRepository;
 import com.gwangmeu.governance.infrastructure.GovernanceTitleLabelRepository;
 import com.gwangmeu.village.domain.Village;
+import com.gwangmeu.village.domain.VillageChief;
 import com.gwangmeu.village.domain.VillageGovernance;
 import com.gwangmeu.village.domain.VillageOffice;
 import com.gwangmeu.village.domain.VillageOfficeHolder;
@@ -14,6 +15,7 @@ import com.gwangmeu.village.dto.GovernanceViewDto;
 import com.gwangmeu.village.dto.GovernanceViewDto.Holder;
 import com.gwangmeu.village.dto.GovernanceViewDto.Institution;
 import com.gwangmeu.village.dto.GovernanceViewDto.Seat;
+import com.gwangmeu.village.infrastructure.VillageChiefRepository;
 import com.gwangmeu.village.infrastructure.VillageGovernanceRepository;
 import com.gwangmeu.village.infrastructure.VillageOfficeHolderRepository;
 import com.gwangmeu.village.infrastructure.VillageOfficeRepository;
@@ -44,6 +46,7 @@ import java.util.stream.Collectors;
 public class GovernanceViewService {
 
     private final VillageRepository villageRepository;
+    private final VillageChiefRepository villageChiefRepository;
     private final VillageGovernanceRepository governanceRepository;
     private final VillageOfficeRepository officeRepository;
     private final VillageOfficeHolderRepository holderRepository;
@@ -84,20 +87,26 @@ public class GovernanceViewService {
                 .findByVillageIdOrderByOrdinalAsc(villageId).stream()
                 .collect(Collectors.groupingBy(VillageOfficeHolder::getOfficeId));
 
+        // APEX = chef courant (village_chiefs) — source canonique alignée avec le
+        // formulaire de dynastie + l'en-tête + l'ancien /chief. Les notables sont
+        // les titulaires des sièges NON-apex (village_office_holders).
+        Holder apex = villageChiefRepository.findByVillageIdAndCurrentTrue(villageId)
+                .stream().findFirst()
+                .map(c -> new Holder(c.getDisplayName(), apexTitleLabel(chefferie),
+                        c.getOrdinal(), c.getReignStart(), c.getReignEnd(), true,
+                        c.getAvatarUrl(), c.getUserId()))
+                .orElse(null);
+
         List<Seat> seats = new ArrayList<>();
-        Holder apex = null;
         for (VillageOffice o : offices) {
+            if (o.isApex()) continue; // l'apex provient de village_chiefs
             String label = resolveLabel(o, localePrimary);
             String honorific = resolveHonorific(o, localePrimary, honorificStyle);
             List<VillageOfficeHolder> hs = holdersByOffice.getOrDefault(o.getId(), List.of());
             List<Holder> holders = hs.stream().map(h -> toHolder(h, label)).toList();
             boolean vacant = hs.stream().noneMatch(VillageOfficeHolder::isCurrent);
-            seats.add(new Seat(o.getOfficeKey(), label, honorific, o.getTier(), o.getRank(),
-                    o.isApex(), vacant, holders));
-            if (o.isApex() && apex == null) {
-                apex = hs.stream().filter(VillageOfficeHolder::isCurrent).findFirst()
-                        .map(h -> toHolder(h, label)).orElse(null);
-            }
+            seats.add(new Seat(o.getId(), o.getOfficeKey(), label, honorific, o.getTier(), o.getRank(),
+                    false, vacant, holders));
         }
 
         boolean apexVacant = apex == null;
@@ -169,6 +178,20 @@ public class GovernanceViewService {
             case "women_leader" -> "Cheffe des femmes";
             case "kwifon", "regulatory" -> "Société régulatrice";
             default -> officeKey;
+        };
+    }
+
+    /** Titre de tête lisible dérivé du code structuré de la chefferie (V60). */
+    private String apexTitleLabel(Chefferie chefferie) {
+        String code = chefferie != null ? chefferie.getApexTitleCode() : null;
+        if (code == null) return "Chef";
+        return switch (code) {
+            case "fon" -> "Fɔ'";
+            case "lamido" -> "Lamido";
+            case "sultan" -> "Sultan";
+            case "oba" -> "Oba";
+            case "nana" -> "Nana";
+            default -> "Chef";
         };
     }
 }

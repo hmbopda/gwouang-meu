@@ -34,6 +34,7 @@ public record GovernanceViewDto(
     /** Un siège de gouvernance + ses titulaires (courant + historiques). */
     @Schema(description = "Siège de gouvernance et ses titulaires")
     public record Seat(
+            UUID officeId,
             String officeKey,
             String titleLabel,
             String honorific,

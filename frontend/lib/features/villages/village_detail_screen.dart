@@ -2583,6 +2583,7 @@ class _ChiefFormSheetState extends ConsumerState<_ChiefFormSheet> {
           );
       ref.invalidate(villageDynastyProvider(widget.villageId));
       ref.invalidate(villageChiefProvider(widget.villageId));
+      ref.invalidate(governanceViewProvider(widget.villageId));
       if (!mounted) return;
       Navigator.of(context).pop();
       _heritageToast(context, 'Chef enregistré');
@@ -2682,6 +2683,7 @@ Future<void> _confirmDeleteChief(
           .deleteChief(villageId, chief.id);
       ref.invalidate(villageDynastyProvider(villageId));
       ref.invalidate(villageChiefProvider(villageId));
+      ref.invalidate(governanceViewProvider(villageId));
     },
   );
 }
@@ -4081,6 +4083,7 @@ class _ChefCardState extends ConsumerState<_ChefCard> {
         false;
     final chiefAsync = ref.watch(villageChiefProvider(widget.village.id));
     final govAsync = ref.watch(governanceViewProvider(widget.village.id));
+    final canEdit = permsAsync.valueOrNull?.has('EDIT_VILLAGE') ?? false;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
@@ -4106,6 +4109,38 @@ class _ChefCardState extends ConsumerState<_ChefCard> {
               data: (gov) => _governanceExtras(context, gov),
               orElse: () => const SizedBox.shrink(),
             ),
+            if (canEdit) ...[
+              const SizedBox(height: 12),
+              Material(
+                color: Colors.transparent,
+                borderRadius: BorderRadius.circular(GwTokens.rBtn),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(GwTokens.rBtn),
+                  onTap: () => showGwDialog(context,
+                      builder: (_) =>
+                          _GovernanceManageSheet(villageId: widget.village.id)),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 9),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(GwTokens.rBtn),
+                      border: Border.all(color: t.goldLine),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Symbols.manage_accounts, size: 16, color: t.goldText),
+                        const SizedBox(width: 8),
+                        Text('Gérer la gouvernance',
+                            style: GwType.ui(
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w600,
+                                color: t.goldText)),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
             if (!isMember) ...[
               const SizedBox(height: 14),
               SizedBox(
@@ -4236,6 +4271,273 @@ class _ChefCardState extends ConsumerState<_ChefCard> {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Gestion de la gouvernance (chef + notables) ──
+
+/// Panneau de gestion (gated EDIT_VILLAGE) : le chef via le formulaire de
+/// dynastie existant ; les notables en CRUD (API /governance/notables).
+class _GovernanceManageSheet extends ConsumerWidget {
+  const _GovernanceManageSheet({required this.villageId});
+  final String villageId;
+
+  Future<void> _delete(BuildContext context, WidgetRef ref, GovSeat seat) async {
+    try {
+      await ref.read(governanceAdminProvider).deleteNotable(villageId, seat.officeId);
+      ref.invalidate(governanceViewProvider(villageId));
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            backgroundColor: GwTokens.ember,
+            content: Text('Suppression impossible',
+                style: GwType.ui(fontSize: 14, color: Colors.white))));
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = GwTokens.of(context);
+    final govAsync = ref.watch(governanceViewProvider(villageId));
+    return GwDialog(
+      title: 'Gérer la gouvernance',
+      subtitle: 'Chef et notables du village',
+      icon: Symbols.manage_accounts,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Material(
+            color: t.inkLift,
+            borderRadius: BorderRadius.circular(GwTokens.rBtn),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(GwTokens.rBtn),
+              onTap: () {
+                Navigator.of(context).maybePop();
+                _showChiefDialog(context, ref, villageId);
+              },
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                child: Row(children: [
+                  Icon(Symbols.workspace_premium, size: 18, color: t.goldText),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text('Désigner / modifier le chef',
+                        style: GwType.ui(
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w600,
+                            color: t.stone)),
+                  ),
+                  Icon(Symbols.chevron_right, size: 18, color: t.stoneDim),
+                ]),
+              ),
+            ),
+          ),
+          const SizedBox(height: 18),
+          Row(children: [
+            Text('NOTABLES',
+                style: GwType.mono(
+                    fontSize: 10, letterSpacing: 1.5, color: t.stoneDim)),
+            const Spacer(),
+            InkWell(
+              borderRadius: BorderRadius.circular(GwTokens.rPill),
+              onTap: () => showGwDialog(context,
+                  builder: (_) => _NotableFormSheet(villageId: villageId)),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(Symbols.add, size: 16, color: t.goldText),
+                  const SizedBox(width: 4),
+                  Text('Ajouter',
+                      style: GwType.ui(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w600,
+                          color: t.goldText)),
+                ]),
+              ),
+            ),
+          ]),
+          const SizedBox(height: 4),
+          govAsync.when(
+            loading: () => Padding(
+                padding: const EdgeInsets.all(14),
+                child: Center(child: CircularProgressIndicator(color: t.goldText))),
+            error: (_, __) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Text('Erreur de chargement',
+                    style: GwType.ui(fontSize: 12.5, color: t.stoneDim))),
+            data: (gov) {
+              final notables = gov.notableSeats;
+              if (notables.isEmpty) {
+                return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    child: Text('Aucun notable pour l’instant.',
+                        style: GwType.ui(fontSize: 12.5, color: t.stoneMid)));
+              }
+              return Column(
+                  children: notables.map((s) => _row(context, ref, s)).toList());
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _row(BuildContext context, WidgetRef ref, GovSeat seat) {
+    final t = GwTokens.of(context);
+    final holder = seat.holders.firstWhere((h) => h.current,
+        orElse: () => seat.holders.first);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(children: [
+        Icon(Symbols.workspace_premium, size: 15, color: t.goldText),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(holder.displayName,
+                style: GwType.ui(
+                    fontSize: 13, fontWeight: FontWeight.w600, color: t.stone),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis),
+            if (seat.titleLabel.isNotEmpty)
+              Text(seat.titleLabel,
+                  style: GwType.ui(fontSize: 11, color: t.stoneDim)),
+          ]),
+        ),
+        InkWell(
+          onTap: () => showGwDialog(context,
+              builder: (_) =>
+                  _NotableFormSheet(villageId: villageId, seat: seat)),
+          borderRadius: BorderRadius.circular(GwTokens.rPill),
+          child: Padding(
+            padding: const EdgeInsets.all(6),
+            child: Icon(Symbols.edit, size: 16, color: t.stoneMid),
+          ),
+        ),
+        InkWell(
+          onTap: () => _delete(context, ref, seat),
+          borderRadius: BorderRadius.circular(GwTokens.rPill),
+          child: const Padding(
+            padding: EdgeInsets.all(6),
+            child: Icon(Symbols.delete, size: 16, color: GwTokens.ember),
+          ),
+        ),
+      ]),
+    );
+  }
+}
+
+/// Formulaire d'ajout/édition d'un notable (nom · titre · rang).
+class _NotableFormSheet extends ConsumerStatefulWidget {
+  const _NotableFormSheet({required this.villageId, this.seat});
+  final String villageId;
+  final GovSeat? seat;
+
+  @override
+  ConsumerState<_NotableFormSheet> createState() => _NotableFormSheetState();
+}
+
+class _NotableFormSheetState extends ConsumerState<_NotableFormSheet> {
+  late final TextEditingController _name;
+  late final TextEditingController _title;
+  late final TextEditingController _rank;
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final seat = widget.seat;
+    final holder = (seat != null && seat.holders.isNotEmpty)
+        ? seat.holders.firstWhere((h) => h.current,
+            orElse: () => seat.holders.first)
+        : null;
+    _name = TextEditingController(text: holder?.displayName ?? '');
+    _title = TextEditingController(text: seat?.titleLabel ?? '');
+    _rank = TextEditingController(text: seat != null ? '${seat.rank}' : '');
+  }
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _title.dispose();
+    _rank.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    final name = _name.text.trim();
+    if (name.isEmpty || _saving) return;
+    setState(() => _saving = true);
+    final admin = ref.read(governanceAdminProvider);
+    final title = _title.text.trim();
+    final rank = int.tryParse(_rank.text.trim());
+    try {
+      if (widget.seat == null) {
+        await admin.addNotable(widget.villageId,
+            displayName: name, title: title, rank: rank);
+      } else {
+        await admin.updateNotable(widget.villageId, widget.seat!.officeId,
+            displayName: name, title: title, rank: rank);
+      }
+      ref.invalidate(governanceViewProvider(widget.villageId));
+      if (mounted) Navigator.of(context).maybePop();
+    } catch (_) {
+      if (mounted) {
+        setState(() => _saving = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            backgroundColor: GwTokens.ember,
+            content: Text('Enregistrement impossible',
+                style: GwType.ui(fontSize: 14, color: Colors.white))));
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = GwTokens.of(context);
+    final editing = widget.seat != null;
+    return GwDialog(
+      title: editing ? 'Modifier le notable' : 'Ajouter un notable',
+      subtitle: 'Nom, titre et rang de préséance',
+      icon: Symbols.workspace_premium,
+      actions: [
+        GwDialogAction(
+          label: editing ? 'Enregistrer' : 'Ajouter',
+          icon: Symbols.check,
+          primary: true,
+          loading: _saving,
+          onPressed: _save,
+        ),
+      ],
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          TextField(
+            controller: _name,
+            autofocus: true,
+            style: GwType.ui(fontSize: 14, color: t.stone),
+            decoration: gwInputDecoration(context, hint: 'Nom du notable'),
+          ),
+          const SizedBox(height: 10),
+          TextField(
+            controller: _title,
+            style: GwType.ui(fontSize: 14, color: t.stone),
+            decoration: gwInputDecoration(context,
+                hint: 'Titre (ex. Nji, Méfé) — facultatif'),
+          ),
+          const SizedBox(height: 10),
+          TextField(
+            controller: _rank,
+            keyboardType: TextInputType.number,
+            style: GwType.ui(fontSize: 14, color: t.stone),
+            decoration: gwInputDecoration(context,
+                hint: 'Rang de préséance (1 = plus haut) — facultatif'),
           ),
         ],
       ),

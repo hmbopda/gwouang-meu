@@ -60,6 +60,7 @@ class GovernanceView {
 
 class GovSeat {
   const GovSeat({
+    required this.officeId,
     required this.officeKey,
     required this.titleLabel,
     required this.tier,
@@ -70,6 +71,7 @@ class GovSeat {
     this.honorific,
   });
 
+  final String officeId;
   final String officeKey;
   final String titleLabel;
   final String? honorific;
@@ -80,6 +82,7 @@ class GovSeat {
   final List<GovHolder> holders;
 
   factory GovSeat.fromJson(Map<String, dynamic> json) => GovSeat(
+        officeId: json['officeId']?.toString() ?? '',
         officeKey: json['officeKey'] as String? ?? '',
         titleLabel: json['titleLabel'] as String? ?? '',
         honorific: json['honorific'] as String?,
@@ -165,3 +168,37 @@ final governanceViewProvider =
   final json = await client.get('/api/v1/villages/$villageId/governance');
   return GovernanceView.fromJson(json['data'] as Map<String, dynamic>);
 });
+
+/// Écriture de la gouvernance : gestion des NOTABLES (gated EDIT_VILLAGE côté
+/// API). Le chef (apex) se gère via la dynastie (/chiefs).
+final governanceAdminProvider =
+    Provider<GovernanceAdmin>((ref) => GovernanceAdmin(ref.read(apiClientProvider)));
+
+class GovernanceAdmin {
+  GovernanceAdmin(this._api);
+  final ApiClient _api;
+
+  Map<String, dynamic> _body(
+          String displayName, String? title, int? rank, int? termStart) =>
+      {
+        'displayName': displayName.trim(),
+        if (title != null && title.trim().isNotEmpty) 'title': title.trim(),
+        if (rank != null) 'rank': rank,
+        if (termStart != null) 'termStart': termStart,
+      };
+
+  Future<void> addNotable(String villageId,
+      {required String displayName, String? title, int? rank, int? termStart}) async {
+    await _api.post('/api/v1/villages/$villageId/governance/notables',
+        data: _body(displayName, title, rank, termStart));
+  }
+
+  Future<void> updateNotable(String villageId, String officeId,
+      {required String displayName, String? title, int? rank, int? termStart}) async {
+    await _api.put('/api/v1/villages/$villageId/governance/notables/$officeId',
+        data: _body(displayName, title, rank, termStart));
+  }
+
+  Future<void> deleteNotable(String villageId, String officeId) =>
+      _api.delete('/api/v1/villages/$villageId/governance/notables/$officeId');
+}
