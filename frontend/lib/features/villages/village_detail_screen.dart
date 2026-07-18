@@ -23,6 +23,7 @@ import 'package:gwangmeu/features/genealogy/models/person_genealogy.dart';
 import 'package:gwangmeu/features/genealogy/services/genealogy_api_service.dart';
 import 'package:gwangmeu/features/profile/profile_notifier.dart';
 import 'package:gwangmeu/features/villages/villages_notifier.dart';
+import 'package:gwangmeu/features/villages/services/governance_view_service.dart';
 import 'package:gwangmeu/features/villages/services/village_governance_service.dart';
 import 'package:gwangmeu/features/villages/services/village_heritage_service.dart';
 import 'package:gwangmeu/features/villages/services/village_language_service.dart';
@@ -4079,6 +4080,7 @@ class _ChefCardState extends ConsumerState<_ChefCard> {
             (p) => p.chief || p.superAdmin || p.permissions.isNotEmpty) ??
         false;
     final chiefAsync = ref.watch(villageChiefProvider(widget.village.id));
+    final govAsync = ref.watch(governanceViewProvider(widget.village.id));
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
@@ -4097,6 +4099,12 @@ class _ChefCardState extends ConsumerState<_ChefCard> {
               // Chargement : squelette discret (avatar + lignes grisées).
               loading: () => _headerSkeleton(context),
               data: (chief) => _header(context, chief),
+            ),
+            // Institution reconnue (si chef vacant) + notables par rang, résolus
+            // par /governance. Dégradation gracieuse : rien tant que non chargé.
+            govAsync.maybeWhen(
+              data: (gov) => _governanceExtras(context, gov),
+              orElse: () => const SizedBox.shrink(),
             ),
             if (!isMember) ...[
               const SizedBox(height: 14),
@@ -4129,6 +4137,107 @@ class _ChefCardState extends ConsumerState<_ChefCard> {
             ],
           ],
         ),
+      ),
+    );
+  }
+
+  /// Institution reconnue (chef vacant) + notables par rang — depuis /governance.
+  /// Additif sous l'en-tête chef ; n'invente rien (institution = référentiel).
+  Widget _governanceExtras(BuildContext context, GovernanceView gov) {
+    final t = GwTokens.of(context);
+    final inst = gov.institution;
+    final bits = <String>[
+      if (inst?.degreLabel != null) inst!.degreLabel!,
+      if (inst?.acte != null && inst!.acte!.isNotEmpty) 'Arrêté ${inst.acte}',
+    ];
+    final showInstitution = gov.apexVacant && inst != null && bits.isNotEmpty;
+    final notables = gov.notableSeats;
+    if (!showInstitution && notables.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (showInstitution) ...[
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: GwTokens.sageBg,
+              borderRadius: BorderRadius.circular(GwTokens.rBtn),
+              border: Border.all(color: GwTokens.sageLine),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Symbols.verified, size: 16, color: t.sageText),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Chefferie reconnue',
+                          style: GwType.ui(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w600,
+                              color: t.stone)),
+                      const SizedBox(height: 1),
+                      Text(bits.join('  ·  '),
+                          style:
+                              GwType.mono(fontSize: 9.5, color: t.stoneMid)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+        if (notables.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Text('NOTABLES',
+                  style: GwType.mono(
+                      fontSize: 10, letterSpacing: 1.5, color: t.stoneDim)),
+              const SizedBox(width: 6),
+              Text('${notables.length}',
+                  style: GwType.mono(fontSize: 10, color: t.stoneFaint)),
+            ],
+          ),
+          const SizedBox(height: 6),
+          ...notables.map((s) => _notableRow(context, s)),
+        ],
+      ],
+    );
+  }
+
+  Widget _notableRow(BuildContext context, GovSeat seat) {
+    final t = GwTokens.of(context);
+    final holder = seat.holders.firstWhere((h) => h.current,
+        orElse: () => seat.holders.first);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(
+        children: [
+          Icon(Symbols.workspace_premium, size: 14, color: t.goldText),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text.rich(
+              TextSpan(children: [
+                TextSpan(
+                    text: holder.displayName,
+                    style: GwType.ui(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                        color: t.stone)),
+                TextSpan(
+                    text: '  ·  ${seat.titleLabel}',
+                    style: GwType.ui(fontSize: 11.5, color: t.stoneDim)),
+              ]),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
       ),
     );
   }
