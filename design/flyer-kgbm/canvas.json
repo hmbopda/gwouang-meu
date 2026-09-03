@@ -1,0 +1,12 @@
+{
+  "artboards": [
+    { "file": "Main.dc.html", "x": 0, "y": 0, "w": 794, "h": 1123, "title": "Flyer KGBM — Ligne d'or (navy)", "print": "fixed" },
+    { "file": "PapierClair.dc.html", "x": 900, "y": 0, "w": 794, "h": 1123, "title": "Option B — Papier clair (économie d'encre)", "print": "fixed" },
+    { "file": "Affiche.dc.html", "x": 1800, "y": 0, "w": 794, "h": 1123, "title": "Option C — Affiche (esquisse)", "print": "fixed" }
+  ],
+  "annotations": [
+    { "id": "corrections-fr", "x": 0, "y": -260, "w": 420, "text": "Corrections de français appliquées\n• « Transformation Points » (anglais) → « Les cinq étapes »\n• Definissez → Définissez · ptateformes → plateformes · Modemisez → Modernisez\n• geetion → gestion · meneces → menaces\n• Majuscules abusives supprimées (Du concept à la réussite, Interlocuteur unique…)\n• Espace insécable avant « : » (typographie française)\n• Logo : monogramme provisoire, à remplacer par le logo officiel" },
+    { "id": "options", "x": 900, "y": -140, "w": 380, "text": "Option B : même mise en page, fond papier — moins d'encre à l'impression.\nOption C : esquisse affiche, titre géant, étapes condensées." }
+  ],
+  "launch": { "view": "canvas" }
+}
