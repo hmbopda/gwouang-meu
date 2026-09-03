@@ -24,6 +24,7 @@ Canevas publié : https://claude.ai/code/artifact/82ef760a-e26c-4cb6-89cd-c837d4
 
 ## Contenu ajouté
 
+- Six vignettes illustrées (une par étape) dans des cartes à fond doux, à la place des grands numéros
 - Illustration `figure.svg` : profil humain et cerveau en réseau de neurones (conseil, data & IA), en trait doré
 
 - Étape 02 « Concevez l'architecture : socle IT et intégration » (services d'architecture IT)

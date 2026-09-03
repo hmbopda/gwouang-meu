@@ -22,3 +22,14 @@ rep = [
 ]
 for a, b in rep: s = s.replace(a, b)
 open('PapierClair.dc.html', 'w', encoding='utf-8').write(s)
+# light-variant surfaces for the cards and chips
+s = open('PapierClair.dc.html', encoding='utf-8').read()
+for a, b in [
+ ('linear-gradient(160deg, rgba(255,255,255,0.055), rgba(255,255,255,0.02))', 'linear-gradient(160deg, rgba(255,255,255,0.85), rgba(255,255,255,0.45))'),
+ ('inset 0 1px 0 rgba(255,255,255,0.07)', '0 1px 0 rgba(27,34,56,0.06), 0 6px 18px rgba(27,34,56,0.06)'),
+ ('rgba(232,201,106,0.22), rgba(201,168,76,0.06) 70%', 'rgba(232,201,106,0.35), rgba(201,168,76,0.10) 70%'),
+ ('background: rgba(201,168,76,0.10); box-shadow: inset 0 0 0 1px rgba(201,168,76,0.30);', 'background: rgba(201,168,76,0.14); box-shadow: inset 0 0 0 1px rgba(154,120,16,0.35);'),
+ ('.vig svg { width: 48px; height: 48px; fill: none; stroke: #C9A84C;', '.vig svg { width: 48px; height: 48px; fill: none; stroke: #9A7810;'),
+]:
+    s = s.replace(a, b)
+open('PapierClair.dc.html', 'w', encoding='utf-8').write(s)
