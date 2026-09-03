@@ -1,25 +1,31 @@
 # Flyer KGBM Services — refonte
 
-Trois planches A4 (794×1123 px, 96 dpi) au format Design Components, publiées sur le canevas
-Claude Design : https://claude.ai/code/artifact/82ef760a-e26c-4cb6-89cd-c837d44f0719
+Planches de design (format Design Components, A4 à 96 px/pouce : 794 × 1123) pour le flyer
+« Du concept à la réussite : votre parcours de transformation ».
 
-- `Main.dc.html` — direction retenue « Ligne d'or » : navy profond, or, grille éditoriale, grands numéros.
-- `PapierClair.dc.html` — option B, même mise en page sur fond papier (moins d'encre à l'impression).
-- `Affiche.dc.html` — option C, esquisse affiche : titre géant, étapes condensées.
-- `canvas.json` — disposition des planches et notes.
+Canevas publié : https://claude.ai/code/artifact/82ef760a-e26c-4cb6-89cd-c837d44f0719
+
+| Fichier | Rôle |
+|---|---|
+| `Main.dc.html` | Direction principale « Ligne d'or » (navy + or, six étapes) |
+| `PapierClair.dc.html` | Option B : même mise en page sur fond papier (moins d'encre). Dérivée de `Main` par `build-light.py` |
+| `Affiche.dc.html` | Option C : esquisse affiche, titre géant, étapes condensées |
+| `canvas.json` | Disposition des planches et notes |
+| `apercu-main.png` | Aperçu rendu avec polices de substitution |
 
 ## Corrections de français par rapport au flyer d'origine
 
-| Original | Corrigé |
-|---|---|
-| Transformation Points (anglais) | Les cinq étapes |
-| Definissez | Définissez |
-| ptateformes | plateformes |
-| Modemisez | Modernisez |
-| geetion des risques | gestion des risques |
-| réponse aux meneces | réponse aux menaces |
-| Du Concept à la Réussite : Votre Parcours de Transformation | Du concept à la réussite : votre parcours de transformation |
-| Interlocuteur Unique / Partenaires Vérifiés / Solutions Locales et Internationales | minuscules (règle française) |
-| « l'IA: Automatisation » | « l'IA : automatisation » (espace avant les deux-points) |
+- « Transformation Points » (anglais) → « Les six étapes »
+- Definissez → Définissez · ptateformes → plateformes · Modemisez → Modernisez
+- geetion → gestion · meneces → menaces
+- Majuscules abusives supprimées : « Du concept à la réussite : votre parcours de transformation »,
+  « Interlocuteur unique », « Partenaires vérifiés », « Solutions locales et internationales »
+- Espace avant les deux-points (typographie française)
 
-Le monogramme est provisoire : remplacer par le logo officiel KGBM Services.
+## Contenu ajouté
+
+- Étape 02 « Concevez l'architecture : socle IT et intégration » (services d'architecture IT)
+
+## À remplacer
+
+- Le monogramme du logo est provisoire, à remplacer par le logo officiel KGBM Services.
